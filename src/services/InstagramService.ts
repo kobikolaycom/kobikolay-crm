@@ -47,7 +47,9 @@ export class InstagramService {
       Authorization: `Bearer ${creds.pageToken}`,
     };
 
-    console.log(`[InstagramService] Mesaj gönderiliyor: recipientId=${recipientId}, text="${messageText.substring(0, 50)}..."`);
+    const isInstagramToken = creds.pageToken.startsWith("IG");
+
+    console.log(`[InstagramService] Mesaj gönderiliyor (isInstagramToken=${isInstagramToken}): recipientId=${recipientId}, text="${messageText.substring(0, 50)}..."`);
 
     // 1. Instagram Graph API (Instagram DM'ler için doğru endpoint)
     try {
@@ -61,9 +63,16 @@ export class InstagramService {
         return igData;
       }
 
-      console.warn(`[InstagramService] Instagram API hata (${igResponse.status}):`, JSON.stringify(igData?.error || igData));
-    } catch (e) {
-      console.error("[InstagramService] Instagram API isteği başarısız:", e);
+      console.error(`[InstagramService] Instagram API Hata (${igResponse.status}):`, JSON.stringify(igData?.error || igData));
+      
+      if (isInstagramToken) {
+        throw new Error(igData.error?.message || `Instagram API Hata (${igResponse.status})`);
+      }
+    } catch (e: any) {
+      console.error("[InstagramService] Instagram API gönderim hatası:", e);
+      if (isInstagramToken) {
+        throw new Error(e.message || "Instagram mesaj gönderilemedi");
+      }
     }
 
     // 2. Facebook Graph API (fallback — Page token ile bazı durumlarda çalışır)
@@ -95,6 +104,31 @@ export class InstagramService {
     if (!creds.pageToken) {
       console.warn("[InstagramService] getUserProfile: pageToken boş, profil çekilemiyor.");
       return {};
+    }
+
+    const isInstagramToken = creds.pageToken.startsWith("IG");
+
+    // Instagram token ise direkt graph.instagram.com'a özel sorgula (invalid field'lar olmadan)
+    if (isInstagramToken) {
+      try {
+        const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=name,username,profile_picture_url&access_token=${creds.pageToken}`;
+        console.log(`[InstagramService] Profil çekiliyor (IG Graph - Instagram Token): userId=${userId}`);
+        const igResponse = await fetch(igUrl);
+        const igData = await igResponse.json();
+
+        if (igResponse.ok && (igData.name || igData.username)) {
+          console.log(`[InstagramService] Profil bulundu (IG Graph):`, JSON.stringify(igData));
+          return {
+            name: igData.name,
+            username: igData.username,
+            profile_pic: igData.profile_picture_url,
+          };
+        } else {
+          console.warn(`[InstagramService] IG Graph API hata:`, JSON.stringify(igData?.error || igData));
+        }
+      } catch (e) {
+        console.error("[InstagramService] IG Graph API profil hatası:", e);
+      }
     }
 
     // Çekilecek alanlar
