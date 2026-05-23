@@ -76,7 +76,7 @@ export function Sidebar() {
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
-              <Link key={item.name} href={item.href}>
+              <Link key={item.name} href={item.href} prefetch={false}>
                 <div
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground",
@@ -122,7 +122,7 @@ export function Sidebar() {
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
-                  <Link key={item.name} href={item.href} onClick={toggleMobile}>
+                  <Link key={item.name} href={item.href} onClick={toggleMobile} prefetch={false}>
                     <div
                       className={cn(
                         "flex items-center gap-4 rounded-xl p-4 text-lg transition-all",

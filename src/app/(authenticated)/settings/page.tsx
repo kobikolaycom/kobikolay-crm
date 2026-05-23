@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 p-6 lg:p-8">
       <PageHeader
         title="Sistem Ayarları"
         description="KobiKolay CRM platformunun genel ayarlarını ve API anahtarlarını yönetin."

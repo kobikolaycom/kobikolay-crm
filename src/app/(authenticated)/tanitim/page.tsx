@@ -39,7 +39,7 @@ export default async function TanitimPage() {
   });
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 p-6 lg:p-8">
       <PageHeader
         title="Tanıtım Mailleri"
         description="Toplu tanıtım kampanyaları oluşturun ve gönderim geçmişini takip edin."
