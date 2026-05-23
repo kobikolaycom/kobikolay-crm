@@ -2,6 +2,16 @@ import { SystemSettingService } from "./SystemSettingService";
 import { ConversationService } from "./ConversationService";
 import prisma from "@/lib/prisma";
 
+export interface InstagramProfile {
+  name?: string;
+  username?: string;
+  profile_pic?: string;
+  follower_count?: number;
+  is_verified_user?: boolean;
+  is_user_follow_business?: boolean;
+  is_business_follow_user?: boolean;
+}
+
 export class InstagramService {
   /**
    * Meta ayarlarını veritabanından çeker.
@@ -19,6 +29,7 @@ export class InstagramService {
   /**
    * Instagram Graph API üzerinden mesaj gönderir.
    * Kullanıcıya DM yanıtı gönderir.
+   * Önce Instagram Graph API, sonra Facebook Graph API dener.
    */
   static async sendMessage(recipientId: string, messageText: string) {
     const creds = await this.getCredentials();
@@ -26,35 +37,160 @@ export class InstagramService {
       throw new Error("Instagram Page Access Token yapılandırılmamış. Ayarlar > Entegrasyonlar bölümünden yapılandırın.");
     }
 
-    // Instagram Messaging API (Graph API v21.0)
-    const url = `https://graph.facebook.com/v21.0/me/messages`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${creds.pageToken}`,
-      },
-      body: JSON.stringify({
-        recipient: { id: recipientId },
-        message: { text: messageText },
-      }),
+    const payload = JSON.stringify({
+      recipient: { id: recipientId },
+      message: { text: messageText },
     });
 
-    const data = await response.json();
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${creds.pageToken}`,
+    };
 
-    if (!response.ok) {
-      console.error("Instagram API Error:", data);
-      throw new Error(data.error?.message || "Instagram mesaj gönderilemedi");
+    console.log(`[InstagramService] Mesaj gönderiliyor: recipientId=${recipientId}, text="${messageText.substring(0, 50)}..."`);
+
+    // 1. Instagram Graph API (Instagram DM'ler için doğru endpoint)
+    try {
+      const igUrl = `https://graph.instagram.com/v21.0/me/messages`;
+      console.log(`[InstagramService] Deneniyor: ${igUrl}`);
+      const igResponse = await fetch(igUrl, { method: "POST", headers, body: payload });
+      const igData = await igResponse.json();
+
+      if (igResponse.ok) {
+        console.log(`[InstagramService] Instagram API ile mesaj gönderildi:`, JSON.stringify(igData));
+        return igData;
+      }
+
+      console.warn(`[InstagramService] Instagram API hata (${igResponse.status}):`, JSON.stringify(igData?.error || igData));
+    } catch (e) {
+      console.error("[InstagramService] Instagram API isteği başarısız:", e);
     }
 
-    return data;
+    // 2. Facebook Graph API (fallback — Page token ile bazı durumlarda çalışır)
+    try {
+      const fbUrl = `https://graph.facebook.com/v21.0/me/messages`;
+      console.log(`[InstagramService] Fallback deneniyor: ${fbUrl}`);
+      const fbResponse = await fetch(fbUrl, { method: "POST", headers, body: payload });
+      const fbData = await fbResponse.json();
+
+      if (fbResponse.ok) {
+        console.log(`[InstagramService] Facebook API ile mesaj gönderildi:`, JSON.stringify(fbData));
+        return fbData;
+      }
+
+      console.error(`[InstagramService] Facebook API hata (${fbResponse.status}):`, JSON.stringify(fbData?.error || fbData));
+      throw new Error(fbData.error?.message || "Instagram mesaj gönderilemedi");
+    } catch (e: any) {
+      console.error("[InstagramService] Tüm endpointler başarısız:", e);
+      throw new Error(e.message || "Instagram mesaj gönderilemedi — API bağlantısı kurulamadı.");
+    }
+  }
+
+  /**
+   * Instagram kullanıcı profilini çeker.
+   * Birden fazla API endpoint'i ve geniş field seti ile dener.
+   */
+  static async getUserProfile(userId: string): Promise<InstagramProfile> {
+    const creds = await this.getCredentials();
+    if (!creds.pageToken) {
+      console.warn("[InstagramService] getUserProfile: pageToken boş, profil çekilemiyor.");
+      return {};
+    }
+
+    // Çekilecek alanlar
+    const fields = "name,username,profile_pic,follower_count,is_verified_user,is_user_follow_business,is_business_follow_user";
+
+    // 1. Önce Facebook Graph API ile dene (Instagram IGSID için standart endpoint)
+    try {
+      const fbUrl = `https://graph.facebook.com/v21.0/${userId}?fields=${fields}&access_token=${creds.pageToken}`;
+      console.log(`[InstagramService] Profil çekiliyor (FB Graph): userId=${userId}`);
+      const fbResponse = await fetch(fbUrl);
+      const fbData = await fbResponse.json();
+
+      if (fbResponse.ok && (fbData.name || fbData.username)) {
+        console.log(`[InstagramService] Profil bulundu (FB Graph):`, JSON.stringify(fbData));
+        return fbData;
+      }
+
+      if (!fbResponse.ok) {
+        console.warn(`[InstagramService] FB Graph API hata:`, JSON.stringify(fbData?.error || fbData));
+      }
+    } catch (e) {
+      console.error("[InstagramService] FB Graph API profil hatası:", e);
+    }
+
+    // 2. Instagram Graph API ile dene (alternatif endpoint)
+    try {
+      const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=${fields}&access_token=${creds.pageToken}`;
+      console.log(`[InstagramService] Profil çekiliyor (IG Graph): userId=${userId}`);
+      const igResponse = await fetch(igUrl);
+      const igData = await igResponse.json();
+
+      if (igResponse.ok && (igData.name || igData.username)) {
+        console.log(`[InstagramService] Profil bulundu (IG Graph):`, JSON.stringify(igData));
+        return igData;
+      }
+
+      if (!igResponse.ok) {
+        console.warn(`[InstagramService] IG Graph API hata:`, JSON.stringify(igData?.error || igData));
+      }
+    } catch (e) {
+      console.error("[InstagramService] IG Graph API profil hatası:", e);
+    }
+
+    // 3. Sadece temel alanlarla tekrar dene (bazı alanlar izin gerektirebilir)
+    try {
+      const basicUrl = `https://graph.facebook.com/v21.0/${userId}?fields=name,profile_pic&access_token=${creds.pageToken}`;
+      console.log(`[InstagramService] Profil çekiliyor (sadece temel alanlar): userId=${userId}`);
+      const basicResponse = await fetch(basicUrl);
+      const basicData = await basicResponse.json();
+
+      if (basicResponse.ok && basicData.name) {
+        console.log(`[InstagramService] Temel profil bulundu:`, JSON.stringify(basicData));
+        return basicData;
+      }
+
+      if (!basicResponse.ok) {
+        console.warn(`[InstagramService] Temel profil API hata:`, JSON.stringify(basicData?.error || basicData));
+      }
+    } catch (e) {
+      console.error("[InstagramService] Temel profil hatası:", e);
+    }
+
+    console.warn(`[InstagramService] userId=${userId} için hiçbir profil verisi alınamadı.`);
+    return {};
+  }
+
+  /**
+   * Profil verisinden görüntüleme ismi oluşturur.
+   * Örn: "Ahmet Yılmaz (@ahmetyilmaz)" veya "Ahmet Yılmaz" veya "@ahmetyilmaz"
+   */
+  static formatDisplayName(profile: InstagramProfile): string | null {
+    const { name, username } = profile;
+
+    if (name && username) {
+      return `${name} (@${username})`;
+    }
+    if (name) {
+      return name;
+    }
+    if (username) {
+      return `@${username}`;
+    }
+    return null;
   }
 
   /**
    * Gelen webhook mesajını işler ve Conversation/Message oluşturur.
    */
-  static async handleIncomingMessage(senderId: string, senderName: string | null, messageText: string, timestamp: number) {
+  static async handleIncomingMessage(
+    senderId: string,
+    profile: InstagramProfile,
+    messageText: string,
+    timestamp: number
+  ) {
+    const displayName = this.formatDisplayName(profile);
+
     // Mevcut açık konuşma var mı?
     let conversation = await prisma.conversation.findFirst({
       where: {
@@ -70,17 +206,23 @@ export class InstagramService {
       conversation = await prisma.conversation.create({
         data: {
           channelType: "INSTAGRAM",
-          contactName: senderName || `Instagram Kullanıcı`,
+          contactName: displayName || `Instagram Kullanıcı`,
           contactPhone: senderId,
           status: "OPEN",
         },
         include: { messages: true },
       });
-    } else if (senderName && !conversation.contactName) {
-      // İsim güncelle
+    } else if (displayName && conversation.contactName === "Instagram Kullanıcı") {
+      // Daha önce isim alınamamıştı, şimdi güncelle
       await prisma.conversation.update({
         where: { id: conversation.id },
-        data: { contactName: senderName },
+        data: { contactName: displayName },
+      });
+    } else if (displayName && !conversation.contactName) {
+      // İsim boşsa güncelle
+      await prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { contactName: displayName },
       });
     }
 
@@ -88,7 +230,7 @@ export class InstagramService {
     await ConversationService.createMessage(conversation.id, {
       content: messageText,
       senderType: "customer",
-      senderName: senderName || "Instagram Kullanıcı",
+      senderName: displayName || "Instagram Kullanıcı",
       isInternalNote: false,
     });
 
@@ -100,33 +242,12 @@ export class InstagramService {
    */
   static async verifyWebhook(verifyToken: string): Promise<boolean> {
     const creds = await this.getCredentials();
-    // Webhook verify token'ı whatsapp ayarlarından veya meta ayarlarından kontrol et
-    // Basit bir sabit kontrol: appSecret'ı verify token olarak kullan
-    // Ya da SystemSetting'den özel bir webhook_verify_token çek
+    // Webhook verify token'ı meta ayarlarından kontrol et
     const savedToken = await SystemSettingService.get("meta", "webhookVerifyToken");
     if (savedToken) {
       return verifyToken === savedToken;
     }
     // Fallback: appSecret ile karşılaştır
     return verifyToken === creds.appSecret;
-  }
-
-  /**
-   * Instagram kullanıcı profilini çeker.
-   */
-  static async getUserProfile(userId: string): Promise<{ name?: string; profile_pic?: string }> {
-    const creds = await this.getCredentials();
-    if (!creds.pageToken) return {};
-
-    try {
-      const url = `https://graph.facebook.com/v21.0/${userId}?fields=name,profile_pic&access_token=${creds.pageToken}`;
-      const response = await fetch(url);
-      if (response.ok) {
-        return await response.json();
-      }
-    } catch (e) {
-      console.error("Failed to get Instagram user profile:", e);
-    }
-    return {};
   }
 }

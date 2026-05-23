@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. DB'den kontrol et (fallback)
+    // 3. DB'den kontrol et (fallback)
     try {
       const { InstagramService } = await import("@/services/InstagramService");
       const isValid = await InstagramService.verifyWebhook(token);
@@ -54,12 +54,13 @@ export async function GET(req: NextRequest) {
 /**
  * POST: Instagram Webhook Event'lerini alır ve işler.
  * Gelen DM mesajlarını ConversationMessage olarak kaydeder.
+ * Profil bilgilerini (isim, kullanıcı adı, profil fotoğrafı vb.) çeker.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    console.log("[Instagram Webhook] Incoming event:", JSON.stringify(body).substring(0, 500));
+    console.log("[Instagram Webhook] Incoming event:", JSON.stringify(body).substring(0, 1000));
 
     // Meta webhook format:
     // { object: "instagram", entry: [{ id, time, messaging: [{ sender, recipient, timestamp, message }] }] }
@@ -79,24 +80,55 @@ export async function POST(req: NextRequest) {
 
             if (!senderId) continue;
 
-            // Kullanıcı profili çek (isim)
-            let senderName: string | null = null;
+            // Kullanıcı profili çek (isim, kullanıcı adı, profil fotoğrafı vb.)
+            let profile: Awaited<ReturnType<typeof InstagramService.getUserProfile>> = {};
             try {
-              const profile = await InstagramService.getUserProfile(senderId);
-              senderName = profile.name || null;
+              profile = await InstagramService.getUserProfile(senderId);
+              console.log(`[Instagram Webhook] Profil alındı:`, JSON.stringify(profile));
             } catch (e) {
               console.error("[Instagram Webhook] Profile fetch failed:", e);
             }
 
-            // Mesajı kaydet
+            // Mesajı kaydet (profil bilgileri ile birlikte)
             await InstagramService.handleIncomingMessage(
               senderId,
-              senderName,
+              profile,
               messageText,
               timestamp
             );
 
-            console.log(`[Instagram Webhook] Message saved from ${senderName || senderId}: ${messageText}`);
+            const displayName = InstagramService.formatDisplayName(profile);
+            console.log(`[Instagram Webhook] Mesaj kaydedildi: ${displayName || senderId}: "${messageText}"`);
+          }
+
+          // Resim / medya mesajları
+          if (event.message && event.message.attachments) {
+            const senderId = event.sender?.id;
+            const timestamp = event.timestamp || Date.now();
+
+            if (!senderId) continue;
+
+            let profile: Awaited<ReturnType<typeof InstagramService.getUserProfile>> = {};
+            try {
+              profile = await InstagramService.getUserProfile(senderId);
+            } catch (e) {
+              console.error("[Instagram Webhook] Profile fetch failed for attachment:", e);
+            }
+
+            for (const attachment of event.message.attachments) {
+              const type = attachment.type || "unknown";
+              const url = attachment.payload?.url || "";
+              const content = `[${type.toUpperCase()}] ${url}`;
+
+              await InstagramService.handleIncomingMessage(
+                senderId,
+                profile,
+                content,
+                timestamp
+              );
+
+              console.log(`[Instagram Webhook] Medya kaydedildi: ${type} from ${senderId}`);
+            }
           }
 
           // Echo/delivery/read receipt'leri şimdilik atla
