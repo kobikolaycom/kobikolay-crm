@@ -30,36 +30,43 @@ export async function addMessageAction(
   senderType: string = "agent",
   isInternalNote: boolean = false
 ) {
-  const session = await auth();
-  if (!session?.user) throw new Error("Yetkisiz erişim");
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { success: false, error: "Yetkisiz erişim" };
+    }
 
-  // Konuşma kanalını kontrol et - Instagram ise API üzerinden de gönder
-  if (!isInternalNote && senderType === "agent") {
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      select: { channelType: true, contactPhone: true },
-    });
+    // Konuşma kanalını kontrol et - Instagram ise API üzerinden de gönder
+    if (!isInternalNote && senderType === "agent") {
+      const conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
+        select: { channelType: true, contactPhone: true },
+      });
 
-    if (conversation?.channelType === "INSTAGRAM" && conversation.contactPhone) {
-      try {
-        const { InstagramService } = await import("@/services/InstagramService");
-        await InstagramService.sendMessage(conversation.contactPhone, content);
-      } catch (error: any) {
-        console.error("[Inbox] Instagram send failed:", error);
-        throw new Error(`Instagram mesaj gönderilemedi: ${error.message}`);
+      if (conversation?.channelType === "INSTAGRAM" && conversation.contactPhone) {
+        try {
+          const { InstagramService } = await import("@/services/InstagramService");
+          await InstagramService.sendMessage(conversation.contactPhone, content);
+        } catch (error: any) {
+          console.error("[Inbox] Instagram send failed:", error);
+          return { success: false, error: `Instagram mesaj gönderilemedi: ${error.message}` };
+        }
       }
     }
+
+    const message = await ConversationService.createMessage(conversationId, {
+      content,
+      isInternalNote,
+      senderType,
+      senderName: session.user.name || "Personel",
+    });
+
+    revalidatePath("/inbox");
+    return { success: true, message };
+  } catch (err: any) {
+    console.error("[Inbox] addMessageAction general error:", err);
+    return { success: false, error: err.message || "Bilinmeyen bir hata oluştu" };
   }
-
-  const message = await ConversationService.createMessage(conversationId, {
-    content,
-    isInternalNote,
-    senderType,
-    senderName: session.user.name || "Personel",
-  });
-
-  revalidatePath("/inbox");
-  return message;
 }
 
 export async function resolveConversationAction(id: string) {

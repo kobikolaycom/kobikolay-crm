@@ -168,14 +168,18 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     if (!messageText.trim() || !selectedId) return;
     setSending(true);
     try {
-      await addMessageAction(selectedId, messageText, isManual ? "agent" : "agent", isManual);
+      const res = await addMessageAction(selectedId, messageText, isManual ? "agent" : "agent", isManual);
+      if (res && !res.success) {
+        toast.error(res.error || "Gönderilemedi");
+        return;
+      }
       setMessageText("");
       const updated = await getConversationByIdAction(selectedId);
       setSelectedConvo(updated);
       await refreshConversations();
       toast.success(isManual ? "Not kaydedildi" : "Mesaj gönderildi");
-    } catch (e) {
-      toast.error("Gönderilemedi");
+    } catch (e: any) {
+      toast.error(e?.message || "Gönderilemedi");
     } finally {
       setSending(false);
     }

@@ -72,6 +72,12 @@ export async function POST(req: NextRequest) {
         const messagingEvents = entry.messaging || [];
 
         for (const event of messagingEvents) {
+          // Echo mesajlarını (kendi gönderdiğimiz mesajları) atla
+          if (event.message && event.message.is_echo) {
+            console.log("[Instagram Webhook] Echo mesajı algılandı, atlanıyor:", event.message.text || "(medya)");
+            continue;
+          }
+
           // Mesaj geldi mi?
           if (event.message && event.message.text) {
             const senderId = event.sender?.id;
