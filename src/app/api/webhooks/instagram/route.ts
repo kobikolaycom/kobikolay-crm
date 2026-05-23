@@ -15,10 +15,14 @@ export async function GET(req: NextRequest) {
   console.log("[Instagram Webhook] Verify request:", { mode, token, challenge: challenge?.substring(0, 20) });
 
   if (mode === "subscribe" && token && challenge) {
-    // 1. Önce environment variable'dan kontrol et (en güvenilir)
+    // 1. Önce environment variable'dan kontrol et
     const envToken = process.env.META_WEBHOOK_VERIFY_TOKEN;
-    if (envToken && token === envToken) {
-      console.log("[Instagram Webhook] Verification successful via ENV");
+    
+    // 2. Hardcoded fallback (Vercel ENV okuyamadığında yedek)
+    const FALLBACK_TOKEN = "acenteyazilim_crm_2026";
+    
+    if ((envToken && token === envToken) || token === FALLBACK_TOKEN) {
+      console.log("[Instagram Webhook] Verification successful");
       return new NextResponse(challenge, { 
         status: 200,
         headers: { "Content-Type": "text/plain" },
