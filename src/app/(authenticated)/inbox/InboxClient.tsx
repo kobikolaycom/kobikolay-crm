@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   Search, Inbox, MessageCircle, CheckCircle2, Send, Paperclip, Zap,
   UserPlus, MoreVertical, ChevronDown, Save, Clock,
   StickyNote, ExternalLink, RefreshCw, Users, Mail,
+  X, Building2, UserCheck,
 } from "lucide-react";
 import {
   getConversationsAction, getConversationByIdAction, addMessageAction,
@@ -54,6 +55,18 @@ interface Message {
   createdAt: string;
 }
 
+interface AgencyResult {
+  id: string;
+  companyName: string;
+  documentNo: string;
+}
+
+interface UserResult {
+  id: string;
+  name: string | null;
+  role: { name: string };
+}
+
 export function InboxClient({ initialConversations }: { initialConversations: Conversation[] }) {
   const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
@@ -67,7 +80,45 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
   const [isManual, setIsManual] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Fetch conversations
+  // ─── Agency Linking State ───
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [agencySearchTerm, setAgencySearchTerm] = useState("");
+  const [agencyResults, setAgencyResults] = useState<AgencyResult[]>([]);
+  const [loadingAgencies, setLoadingAgencies] = useState(false);
+  const [linkingAgencyId, setLinkingAgencyId] = useState<string | null>(null);
+  const linkPanelRef = useRef<HTMLDivElement>(null);
+
+  // ─── User Assignment State ───
+  const [showAssignPanel, setShowAssignPanel] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<UserResult[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const assignPanelRef = useRef<HTMLDivElement>(null);
+
+  // Mesaj alanını otomatik en alta kaydır
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ─── Auto-scroll to bottom when messages change ───
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedConvo?.messages]);
+
+  // ─── Click outside to close panels ───
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (linkPanelRef.current && !linkPanelRef.current.contains(e.target as Node)) {
+        setShowLinkPanel(false);
+      }
+      if (assignPanelRef.current && !assignPanelRef.current.contains(e.target as Node)) {
+        setShowAssignPanel(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // ─── Fetch conversations ───
   const refreshConversations = useCallback(async () => {
     try {
       const data = await getConversationsAction();
@@ -77,13 +128,30 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     }
   }, []);
 
-  // Load selected conversation
+  // ─── Auto-refresh: Poll every 10 seconds ───
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await refreshConversations();
+      // Seçili konuşma varsa mesajları da güncelle
+      if (selectedId) {
+        try {
+          const updated = await getConversationByIdAction(selectedId);
+          setSelectedConvo(updated);
+        } catch {}
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [refreshConversations, selectedId]);
+
+  // ─── Load selected conversation ───
   useEffect(() => {
     if (!selectedId) {
       setSelectedConvo(null);
       return;
     }
     setLoading(true);
+    setShowLinkPanel(false);
+    setShowAssignPanel(false);
     getConversationByIdAction(selectedId)
       .then((data) => {
         setSelectedConvo(data);
@@ -95,14 +163,13 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
       });
   }, [selectedId]);
 
-  // Send message
+  // ─── Send message ───
   const handleSend = async () => {
     if (!messageText.trim() || !selectedId) return;
     setSending(true);
     try {
       await addMessageAction(selectedId, messageText, isManual ? "agent" : "agent", isManual);
       setMessageText("");
-      // Refresh conversation
       const updated = await getConversationByIdAction(selectedId);
       setSelectedConvo(updated);
       await refreshConversations();
@@ -114,7 +181,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     }
   };
 
-  // Resolve conversation
+  // ─── Resolve conversation ───
   const handleResolve = async () => {
     if (!selectedId) return;
     try {
@@ -127,7 +194,77 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     }
   };
 
-  // Filter conversations
+  // ─── Agency Search & Link ───
+  const handleAgencySearch = useCallback(async (term: string) => {
+    setAgencySearchTerm(term);
+    if (term.trim().length < 2) {
+      setAgencyResults([]);
+      return;
+    }
+    setLoadingAgencies(true);
+    try {
+      const results = await searchAgenciesForLinkAction(term);
+      setAgencyResults(results);
+    } catch {
+      setAgencyResults([]);
+    } finally {
+      setLoadingAgencies(false);
+    }
+  }, []);
+
+  const handleLinkAgency = async (agencyId: string) => {
+    if (!selectedId) return;
+    setLinkingAgencyId(agencyId);
+    try {
+      await linkAgencyAction(selectedId, agencyId);
+      toast.success("Konuşma acenteye bağlandı");
+      // Refresh
+      const updated = await getConversationByIdAction(selectedId);
+      setSelectedConvo(updated);
+      await refreshConversations();
+      setShowLinkPanel(false);
+      setAgencySearchTerm("");
+      setAgencyResults([]);
+    } catch (e) {
+      toast.error("Bağlama başarısız");
+    } finally {
+      setLinkingAgencyId(null);
+    }
+  };
+
+  // ─── User Assignment ───
+  const handleOpenAssignPanel = async () => {
+    if (showAssignPanel) {
+      setShowAssignPanel(false);
+      return;
+    }
+    setShowAssignPanel(true);
+    setLoadingUsers(true);
+    try {
+      const users = await getActiveUsersAction();
+      setActiveUsers(users);
+    } catch {
+      toast.error("Kullanıcı listesi yüklenemedi");
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleAssignUser = async (userId: string) => {
+    if (!selectedId) return;
+    try {
+      await assignConversationAction(selectedId, userId);
+      toast.success("Konuşma personele atandı");
+      const updated = await getConversationByIdAction(selectedId);
+      setSelectedConvo(updated);
+      await refreshConversations();
+      setShowAssignPanel(false);
+    } catch (e) {
+      toast.error("Atama başarısız");
+    }
+  };
+
+  // ─── Filter conversations ───
   const filteredConversations = conversations.filter((c) => {
     if (filter === "resolved" && c.status !== "RESOLVED") return false;
     if (filter === "unread" && c.status === "RESOLVED") return false;
@@ -222,10 +359,15 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">{lastMsg}</p>
-                      <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ch.color)}>
                           {ch.label}
                         </Badge>
+                        {c.agency && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-sky-50 text-sky-600 border-sky-200">
+                            {c.agency.companyName}
+                          </Badge>
+                        )}
                         {c.status === "RESOLVED" && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-50 text-emerald-600 border-emerald-200">
                             Çözüldü
@@ -254,39 +396,207 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
         ) : (
           <>
             {/* Header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between bg-white">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{channelConfig[selectedConvo.channelType]?.icon}</span>
-                <div>
-                  <h3 className="font-semibold text-slate-900">
-                    {selectedConvo.contactName || selectedConvo.agency?.companyName || "Bilinmeyen"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedConvo.contactPhone || "Telefon yok"} •{" "}
-                    {selectedConvo.agency ? (
-                      <Link href={`/agents/${selectedConvo.agencyId}`} className="text-primary hover:underline inline-flex items-center gap-0.5">
-                        {selectedConvo.agency.companyName} <ExternalLink size={10} />
-                      </Link>
-                    ) : (
-                      "Bağlı acente yok"
-                    )}
-                  </p>
+            <div className="px-6 py-4 border-b bg-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{channelConfig[selectedConvo.channelType]?.icon}</span>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      {selectedConvo.contactName || selectedConvo.agency?.companyName || "Bilinmeyen"}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedConvo.contactPhone || "Telefon yok"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedConvo.status !== "RESOLVED" && (
+                    <Button size="sm" variant="outline" className="rounded-lg gap-1.5 text-xs" onClick={handleResolve}>
+                      <CheckCircle2 size={14} /> Çözüldü
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant={isManual ? "default" : "outline"}
+                    className="rounded-lg gap-1.5 text-xs"
+                    onClick={() => setIsManual(!isManual)}
+                  >
+                    <StickyNote size={14} /> {isManual ? "Not Modu" : "Not Ekle"}
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {selectedConvo.status !== "RESOLVED" && (
-                  <Button size="sm" variant="outline" className="rounded-lg gap-1.5 text-xs" onClick={handleResolve}>
-                    <CheckCircle2 size={14} /> Çözüldü
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant={isManual ? "default" : "outline"}
-                  className="rounded-lg gap-1.5 text-xs"
-                  onClick={() => setIsManual(!isManual)}
-                >
-                  <StickyNote size={14} /> {isManual ? "Not Modu" : "Not Ekle"}
-                </Button>
+
+              {/* ─── Agency Link & User Assign Bar ─── */}
+              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-dashed border-slate-200">
+                {/* Agency Link Section */}
+                <div className="relative" ref={linkPanelRef}>
+                  {selectedConvo.agency ? (
+                    <Link
+                      href={`/agents/${selectedConvo.agencyId}`}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Building2 size={13} />
+                      {selectedConvo.agency.companyName}
+                      <ExternalLink size={10} />
+                    </Link>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg gap-1.5 text-xs border-dashed border-amber-300 text-amber-700 hover:bg-amber-50"
+                      onClick={() => { setShowLinkPanel(!showLinkPanel); setShowAssignPanel(false); }}
+                    >
+                      <Building2 size={13} /> Acenteye Bağla
+                    </Button>
+                  )}
+
+                  {/* Agency Search Dropdown */}
+                  {showLinkPanel && (
+                    <div className="absolute top-full left-0 mt-2 w-80 bg-white border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-3 border-b bg-slate-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-slate-700">Acente Ara & Bağla</span>
+                          <button onClick={() => setShowLinkPanel(false)} className="text-muted-foreground hover:text-slate-900">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                          <Input
+                            placeholder="Firma adı veya belge no..."
+                            className="pl-8 h-9 text-sm rounded-lg"
+                            value={agencySearchTerm}
+                            onChange={(e) => handleAgencySearch(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {loadingAgencies ? (
+                          <div className="px-4 py-6 text-center">
+                            <RefreshCw className="animate-spin mx-auto text-muted-foreground mb-2" size={18} />
+                            <p className="text-xs text-muted-foreground">Aranıyor...</p>
+                          </div>
+                        ) : agencyResults.length === 0 ? (
+                          <div className="px-4 py-6 text-center">
+                            <Building2 size={20} className="mx-auto text-muted-foreground/30 mb-2" />
+                            <p className="text-xs text-muted-foreground">
+                              {agencySearchTerm.length < 2 ? "En az 2 karakter yazın" : "Sonuç bulunamadı"}
+                            </p>
+                          </div>
+                        ) : (
+                          agencyResults.map((ag) => (
+                            <button
+                              key={ag.id}
+                              disabled={linkingAgencyId === ag.id}
+                              onClick={() => handleLinkAgency(ag.id)}
+                              className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-b-0"
+                            >
+                              <div>
+                                <p className="text-sm font-medium group-hover:text-primary transition-colors">{ag.companyName}</p>
+                                <p className="text-[10px] text-muted-foreground">Belge: {ag.documentNo}</p>
+                              </div>
+                              {linkingAgencyId === ag.id ? (
+                                <RefreshCw className="animate-spin text-primary" size={14} />
+                              ) : (
+                                <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Bağla →
+                                </span>
+                              )}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="w-px h-5 bg-slate-200" />
+
+                {/* User Assignment Section */}
+                <div className="relative" ref={assignPanelRef}>
+                  {selectedConvo.assignedUser ? (
+                    <button
+                      onClick={handleOpenAssignPanel}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <UserCheck size={13} />
+                      {selectedConvo.assignedUser.name}
+                      <ChevronDown size={10} />
+                    </button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg gap-1.5 text-xs border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
+                      onClick={handleOpenAssignPanel}
+                    >
+                      <UserPlus size={13} /> Personele Ata
+                    </Button>
+                  )}
+
+                  {/* User Assignment Dropdown */}
+                  {showAssignPanel && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
+                        <span className="text-xs font-semibold text-slate-700">Personele Ata</span>
+                        <button onClick={() => setShowAssignPanel(false)} className="text-muted-foreground hover:text-slate-900">
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {loadingUsers ? (
+                          <div className="px-4 py-6 text-center">
+                            <RefreshCw className="animate-spin mx-auto text-muted-foreground mb-2" size={18} />
+                            <p className="text-xs text-muted-foreground">Yükleniyor...</p>
+                          </div>
+                        ) : activeUsers.length === 0 ? (
+                          <div className="px-4 py-6 text-center">
+                            <Users size={20} className="mx-auto text-muted-foreground/30 mb-2" />
+                            <p className="text-xs text-muted-foreground">Aktif personel bulunamadı</p>
+                          </div>
+                        ) : (
+                          activeUsers.map((user) => {
+                            const isAssigned = selectedConvo.assignedUser?.id === user.id;
+                            return (
+                              <button
+                                key={user.id}
+                                onClick={() => handleAssignUser(user.id)}
+                                className={cn(
+                                  "w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center justify-between group border-b last:border-b-0",
+                                  isAssigned && "bg-emerald-50"
+                                )}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className={cn(
+                                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
+                                    isAssigned ? "bg-emerald-200 text-emerald-700" : "bg-slate-100 text-slate-500"
+                                  )}>
+                                    {(user.name || "?").charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium">{user.name || "İsimsiz"}</p>
+                                    <p className="text-[10px] text-muted-foreground">{user.role.name}</p>
+                                  </div>
+                                </div>
+                                {isAssigned ? (
+                                  <Badge variant="outline" className="text-[9px] bg-emerald-100 text-emerald-600 border-emerald-200">
+                                    Atanmış
+                                  </Badge>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Ata →
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -331,6 +641,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
