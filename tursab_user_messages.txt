@@ -1,0 +1,8 @@
+Conversation: .system_generated [Line 333]
+User Request: <USER_REQUEST>
+şimdi bizim tursab listesi projesini de kurtar buradan 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-05-22T14:11:29+03:00.
+</ADDITIONAL_METADATA>
+--------------------------------------------------

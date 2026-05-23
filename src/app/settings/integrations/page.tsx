@@ -1,0 +1,453 @@
+"use client";
+
+import { useState, useEffect, useTransition } from "react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  Mail, MessageCircle, Hash, Globe, Save, Eye, EyeOff,
+  CheckCircle2, AlertCircle, RefreshCw, Server, X
+} from "lucide-react";
+
+interface IntegrationSettings {
+  smtp: Record<string, string>;
+  whatsapp: Record<string, string>;
+  meta: Record<string, string>;
+}
+
+async function loadSettings(): Promise<IntegrationSettings> {
+  const res = await fetch("/api/settings/integrations");
+  if (!res.ok) return { smtp: {}, whatsapp: {}, meta: {} };
+  return res.json();
+}
+
+async function saveSettings(category: string, entries: { key: string; value: string }[]) {
+  const res = await fetch("/api/settings/integrations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category, entries }),
+  });
+  return res.json();
+}
+
+const PasswordInput = ({ value, onChange, placeholder }: { value: string, onChange: (val: string) => void, placeholder?: string, field?: string }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="relative flex items-center">
+      <Input
+        type={showPassword ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+        className="pr-16 rounded-xl font-mono text-sm"
+      />
+      <div className="absolute right-3 flex items-center gap-1.5 select-none">
+        {isFocused && value && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onChange("")}
+            className="text-slate-400 hover:text-slate-600 transition-all rounded-full p-0.5"
+            title="Temizle"
+          >
+            <X size={12} className="bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-full p-0.5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="text-muted-foreground hover:text-foreground p-0.5 rounded-lg transition-all"
+        >
+          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default function IntegrationsPage() {
+  const [isPending, startTransition] = useTransition();
+
+  // SMTP Settings
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("587");
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpFrom, setSmtpFrom] = useState("");
+  const [smtpFromName, setSmtpFromName] = useState("");
+  const [smtpEncryption, setSmtpEncryption] = useState("NONE");
+  const [testEmail, setTestEmail] = useState("");
+  
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // WhatsApp Settings
+  const [waPhoneId, setWaPhoneId] = useState("");
+  const [waToken, setWaToken] = useState("");
+  const [waWebhookSecret, setWaWebhookSecret] = useState("");
+
+  // Meta / Instagram Settings
+  const [metaAppId, setMetaAppId] = useState("");
+  const [metaAppSecret, setMetaAppSecret] = useState("");
+  const [metaPageToken, setMetaPageToken] = useState("");
+  const [igAccountId, setIgAccountId] = useState("");
+  const [metaWebhookVerifyToken, setMetaWebhookVerifyToken] = useState("");
+
+  const [loaded, setLoaded] = useState(false);
+
+  // Load on mount
+  useEffect(() => {
+    loadSettings().then((data) => {
+      if (data.smtp) {
+        setSmtpHost(data.smtp.host || "");
+        setSmtpPort(data.smtp.port || "587");
+        setSmtpUser(data.smtp.user || "");
+        setSmtpPass(data.smtp.pass || "");
+        setSmtpFrom(data.smtp.from || "");
+        setSmtpFromName(data.smtp.fromName || "");
+        setSmtpEncryption(data.smtp.encryption || "NONE");
+      }
+      if (data.whatsapp) {
+        setWaPhoneId(data.whatsapp.phoneId || "");
+        setWaToken(data.whatsapp.token || "");
+        setWaWebhookSecret(data.whatsapp.webhookSecret || "");
+      }
+      if (data.meta) {
+        setMetaAppId(data.meta.appId || "");
+        setMetaAppSecret(data.meta.appSecret || "");
+        setMetaPageToken(data.meta.pageToken || "");
+        setIgAccountId(data.meta.igAccountId || "");
+        setMetaWebhookVerifyToken(data.meta.webhookVerifyToken || "");
+      }
+      setLoaded(true);
+    });
+  }, []);
+
+
+
+  const handleSaveSmtp = () => {
+    startTransition(async () => {
+      try {
+        await saveSettings("smtp", [
+          { key: "host", value: smtpHost },
+          { key: "port", value: smtpPort },
+          { key: "user", value: smtpUser },
+          { key: "pass", value: smtpPass },
+          { key: "from", value: smtpFrom },
+          { key: "fromName", value: smtpFromName },
+          { key: "encryption", value: smtpEncryption },
+        ]);
+        toast.success("SMTP ayarları kaydedildi");
+      } catch {
+        toast.error("Kaydetme başarısız");
+      }
+    });
+  };
+
+  const handleTestSmtp = async (action: "connect" | "send") => {
+    if (action === "connect") setIsTestingConnection(true);
+    else setIsSendingTest(true);
+
+    try {
+      const res = await fetch("/api/settings/integrations/smtp-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: smtpHost,
+          port: smtpPort,
+          user: smtpUser,
+          pass: smtpPass,
+          from: smtpFrom,
+          fromName: smtpFromName,
+          encryption: smtpEncryption,
+          testEmail: testEmail,
+          action,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+      } else {
+        toast.error(data.error || "Bağlantı başarısız");
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    } finally {
+      if (action === "connect") setIsTestingConnection(false);
+      else setIsSendingTest(false);
+    }
+  };
+
+  const handleSaveWhatsApp = () => {
+    startTransition(async () => {
+      try {
+        await saveSettings("whatsapp", [
+          { key: "phoneId", value: waPhoneId },
+          { key: "token", value: waToken },
+          { key: "webhookSecret", value: waWebhookSecret },
+        ]);
+        toast.success("WhatsApp ayarları kaydedildi");
+      } catch {
+        toast.error("Kaydetme başarısız");
+      }
+    });
+  };
+
+  const handleSaveMeta = () => {
+    startTransition(async () => {
+      try {
+        await saveSettings("meta", [
+          { key: "appId", value: metaAppId },
+          { key: "appSecret", value: metaAppSecret },
+          { key: "pageToken", value: metaPageToken },
+          { key: "igAccountId", value: igAccountId },
+          { key: "webhookVerifyToken", value: metaWebhookVerifyToken },
+        ]);
+        toast.success("Meta/Instagram ayarları kaydedildi");
+      } catch {
+        toast.error("Kaydetme başarısız");
+      }
+    });
+  };
+
+
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <PageHeader
+        title="API & Entegrasyonlar"
+        description="E-posta sunucusu, WhatsApp Business ve Meta API bağlantılarını yapılandırın."
+      />
+
+      {/* SMTP */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+              <Mail size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">SMTP Ayarları</h3>
+              <p className="text-xs text-muted-foreground">E-posta gönderimleri için kullanılacak SMTP altyapısını buradan yönetebilirsin.</p>
+            </div>
+          </div>
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px]">Configured</Badge>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Mail Sunucu</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Mail sunucusu ismi</span>
+              </Label>
+              <Input value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} placeholder="everest.mxrouting.net" className="rounded-xl" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Mail Tanım</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Mail atıldığında görülecek isim</span>
+              </Label>
+              <Input value={smtpFromName} onChange={(e) => setSmtpFromName(e.target.value)} placeholder="Acente Yazilim" className="rounded-xl" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Bağlantı</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Güvenli bağlantı için ssl normal bağlantı için tls</span>
+              </Label>
+              <select 
+                value={smtpEncryption}
+                onChange={(e) => setSmtpEncryption(e.target.value)}
+                className="flex h-10 w-full items-center justify-between rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="NONE">NONE</option>
+                <option value="SSL">SSL</option>
+                <option value="TLS">TLS</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Mail Adresi</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Mail adresinizin kullanıcı adı</span>
+              </Label>
+              <Input value={smtpFrom} onChange={(e) => setSmtpFrom(e.target.value)} placeholder="no-reply@sirket.com" className="rounded-xl" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Port</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Güvenli bağlantı için 465 Normal bağlantı için 587</span>
+              </Label>
+              <Input value={smtpPort} onChange={(e) => setSmtpPort(e.target.value)} placeholder="587" className="rounded-xl" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Şifre</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Mail adresinizin şifresi</span>
+              </Label>
+              <PasswordInput value={smtpPass} onChange={setSmtpPass} placeholder="Boş bırakırsan değişmez" />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Kullanıcı Adı</span>
+                <span className="text-[10px] font-normal text-muted-foreground">SMTP girişinde kullanılacak e-posta veya kullanıcı adı.</span>
+              </Label>
+              <Input value={smtpUser} onChange={(e) => setSmtpUser(e.target.value)} placeholder="no-reply@sirket.com" className="rounded-xl" />
+            </div>
+
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4 items-end bg-slate-50 p-5 rounded-2xl border">
+            <div className="space-y-2 flex-1 w-full">
+              <Label>Test E-Posta Adresi</Label>
+              <Input value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="test@example.com" className="rounded-xl bg-white" />
+            </div>
+            <div className="flex gap-3 w-full md:w-auto">
+              <Button onClick={() => handleTestSmtp("connect")} disabled={isTestingConnection} variant="outline" className="rounded-xl w-full md:w-auto">
+                {isTestingConnection ? <RefreshCw className="animate-spin mr-2" size={16} /> : null}
+                Bağlantıyı Test Et
+              </Button>
+              <Button onClick={() => handleTestSmtp("send")} disabled={isSendingTest} variant="outline" className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 w-full md:w-auto">
+                {isSendingTest ? <RefreshCw className="animate-spin mr-2" size={16} /> : null}
+                Test Mail Gönder
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2 border-t">
+            <Button onClick={handleSaveSmtp} disabled={isPending} className="gap-2 rounded-xl">
+              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+              SMTP Ayarlarını Kaydet
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-600">
+            <MessageCircle size={20} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900">WhatsApp Business API</h3>
+            <p className="text-xs text-muted-foreground">Meta WhatsApp Cloud API bağlantı ayarları</p>
+          </div>
+          <Badge variant="outline" className="ml-auto text-[10px] bg-amber-50 text-amber-700 border-amber-200">Beta</Badge>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Phone Number ID</Label>
+              <Input value={waPhoneId} onChange={(e) => setWaPhoneId(e.target.value)} placeholder="123456789012345" className="rounded-xl font-mono text-sm" />
+            </div>
+            <div className="space-y-2">
+              <Label>Permanent Access Token</Label>
+              <PasswordInput value={waToken} onChange={setWaToken} field="waToken" placeholder="EAABs..." />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Webhook Verify Token</Label>
+              <Input value={waWebhookSecret} onChange={(e) => setWaWebhookSecret(e.target.value)} placeholder="my_webhook_verify_token" className="rounded-xl font-mono text-sm" />
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={handleSaveWhatsApp} disabled={isPending} className="gap-2 rounded-xl">
+              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+              WhatsApp Ayarlarını Kaydet
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Meta / Instagram */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+              <Hash size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Meta & Instagram API</h3>
+              <p className="text-xs text-muted-foreground">Facebook ve Instagram mesaj entegrasyonu</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {metaPageToken && igAccountId ? (
+              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200">Aktif</Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">Yapılandırılmadı</Badge>
+            )}
+          </div>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>App ID</Label>
+              <Input value={metaAppId} onChange={(e) => setMetaAppId(e.target.value)} placeholder="123456789" className="rounded-xl font-mono text-sm" />
+            </div>
+            <div className="space-y-2">
+              <Label>App Secret</Label>
+              <PasswordInput value={metaAppSecret} onChange={setMetaAppSecret} placeholder="••••••••" />
+            </div>
+            <div className="space-y-2">
+              <Label>Page Access Token</Label>
+              <PasswordInput value={metaPageToken} onChange={setMetaPageToken} placeholder="EAABs..." />
+            </div>
+            <div className="space-y-2">
+              <Label>Instagram Business Account ID</Label>
+              <Input value={igAccountId} onChange={(e) => setIgAccountId(e.target.value)} placeholder="17841..." className="rounded-xl font-mono text-sm" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Webhook Verify Token</Label>
+              <Input value={metaWebhookVerifyToken} onChange={(e) => setMetaWebhookVerifyToken(e.target.value)} placeholder="my_custom_verify_token" className="rounded-xl font-mono text-sm" />
+              <p className="text-[10px] text-muted-foreground">Meta Developer panelinde webhook ayarlarına gireceğiniz doğrulama tokeni</p>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl border p-5 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-slate-700">Webhook URL</Label>
+              <p className="text-[10px] text-muted-foreground">Meta Developer panelinde bu URL&apos;i webhook callback olarak girin</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-white border rounded-xl px-4 py-2.5 text-xs font-mono text-slate-700 select-all">
+                {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/instagram` : "/api/webhooks/instagram"}
+              </code>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/api/webhooks/instagram`);
+                  toast.success("Kopyalandı");
+                }}
+              >
+                Kopyala
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button onClick={handleSaveMeta} disabled={isPending} className="gap-2 rounded-xl">
+              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+              Meta Ayarlarını Kaydet
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

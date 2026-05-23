@@ -1,0 +1,346 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                      String         @id @default(cuid())
+  name                    String?
+  email                   String         @unique
+  password                String         @map("password_hash")
+  roleId                  String         @map("role_id")
+  isActive                Boolean        @default(true) @map("is_active")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+  assignedActivities      Activity[]     @relation("AssignedActivities")
+  createdActivities       Activity[]     @relation("CreatedActivities")
+  assignedConversations   Conversation[] @relation("AssignedConversations")
+  createdConversations    Conversation[] @relation("CreatedConversations")
+  role                    Role           @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
+model Agency {
+  id               String         @id @default(cuid())
+  companyName      String         @map("company_name")
+  documentNo       String         @unique @map("document_no")
+  btkZone          String?        @map("btk_zone")
+  website          String?
+  authorizedPerson String?        @map("authorized_person")
+  status           AgencyStatus   @default(PASSIVE)
+  isUnsubscribed   Boolean        @default(false) @map("is_unsubscribed")
+  unsubscribeToken String?        @unique @default(uuid()) @map("unsubscribe_token")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  activities       Activity[]
+  campaignLogs     CampaignLog[]
+  contacts         Contact[]
+  conversations    Conversation[]
+  mailLogs         MailLog[]
+  offers           Offer[]
+  taxInfo          TaxInfo?
+  sectors          Sector[]       @relation("AgencySectors")
+
+  @@map("agencies")
+}
+
+model Sector {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  description String?
+  pdfUrl      String?         @map("pdf_url")
+  templates   PitchTemplate[]
+  agencies    Agency[]        @relation("AgencySectors")
+
+  @@map("sectors")
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  phone     String?
+  email     String?
+  address   String?
+  province  String?  @map("province")
+  district  String?  @map("district")
+  agencyId  String   @map("agency_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("contacts")
+}
+
+model TaxInfo {
+  id        String   @id @default(cuid())
+  taxOffice String?  @map("tax_office")
+  taxNumber String?  @map("tax_number")
+  agencyId  String   @unique @map("agency_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  agency    Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("tax_infos")
+}
+
+enum CommunicationType {
+  OFFER
+  PROMOTION
+}
+
+model Offer {
+  id                 String            @id @default(cuid())
+  isMassOperation    Boolean           @default(false) @map("is_mass_operation")
+  agencyIds          String[]          @map("agency_ids")
+  
+  agencyId           String?           @map("agency_id")
+  agency             Agency?           @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  
+  type               CommunicationType @default(OFFER)
+  status             OfferStatus       @default(PENDING)
+  subject            String?
+  content            String?           @db.Text
+  metadata           Json?             // { templateId, pdfPath, success, etc. }
+  
+  coverLetter        String?           @map("cover_letter")
+  selectedModules    Json?             @map("selected_modules") // For backward compatibility / rich data
+  moduleIds          String[]          @map("module_ids")      // Linked to SystemModule
+  totalSoftwarePrice Int?              @map("total_software_price")
+  
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  @@index([agencyIds])
+  @@map("offers")
+}
+
+model SystemModule {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  price       Float
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_modules")
+}
+
+model PitchTemplate {
+  id             String   @id @default(cuid())
+  sectorId       String   @map("sector_id")
+  templateName   String   @map("template_name")
+  coverLetter    String   @map("cover_letter")
+  attachedPdfUrl String?  @map("attached_pdf_url")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  sector         Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@map("pitch_templates")
+}
+
+model MailLog {
+  id           String     @id @default(cuid())
+  agencyId     String     @map("agency_id")
+  subject      String
+  content      String
+  status       MailStatus @default(PENDING)
+  sentAt       DateTime?  @map("sent_at")
+  errorMessage String?    @map("error_message")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@map("mail_logs")
+}
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  subject     String
+  content     String
+  targetCount Int            @default(0) @map("target_count")
+  status      CampaignStatus @default(DRAFT)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  logs        CampaignLog[]
+
+  @@map("campaigns")
+}
+
+model CampaignLog {
+  id           String     @id @default(cuid())
+  campaignId   String     @map("campaign_id")
+  agencyId     String     @map("agency_id")
+  status       MailStatus @default(PENDING)
+  errorMessage String?    @map("error_message")
+  sentAt       DateTime?  @map("sent_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_logs")
+}
+
+model Activity {
+  id           String         @id @default(cuid())
+  agencyId     String         @map("agency_id")
+  type         ActivityType
+  content      String
+  dueDate      DateTime?      @map("due_date")
+  status       ActivityStatus @default(PENDING)
+  creatorId    String         @map("creator_id")
+  assignedToId String         @map("assigned_to_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  callStatus   CallStatus?    @map("call_status")
+  completionNote String?       @map("completion_note")
+  agency       Agency         @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  assignedTo   User           @relation("AssignedActivities", fields: [assignedToId], references: [id])
+  creator      User           @relation("CreatedActivities", fields: [creatorId], references: [id])
+
+  @@index([dueDate])
+  @@index([status])
+  @@map("activities")
+}
+
+enum AgencyStatus {
+  ACTIVE
+  PASSIVE
+  LEAD
+  BLOCKED
+  REJECTED
+}
+
+enum OfferStatus {
+  PENDING
+  SENT
+  APPROVED
+  REJECTED
+}
+
+enum MailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum ActivityType {
+  CALL_LOG
+  TASK_ASSIGNMENT
+  SELF_REMINDER
+}
+
+enum CallStatus {
+  REACHED
+  NO_ANSWER
+  BUSY
+  WRONG_NUMBER
+  GOOD
+  NORMAL
+  BAD
+}
+
+enum ActivityStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Omnichannel Comm Hub ───
+
+enum ChannelType {
+  WHATSAPP
+  INSTAGRAM
+  MESSENGER
+  MANUAL_NOTE
+}
+
+enum ConversationStatus {
+  OPEN
+  RESOLVED
+}
+
+model Conversation {
+  id              String             @id @default(cuid())
+  channelType     ChannelType        @map("channel_type")
+  status          ConversationStatus @default(OPEN)
+  contactName     String?            @map("contact_name")
+  contactPhone    String?            @map("contact_phone")
+
+  isAdDriven      Boolean            @default(false) @map("is_ad_driven")
+  adCampaignName  String?            @map("ad_campaign_name")
+
+  agencyId        String?            @map("agency_id")
+  agency          Agency?            @relation(fields: [agencyId], references: [id])
+
+  assignedUserId  String?            @map("assigned_user_id")
+  assignedUser    User?              @relation("AssignedConversations", fields: [assignedUserId], references: [id])
+  createdByUserId String?            @map("created_by_user_id")
+  createdByUser   User?              @relation("CreatedConversations", fields: [createdByUserId], references: [id])
+
+  messages        ConversationMessage[]
+
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  @@index([agencyId])
+  @@index([channelType])
+  @@index([status])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id              String       @id @default(cuid())
+  conversationId  String       @map("conversation_id")
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  content         String       @db.Text
+  isInternalNote  Boolean      @default(false) @map("is_internal_note")
+  senderType      String       @default("agent") @map("sender_type") // "customer" | "agent" | "system"
+  senderName      String?      @map("sender_name")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@index([conversationId])
+  @@map("conversation_messages")
+}
+
+// ─── API Motor Dairesi ───
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  category  String   // "smtp" | "whatsapp" | "meta"
+  key       String
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([category, key])
+  @@map("system_settings")
+}
