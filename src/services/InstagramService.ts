@@ -111,7 +111,7 @@ export class InstagramService {
     // Instagram token ise direkt graph.instagram.com'a özel sorgula (invalid field'lar olmadan)
     if (isInstagramToken) {
       try {
-        const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=name,username,profile_picture_url&access_token=${creds.pageToken}`;
+        const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=name,username&access_token=${creds.pageToken}`;
         console.log(`[InstagramService] Profil çekiliyor (IG Graph - Instagram Token): userId=${userId}`);
         const igResponse = await fetch(igUrl);
         const igData = await igResponse.json();
@@ -121,7 +121,7 @@ export class InstagramService {
           return {
             name: igData.name,
             username: igData.username,
-            profile_pic: igData.profile_picture_url,
+            profile_pic: undefined,
           };
         } else {
           console.warn(`[InstagramService] IG Graph API hata:`, JSON.stringify(igData?.error || igData));
