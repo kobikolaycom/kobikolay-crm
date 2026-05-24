@@ -36,7 +36,8 @@ export class PitchService {
   static async sendPitch(
     agencyId: string,
     sectorIds: string[],
-    customIntro?: string
+    customIntro?: string,
+    sentById?: string
   ) {
     try {
       // ─── 1. Acente Bilgilerini Al ───
@@ -192,6 +193,7 @@ export class PitchService {
           subject: emailSubject,
           content: `Tanıtım Gönderildi.\nFaaliyet Alanları: ${sectorNames}\nEk PDF: ${attachments.length} adet\nAlıcı: ${toEmail}`,
           status: MailStatus.PENDING,
+          ...(sentById ? { sentById } : {}),
         },
       });
 

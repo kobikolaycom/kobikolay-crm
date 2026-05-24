@@ -247,7 +247,7 @@ export async function sendAgencyPitchAction(data: {
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
   const { PitchService } = await import("@/services/PitchService");
-  const result = await PitchService.sendPitch(data.agencyId, data.sectorIds);
+  const result = await PitchService.sendPitch(data.agencyId, data.sectorIds, undefined, session.user.id);
 
   if (!result.success) {
     throw new Error(result.error || "E-posta gönderilemedi");

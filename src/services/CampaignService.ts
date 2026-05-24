@@ -232,17 +232,30 @@ export class CampaignService {
   static async getCampaignStats() {
     const now = new Date();
 
-    // Zaman aralıkları
-    const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
-    const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    // ─── Türkiye Saati (UTC+3) ───
+    // Vercel UTC'de çalışır. TR gece yarısı = UTC 21:00 (önceki gün)
+    const TR_OFFSET = 3 * 60 * 60 * 1000; // 3 saat ms
+    const nowTR = new Date(now.getTime() + TR_OFFSET);
 
-    const weekStart = new Date(todayStart);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Pazartesi
-    const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    // Bugün başlangıcı (TR)
+    const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
+    todayStart.setTime(todayStart.getTime() - TR_OFFSET);
 
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    // Dün başlangıcı
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+
+    // Hafta başlangıcı (Pazartesi 00:00 TR)
+    const dayOfWeek = nowTR.getUTCDay(); // 0=Pazar, 1=Pazartesi, ...
+    const daysToMonday = (dayOfWeek + 6) % 7; // Pazar=6, Pazartesi=0, Salı=1, ...
+    const weekStart = new Date(todayStart.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
+    const lastWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Ay başlangıcı (TR)
+    const monthStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), 1));
+    monthStart.setTime(monthStart.getTime() - TR_OFFSET);
+    const lastMonthStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth() - 1, 1));
+    lastMonthStart.setTime(lastMonthStart.getTime() - TR_OFFSET);
+    const lastMonthEnd = new Date(monthStart.getTime() - 1); // Geçen ayın son anı
 
     // Count helpers — both tables
     const countCampaignInRange = (from: Date, to: Date) =>

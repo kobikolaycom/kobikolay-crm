@@ -57,24 +57,32 @@ export class AgencyService {
     // Campaign send period filter — checks both campaignLogs AND mailLogs
     else if (campaignFilter && campaignFilter !== "all") {
       const now = new Date();
+      // Turkey UTC+3
+      const TR_OFFSET = 3 * 60 * 60 * 1000;
+      const nowTR = new Date(now.getTime() + TR_OFFSET);
+
       if (campaignFilter === "today") {
-        const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
+        const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
+        todayStart.setTime(todayStart.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: todayStart }, status: "SENT" as const };
         where.OR = [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
         ];
       } else if (campaignFilter === "week") {
-        const weekStart = new Date(now);
-        weekStart.setHours(0,0,0,0);
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+        const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
+        todayStart.setTime(todayStart.getTime() - TR_OFFSET);
+        const dayOfWeek = nowTR.getUTCDay();
+        const daysToMonday = (dayOfWeek + 6) % 7;
+        const weekStart = new Date(todayStart.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
         const filter = { sentAt: { gte: weekStart }, status: "SENT" as const };
         where.OR = [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
         ];
       } else if (campaignFilter === "month") {
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), 1));
+        monthStart.setTime(monthStart.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: monthStart }, status: "SENT" as const };
         where.OR = [
           { campaignLogs: { some: filter } },
@@ -99,13 +107,14 @@ export class AgencyService {
             offers: { orderBy: { createdAt: "desc" } },
             mailLogs: {
               orderBy: { createdAt: "desc" },
-              take: 5,
+              take: 1,
               select: {
                 id: true,
                 status: true,
                 sentAt: true,
                 openedAt: true,
                 clickedAt: true,
+                sentBy: { select: { name: true } },
               },
             },
           },

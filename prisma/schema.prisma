@@ -33,6 +33,7 @@ model User {
   createdActivities       Activity[]     @relation("CreatedActivities")
   assignedConversations   Conversation[] @relation("AssignedConversations")
   createdConversations    Conversation[] @relation("CreatedConversations")
+  sentMailLogs            MailLog[]       @relation("SentMailLogs")
   role                    Role           @relation(fields: [roleId], references: [id])
 
   @@map("users")
@@ -184,8 +185,10 @@ model MailLog {
   trackingId   String?    @unique @default(uuid()) @map("tracking_id")
   openedAt     DateTime?  @map("opened_at")
   clickedAt    DateTime?  @map("clicked_at")
+  sentById     String?    @map("sent_by_id")
   createdAt    DateTime   @default(now()) @map("created_at")
   agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  sentBy       User?      @relation("SentMailLogs", fields: [sentById], references: [id])
 
   @@map("mail_logs")
 }

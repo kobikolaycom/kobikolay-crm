@@ -12,6 +12,9 @@ export async function dispatchBulkPitchChunkAction(
   chunkIndex: number,
   chunkSize: number
 ) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
   const start = chunkIndex * chunkSize;
   const chunk = agencyIds.slice(start, start + chunkSize);
 
@@ -20,7 +23,7 @@ export async function dispatchBulkPitchChunkAction(
   const results = [];
   for (const agencyId of chunk) {
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
-    const result = await PitchService.sendPitch(agencyId, sectorIds);
+    const result = await PitchService.sendPitch(agencyId, sectorIds, undefined, userId);
     results.push(result);
   }
 

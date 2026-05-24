@@ -602,7 +602,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail / Temsilci</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
               </tr>
@@ -677,6 +677,11 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                           {lastMail.sentAt && (
                             <span className="text-[9px] text-slate-400">
                               {new Date(lastMail.sentAt).toLocaleDateString("tr-TR")}
+                            </span>
+                          )}
+                          {lastMail.sentBy?.name && (
+                            <span className="text-[9px] text-indigo-500 font-medium flex items-center gap-0.5">
+                              👤 {lastMail.sentBy.name}
                             </span>
                           )}
                         </div>
