@@ -77,6 +77,14 @@ export async function resolveConversationAction(id: string) {
   revalidatePath("/inbox");
 }
 
+export async function reopenConversationAction(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  await ConversationService.reopen(id);
+  revalidatePath("/inbox");
+}
+
 export async function searchAgenciesForLinkAction(term: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
@@ -207,4 +215,79 @@ export async function getAgencyConversationNotesAction(agencyId: string) {
   });
 
   return combined;
+}
+
+// ─── Quick Replies Actions ───
+
+export interface QuickReply {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export async function getQuickRepliesAction(): Promise<QuickReply[]> {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  const setting = await prisma.systemSetting.findUnique({
+    where: { category_key: { category: "quick_replies", key: "list" } }
+  });
+
+  if (!setting?.value) {
+    const defaultReplies = [
+      { id: "1", label: "Selamlaşma", value: "Merhaba! Nasıl yardımcı olabilirim?" },
+      { id: "2", label: "Bilgi Alındı", value: "Teşekkürler, bilgilerinizi aldık." },
+      { id: "3", label: "Teklif Bekle", value: "Teklifimizi en kısa sürede göndereceğiz." },
+      { id: "4", label: "Dönüş Yapılacak", value: "Size geri dönüş yapacağız, teşekkürler." },
+    ];
+    await prisma.systemSetting.create({
+      data: { category: "quick_replies", key: "list", value: JSON.stringify(defaultReplies) }
+    });
+    return defaultReplies;
+  }
+
+  try {
+    return JSON.parse(setting.value);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveQuickReplyAction(reply: { id?: string, label: string, value: string }) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  const replies = await getQuickRepliesAction();
+  
+  if (reply.id) {
+    const idx = replies.findIndex(r => r.id === reply.id);
+    if (idx >= 0) {
+      replies[idx] = { id: reply.id, label: reply.label, value: reply.value };
+    }
+  } else {
+    replies.push({ id: Math.random().toString(36).substring(2, 9), label: reply.label, value: reply.value });
+  }
+
+  await prisma.systemSetting.upsert({
+    where: { category_key: { category: "quick_replies", key: "list" } },
+    update: { value: JSON.stringify(replies) },
+    create: { category: "quick_replies", key: "list", value: JSON.stringify(replies) }
+  });
+
+  return replies;
+}
+
+export async function deleteQuickReplyAction(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  const replies = await getQuickRepliesAction();
+  const filtered = replies.filter(r => r.id !== id);
+
+  await prisma.systemSetting.update({
+    where: { category_key: { category: "quick_replies", key: "list" } },
+    data: { value: JSON.stringify(filtered) }
+  });
+
+  return filtered;
 }

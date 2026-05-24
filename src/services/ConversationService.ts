@@ -15,7 +15,11 @@ export class ConversationService {
   static async getConversations(filter: ConversationFilter = {}) {
     const where: Record<string, any> = {};
 
-    if (filter.channelType) where.channelType = filter.channelType;
+    if (filter.channelType) {
+      where.channelType = filter.channelType;
+    } else {
+      where.channelType = { not: "MANUAL_NOTE" };
+    }
     if (filter.status) where.status = filter.status;
     if (filter.agencyId) where.agencyId = filter.agencyId;
 

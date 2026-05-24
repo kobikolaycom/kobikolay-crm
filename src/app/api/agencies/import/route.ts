@@ -43,7 +43,25 @@ export async function POST(req: NextRequest) {
     // Detect column mappings
     const keys = Object.keys(rows[0]);
     const findCol = (patterns: string[]) =>
-      keys.find((k) => patterns.some((p) => k.toLowerCase().includes(p.toLowerCase())));
+      keys.find((k) => patterns.some((p) => {
+        const keyLower = k.toLowerCase().trim();
+        const patLower = p.toLowerCase().trim();
+        
+        // Exact match is always preferred
+        if (keyLower === patLower) return true;
+
+        // Specific exclusions to prevent "email adresi" matching "adres"
+        if (patLower === "adres" && (keyLower.includes("email") || keyLower.includes("mail") || keyLower.includes("posta"))) {
+          return false;
+        }
+
+        // Specific exclusions to prevent "email" matching "il"
+        if (patLower === "il" && (keyLower.includes("email") || keyLower.includes("mail") || keyLower.includes("ilçe"))) {
+          return false;
+        }
+        
+        return keyLower.includes(patLower);
+      }));
 
     const companyCol = findCol(["firma", "şirket", "company", "acente", "unvan", "ünvan", "ad"]);
     const docCol = findCol(["belge", "document", "belge no", "tursab", "sicil"]);

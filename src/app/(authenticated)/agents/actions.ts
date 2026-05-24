@@ -128,3 +128,56 @@ export async function createAgencyAction(data: {
   revalidatePath("/agents");
   return { success: true, id: agency.id };
 }
+
+export async function resetBatchImportedAgenciesAction() {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  // Fetch all passive agencies with their relation counts
+  const passiveAgencies = await prisma.agency.findMany({
+    where: { status: "PASSIVE" },
+    include: {
+      _count: {
+        select: {
+          conversations: true,
+          activities: true,
+          mailLogs: true,
+          campaignLogs: true,
+          offers: true,
+        },
+      },
+    },
+  });
+
+  // Filter out those with zero relation counts (so they are fresh/untouched)
+  const targets = passiveAgencies.filter(
+    (a) =>
+      a._count.conversations === 0 &&
+      a._count.activities === 0 &&
+      a._count.mailLogs === 0 &&
+      a._count.campaignLogs === 0 &&
+      a._count.offers === 0
+  );
+
+  const targetIds = targets.map((t) => t.id);
+
+  if (targetIds.length > 0) {
+    // Delete contacts first
+    await prisma.contact.deleteMany({
+      where: { agencyId: { in: targetIds } },
+    });
+    // Delete taxInfo
+    await prisma.taxInfo.deleteMany({
+      where: { agencyId: { in: targetIds } },
+    });
+    // Delete agencies
+    const deleteResult = await prisma.agency.deleteMany({
+      where: { id: { in: targetIds } },
+    });
+
+    revalidatePath("/agents");
+    return { success: true, count: deleteResult.count };
+  }
+
+  return { success: true, count: 0 };
+}

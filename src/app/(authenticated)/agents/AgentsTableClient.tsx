@@ -37,7 +37,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { dispatchBulkPitchChunkAction, deleteAgencyAction, createAgencyAction } from "./actions";
+import { dispatchBulkPitchChunkAction, deleteAgencyAction, createAgencyAction, resetBatchImportedAgenciesAction } from "./actions";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useDebounce } from "use-debounce";
 
@@ -87,6 +87,10 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [importCreatedLive, setImportCreatedLive] = useState(0);
   const [importSkippedLive, setImportSkippedLive] = useState(0);
   const [importResult, setImportResult] = useState<{ created: number; skipped: number; total: number; errors: string[] } | null>(null);
+
+  // Reset Batch Upload State
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Delete Agency State
   const [showDeleteAgencyDialog, setShowDeleteAgencyDialog] = useState(false);
@@ -273,6 +277,21 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
     setImportSkippedLive(0);
   };
 
+  // Reset Batch Imported Agencies
+  const handleResetBatchImport = async () => {
+    setIsResetting(true);
+    try {
+      const res = await resetBatchImportedAgenciesAction();
+      toast.success(`${res.count} adet işlem görmemiş pasif acente sıfırlandı.`);
+      setShowResetConfirmDialog(false);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Sıfırlama başarısız");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   // Delete Agency
   const handleDeleteAgency = async () => {
     if (!deletingAgency) return;
@@ -354,6 +373,13 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             className="gap-2 rounded-xl"
           >
             <FileSpreadsheet size={16} /> Excel ile Aktar
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowResetConfirmDialog(true)}
+            className="gap-2 rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 font-bold"
+          >
+            <RefreshCw size={16} /> Test Verisini Sıfırla
           </Button>
           {selectedIds.length > 0 && (
             <Button
@@ -1025,6 +1051,35 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             >
               {isCreating ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
               Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ─── TEST SIFIRLAMA DIALOG ─── */}
+      <Dialog open={showResetConfirmDialog} onOpenChange={setShowResetConfirmDialog}>
+        <DialogContent className="sm:max-w-md rounded-2xl border-red-200">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 font-black">
+              <AlertTriangle size={20} /> Test Verilerini Sıfırla
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 text-sm leading-relaxed mt-2">
+              Sistemde yer alan, **hiçbir işlem görmemiş (yazışması, görevi, teklifi, mail kaydı bulunmayan) tüm pasif acenteler** ve onlara bağlı iletişim bilgileri kalıcı olarak silinecektir.
+              <br /><br />
+              <span className="text-red-700 font-extrabold">⚠️ DİKKAT:</span> Bu işlem geri alınamaz. Bu mod test/geliştirme aşaması bittiğinde canlı ortamda kaldırılacaktır.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowResetConfirmDialog(false)} disabled={isResetting} className="rounded-xl">
+              Vazgeç
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleResetBatchImport}
+              disabled={isResetting}
+              className="gap-2 rounded-xl bg-red-600 hover:bg-red-700"
+            >
+              {isResetting ? <RefreshCw className="animate-spin" size={16} /> : <Trash2 size={16} />}
+              Evet, Sıfırla
             </Button>
           </DialogFooter>
         </DialogContent>
