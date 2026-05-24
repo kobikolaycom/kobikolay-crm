@@ -135,13 +135,36 @@ export default function IntegrationsPage() {
   const handleSaveSmtp = () => {
     startTransition(async () => {
       try {
+        const cleanHost = smtpHost.trim();
+        const cleanPort = smtpPort.trim();
+        const cleanUser = smtpUser.trim();
+        let cleanPass = smtpPass.trim();
+        const cleanFrom = smtpFrom.trim();
+        const cleanFromName = smtpFromName.trim();
+
+        // 16 haneli Gmail Uygulama Şifresi girildiyse aradaki boşlukları otomatik temizle
+        if (cleanHost.includes("gmail") || cleanUser.includes("gmail")) {
+          const strippedPass = cleanPass.replace(/\s+/g, "");
+          if (strippedPass.length === 16) {
+            cleanPass = strippedPass;
+          }
+        }
+
+        // State'leri temizlenmiş halleriyle güncelle
+        setSmtpHost(cleanHost);
+        setSmtpPort(cleanPort);
+        setSmtpUser(cleanUser);
+        setSmtpPass(cleanPass);
+        setSmtpFrom(cleanFrom);
+        setSmtpFromName(cleanFromName);
+
         await saveSettings("smtp", [
-          { key: "host", value: smtpHost },
-          { key: "port", value: smtpPort },
-          { key: "user", value: smtpUser },
-          { key: "pass", value: smtpPass },
-          { key: "from", value: smtpFrom },
-          { key: "fromName", value: smtpFromName },
+          { key: "host", value: cleanHost },
+          { key: "port", value: cleanPort },
+          { key: "user", value: cleanUser },
+          { key: "pass", value: cleanPass },
+          { key: "from", value: cleanFrom },
+          { key: "fromName", value: cleanFromName },
           { key: "encryption", value: smtpEncryption },
         ]);
         toast.success("SMTP ayarları kaydedildi");
@@ -155,19 +178,44 @@ export default function IntegrationsPage() {
     if (action === "connect") setIsTestingConnection(true);
     else setIsSendingTest(true);
 
+    const cleanHost = smtpHost.trim();
+    const cleanPort = smtpPort.trim();
+    const cleanUser = smtpUser.trim();
+    let cleanPass = smtpPass.trim();
+    const cleanFrom = smtpFrom.trim();
+    const cleanFromName = smtpFromName.trim();
+    const cleanTestEmail = testEmail.trim();
+
+    // 16 haneli Gmail Uygulama Şifresi girildiyse aradaki boşlukları otomatik temizle
+    if (cleanHost.includes("gmail") || cleanUser.includes("gmail")) {
+      const strippedPass = cleanPass.replace(/\s+/g, "");
+      if (strippedPass.length === 16) {
+        cleanPass = strippedPass;
+      }
+    }
+
+    // State'leri temizlenmiş halleriyle güncelle
+    setSmtpHost(cleanHost);
+    setSmtpPort(cleanPort);
+    setSmtpUser(cleanUser);
+    setSmtpPass(cleanPass);
+    setSmtpFrom(cleanFrom);
+    setSmtpFromName(cleanFromName);
+    setTestEmail(cleanTestEmail);
+
     try {
       const res = await fetch("/api/settings/integrations/smtp-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          host: smtpHost,
-          port: smtpPort,
-          user: smtpUser,
-          pass: smtpPass,
-          from: smtpFrom,
-          fromName: smtpFromName,
+          host: cleanHost,
+          port: cleanPort,
+          user: cleanUser,
+          pass: cleanPass,
+          from: cleanFrom,
+          fromName: cleanFromName,
           encryption: smtpEncryption,
-          testEmail: testEmail,
+          testEmail: cleanTestEmail,
           action,
         }),
       });

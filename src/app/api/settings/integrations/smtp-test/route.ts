@@ -11,8 +11,23 @@ export async function POST(req: NextRequest) {
     body = await req.json();
     const { host, port, user, pass, from, fromName, encryption, testEmail, action } = body;
 
-    if (!host || !port || !user || !pass) {
+    const cleanHost = String(host || "").trim();
+    const cleanPort = String(port || "").trim();
+    const cleanUser = String(user || "").trim();
+    let cleanPass = String(pass || "").trim();
+    const cleanFrom = String(from || "").trim();
+    const cleanTestEmail = String(testEmail || "").trim();
+
+    if (!cleanHost || !cleanPort || !cleanUser || !cleanPass) {
       return NextResponse.json({ error: "Eksik SMTP bilgileri (Host, Port, Kullanıcı Adı, Şifre gerekli)" }, { status: 400 });
+    }
+
+    // Gmail için 16 haneli Uygulama Şifresi girildiyse tüm boşlukları temizle
+    if (cleanHost.includes("gmail") || cleanUser.includes("gmail")) {
+      const strippedPass = cleanPass.replace(/\s+/g, "");
+      if (strippedPass.length === 16) {
+        cleanPass = strippedPass;
+      }
     }
 
     const secure = encryption === "SSL"; 
@@ -21,12 +36,12 @@ export async function POST(req: NextRequest) {
     const tlsConfig = { rejectUnauthorized: false };
 
     const transporter = nodemailer.createTransport({
-      host,
-      port: Number(port),
+      host: cleanHost,
+      port: Number(cleanPort),
       secure: secure,
       auth: {
-        user,
-        pass,
+        user: cleanUser,
+        pass: cleanPass,
       },
       tls: tlsConfig,
     });
@@ -35,13 +50,13 @@ export async function POST(req: NextRequest) {
       await transporter.verify();
       return NextResponse.json({ success: true, message: "Bağlantı başarılı!" });
     } else if (action === "send") {
-      if (!testEmail) {
+      if (!cleanTestEmail) {
         return NextResponse.json({ error: "Test e-posta adresi gerekli" }, { status: 400 });
       }
 
       await transporter.sendMail({
-        from: fromName ? `"${fromName}" <${from || user}>` : (from || user),
-        to: testEmail,
+        from: fromName ? `"${fromName}" <${cleanFrom || cleanUser}>` : (cleanFrom || cleanUser),
+        to: cleanTestEmail,
         subject: "KobiKolay CRM - Test E-Postası",
         text: "Bu bir KobiKolay CRM test e-postasıdır. SMTP ayarlarınız başarılı bir şekilde yapılandırılmıştır.",
         html: "<p>Bu bir <strong>KobiKolay CRM</strong> test e-postasıdır. SMTP ayarlarınız başarılı bir şekilde yapılandırılmıştır.</p>",

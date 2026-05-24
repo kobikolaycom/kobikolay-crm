@@ -30,8 +30,15 @@ export class MailService {
     // 1. Fetch SMTP settings from DB
     const smtp = await SystemSettingService.getByCategory("smtp");
 
+    const cleanHost = String(smtp.host || "").trim();
+    const cleanPort = String(smtp.port || "").trim();
+    const cleanUser = String(smtp.user || "").trim();
+    let cleanPass = String(smtp.pass || "").trim();
+    const cleanFrom = String(smtp.from || "").trim();
+    const cleanFromName = String(smtp.fromName || "").trim();
+
     // 2. Validate SMTP credentials
-    if (!smtp.host || !smtp.user || !smtp.pass) {
+    if (!cleanHost || !cleanUser || !cleanPass) {
       console.warn(
         `[MailService] Warning: SMTP settings (host, user, or pass) are not yet configured in settings. ` +
         `Simulating mail dispatch for: To=${to}, Subject="${subject}"`
@@ -41,19 +48,27 @@ export class MailService {
       return true; // Graceful simulation fallback
     }
 
-    const port = parseInt(smtp.port || "587");
+    // Gmail için 16 haneli Uygulama Şifresi girildiyse tüm boşlukları temizle
+    if (cleanHost.includes("gmail") || cleanUser.includes("gmail")) {
+      const strippedPass = cleanPass.replace(/\s+/g, "");
+      if (strippedPass.length === 16) {
+        cleanPass = strippedPass;
+      }
+    }
+
+    const port = parseInt(cleanPort || "587");
     const isSecure = port === 465; // SSL is secure by default on 465, TLS/STARTTLS uses false for port 587/25
 
-    console.log(`[MailService] Creating SMTP transporter for ${smtp.user}@${smtp.host}:${port}...`);
+    console.log(`[MailService] Creating SMTP transporter for ${cleanUser}@${cleanHost}:${port}...`);
 
     // 3. Create Transporter
     const transporter = nodemailer.createTransport({
-      host: smtp.host,
+      host: cleanHost,
       port: port,
       secure: isSecure,
       auth: {
-        user: smtp.user,
-        pass: smtp.pass,
+        user: cleanUser,
+        pass: cleanPass,
       },
       tls: {
         // Do not fail on invalid certs (common with local/private SMTP relays)
@@ -61,8 +76,8 @@ export class MailService {
       },
     });
 
-    const fromName = smtp.fromName || "KobiKolay CRM";
-    const fromEmail = smtp.from || smtp.user;
+    const fromName = cleanFromName || "KobiKolay CRM";
+    const fromEmail = cleanFrom || cleanUser;
 
     // 4. Send the Mail
     await transporter.sendMail({
