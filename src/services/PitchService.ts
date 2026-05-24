@@ -196,17 +196,31 @@ export class PitchService {
       });
 
       // ─── 9. Tracking Pixel + Link Wrapping ───
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "https://kobikolay-crm.vercel.app";
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+        || "https://kobikolay-crm.vercel.app";
 
-      const trackingPixel = `<img src="${baseUrl}/api/track?tid=${mailLog.trackingId}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+      const tid = mailLog.trackingId;
 
-      // Inject tracking pixel just before closing </div>
-      const trackedHtml = fullHtml.replace(
+      // Tracking pixel — e-posta açıldığında tetiklenir
+      const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+
+      // Link wrapping — tüm href linklerini tıklama takibi için sarmala
+      let trackedHtml = fullHtml.replace(
+        /href="(https?:\/\/[^"]+)"/g,
+        (match: string, url: string) => {
+          // Kendi tracking URL'lerimizi tekrar sarmalama
+          if (url.includes("/api/track")) return match;
+          const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
+          return `href="${trackUrl}"`;
+        }
+      );
+
+      // Tracking pixel'i footer'dan hemen önce ekle + en sona fallback
+      trackedHtml = trackedHtml.replace(
         "</div>\n      ",
         `${trackingPixel}</div>\n      `
-      ) + trackingPixel; // Also add at the very end as fallback
+      ) + trackingPixel;
 
       // ─── 10. E-posta Gönder ───
       await MailService.sendEmail({
