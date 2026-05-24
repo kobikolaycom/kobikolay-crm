@@ -82,6 +82,17 @@ export class AgencyService {
             sectors: true,
             contacts: true,
             offers: { orderBy: { createdAt: "desc" } },
+            mailLogs: {
+              orderBy: { createdAt: "desc" },
+              take: 5,
+              select: {
+                id: true,
+                status: true,
+                sentAt: true,
+                openedAt: true,
+                clickedAt: true,
+              },
+            },
           },
         }),
         prisma.agency.count({ where }),

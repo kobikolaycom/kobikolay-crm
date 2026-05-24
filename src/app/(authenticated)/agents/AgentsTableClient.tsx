@@ -110,7 +110,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [newDistrict, setNewDistrict] = useState("");
   const [newAuthorized, setNewAuthorized] = useState("");
   const [newWebsite, setNewWebsite] = useState("");
-  const [newSectorId, setNewSectorId] = useState("none");
+  const [newSectorIds, setNewSectorIds] = useState<string[]>([]);
 
   // Edit Agency State
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -125,7 +125,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [editDistrict, setEditDistrict] = useState("");
   const [editAuthorized, setEditAuthorized] = useState("");
   const [editWebsite, setEditWebsite] = useState("");
-  const [editSectorId, setEditSectorId] = useState("none");
+  const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
 
   const openEditDialog = (agency: any) => {
     setEditingAgency(agency);
@@ -141,8 +141,8 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
     setEditProvince(contact?.province || "");
     setEditDistrict(contact?.district || "");
     
-    const sectorId = agency.sectors?.[0]?.id || "none";
-    setEditSectorId(sectorId);
+    const sectorIds = agency.sectors?.map((s: any) => s.id) || [];
+    setEditSectorIds(sectorIds);
     
     setShowEditDialog(true);
   };
@@ -165,7 +165,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         district: editDistrict.trim() || undefined,
         authorizedPerson: editAuthorized.trim() || undefined,
         website: editWebsite.trim() || undefined,
-        sectorId: editSectorId !== "none" ? editSectorId : undefined,
+        sectorIds: editSectorIds,
       });
       toast.success(`"${editCompanyName.trim()}" başarıyla güncellendi`);
       setShowEditDialog(false);
@@ -179,12 +179,43 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   };
 
   // Modal State
-  const [selectedSectorId, setSelectedSectorId] = useState("");
-  const [coverLetter, setCoverLetter] = useState(
-    "Sayın {{authorizedPerson}},\n\nDeğerli iş ortağımız {{agencyName}} için hazırladığımız faaliyet alanı çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi"
-  );
+  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [coverLetter, setCoverLetter] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  const openBulkSendModal = () => {
+    // Gather all sector IDs assigned to any of the selected agencies
+    const preselectedSectors: string[] = [];
+    agencies.forEach(agency => {
+      if (selectedIds.includes(agency.id)) {
+        agency.sectors?.forEach((s: any) => {
+          if (!preselectedSectors.includes(s.id)) {
+            preselectedSectors.push(s.id);
+          }
+        });
+      }
+    });
+    setSelectedSectorIds(preselectedSectors);
+    
+    // Generate default cover letter by merging all preselected sectors' cover letters
+    let mergedLetter = "";
+    const selectedSectors = sectors.filter(s => preselectedSectors.includes(s.id));
+    
+    if (selectedSectors.length > 0) {
+      const coverLettersText = selectedSectors
+        .map(s => `[${s.name} Faaliyet Alanı]\n${s.coverLetter || ""}`)
+        .filter(Boolean)
+        .join("\n\n");
+        
+      mergedLetter = `Değerli İş Ortağımız,\n\nFirmamızın size özel faaliyet alanı çözümlerini aşağıda bulabilirsiniz:\n\n${coverLettersText}\n\nSaygılarımızla,\nKobiKolay Ekibi`;
+    } else {
+      mergedLetter = "Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız faaliyet alanı çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi";
+    }
+    
+    setCoverLetter(mergedLetter);
+    setIsModalOpen(true);
+  };
 
   // URL based search
   useEffect(() => {
@@ -223,7 +254,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
 
   // Bulk Send
   const handleBulkSend = async () => {
-    if (!selectedSectorId || selectedIds.length === 0) return;
+    if (selectedSectorIds.length === 0 || selectedIds.length === 0) return;
     setIsSending(true);
     setProgress(0);
 
@@ -234,7 +265,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
       for (let i = 0; i < totalChunks; i++) {
         await dispatchBulkPitchChunkAction(
           selectedIds,
-          selectedSectorId,
+          selectedSectorIds,
           coverLetter,
           i,
           chunkSize
@@ -245,6 +276,8 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
       setIsModalOpen(false);
       setSelectedIds([]);
       setProgress(0);
+      // Refresh page to show updated mail status
+      window.location.reload();
     } catch (error) {
       toast.error("Gönderim sırasında hata oluştu");
     } finally {
@@ -394,7 +427,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         district: newDistrict.trim() || undefined,
         authorizedPerson: newAuthorized.trim() || undefined,
         website: newWebsite.trim() || undefined,
-        sectorId: newSectorId !== "none" ? newSectorId : undefined,
+        sectorIds: newSectorIds,
       });
       toast.success(`"${newCompanyName.trim()}" başarıyla eklendi`);
       setShowCreateDialog(false);
@@ -410,7 +443,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const resetCreateForm = () => {
     setNewCompanyName(""); setNewDocumentNo(""); setNewPhone(""); setNewEmail("");
     setNewAddress(""); setNewProvince(""); setNewDistrict("");
-    setNewAuthorized(""); setNewWebsite(""); setNewSectorId("none");
+    setNewAuthorized(""); setNewWebsite(""); setNewSectorIds([]);
   };
 
   return (
@@ -450,7 +483,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
           </Button>
           {selectedIds.length > 0 && (
             <Button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openBulkSendModal}
               className="gap-2 rounded-xl"
             >
               <Send size={16} />
@@ -569,6 +602,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
               </tr>
@@ -576,13 +610,15 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             <tbody className="divide-y">
               {agencies.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-20">
+                  <td colSpan={9} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
                     <p className="text-muted-foreground">Acente bulunamadı</p>
                   </td>
                 </tr>
               ) : (
-                agencies.map((agency) => (
+                agencies.map((agency) => {
+                  const lastMail = agency.mailLogs?.[0];
+                  return (
                   <tr key={agency.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3">
                       <Checkbox
@@ -615,6 +651,40 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                     </td>
                     <td className="px-4 py-3">{statusBadge(agency.status)}</td>
                     <td className="px-4 py-3">
+                      {lastMail ? (
+                        <div className="flex flex-col gap-0.5">
+                          {lastMail.clickedAt ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                              <ExternalLink size={9} /> Tıklandı
+                            </Badge>
+                          ) : lastMail.openedAt ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                              <Eye size={9} /> Açıldı
+                            </Badge>
+                          ) : lastMail.status === "SENT" ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
+                              <CheckCircle2 size={9} /> Gönderildi
+                            </Badge>
+                          ) : lastMail.status === "FAILED" ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-red-50 text-red-700 border-red-200 gap-1">
+                              <AlertCircle size={9} /> Başarısız
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200">
+                              Bekliyor
+                            </Badge>
+                          )}
+                          {lastMail.sentAt && (
+                            <span className="text-[9px] text-slate-400">
+                              {new Date(lastMail.sentAt).toLocaleDateString("tr-TR")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         {agency.contacts?.[0]?.email && (
                           <span className="flex items-center gap-1">
@@ -640,7 +710,8 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                        </div>
                      </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -722,12 +793,12 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
       {/* Bulk Send Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
             <div className="p-6 border-b flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Toplu Tanıtım Gönderimi</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {selectedIds.length} acente seçildi
+                  {selectedIds.length} acente seçildi — her acenteye kişiselleştirilmiş e-posta gönderilecek
                 </p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="rounded-full">
@@ -735,35 +806,88 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               </Button>
             </div>
 
-            <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+            <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
+              {/* Sector Checkboxes */}
               <div className="space-y-2">
-                <Label>Hedef Faaliyet Alanı</Label>
-                <Select value={selectedSectorId} onValueChange={setSelectedSectorId}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Faaliyet alanı seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sectors.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm font-semibold">Gönderilecek Faaliyet Alanları</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {sectors.map((s: any) => {
+                    const isChecked = selectedSectorIds.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() => {
+                            setSelectedSectorIds(prev =>
+                              prev.includes(s.id)
+                                ? prev.filter(id => id !== s.id)
+                                : [...prev, s.id]
+                            );
+                          }}
+                        />
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate">{s.name}</span>
+                          {s.pdfUrl && (
+                            <Badge variant="secondary" className="text-[9px] shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200">PDF</Badge>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <Label>Ön Yazı (Template Engine)</Label>
-                <Textarea
-                  className="min-h-[150px] font-mono text-sm rounded-xl"
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  disabled={isSending}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Kullanılabilir değişkenler: {"{{agencyName}}, {{authorizedPerson}}, {{unsubscribeLink}}"}
-                </p>
-              </div>
+              {/* Email Preview */}
+              {selectedSectorIds.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <Mail size={14} />
+                    E-posta Önizleme
+                  </Label>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-sm space-y-3">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-4 text-center text-white">
+                      <p className="font-bold text-base">acenteyazılım.com</p>
+                      <p className="text-xs text-white/70">Dijital Seyahat Altyapı Çözümleri</p>
+                    </div>
+                    <div className="space-y-2 mt-3">
+                      <p className="font-semibold text-slate-700">Merhaba <span className="text-primary">[Kişi Adı]</span> Bey / Hanım,</p>
+                      <p className="text-slate-500 text-xs leading-relaxed">
+                        <span className="text-primary font-semibold">[Acente Adı]</span>&apos;nın dijital altyapısını güçlendirecek çözümlerimizi paylaşmak adına sizinle iletişime geçmek istedik...
+                      </p>
+                    </div>
+                    <hr className="border-slate-200" />
+                    {sectors
+                      .filter((s: any) => selectedSectorIds.includes(s.id))
+                      .map((s: any) => (
+                        <div key={s.id} className="bg-white rounded-lg border border-slate-200 p-3 space-y-1">
+                          <p className="font-bold text-slate-800 text-xs flex items-center gap-2">
+                            <span className="w-1 h-4 bg-indigo-500 rounded-full inline-block"></span>
+                            {s.name}
+                          </p>
+                          <p className="text-[11px] text-slate-400 line-clamp-2">
+                            {s.coverLetter ? s.coverLetter.substring(0, 120) + "..." : "İçerik tanımlanmamış"}
+                          </p>
+                          {s.pdfUrl && (
+                            <span className="text-[10px] text-emerald-600 font-semibold">📎 PDF Broşür Eklenecek</span>
+                          )}
+                        </div>
+                      ))}
+                    <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-200">
+                      Saygılarımızla, <strong>KobiKolay Ekibi</strong>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    ℹ️ Her acente için kişi adı ve acente adı otomatik olarak doldurulacaktır. Yetkili kişi tanımlı değilse &quot;Sayın Yetkili&quot; yazılacaktır.
+                  </p>
+                </div>
+              )}
 
               {isSending && (
                 <div className="space-y-2">
@@ -785,9 +909,9 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSending} className="rounded-xl">
                 İptal
               </Button>
-              <Button onClick={handleBulkSend} disabled={isSending || !selectedSectorId} className="rounded-xl">
-                {isSending ? <RefreshCw className="animate-spin mr-2" size={16} /> : null}
-                {isSending ? "İşleniyor..." : "Gönderimi Başlat"}
+              <Button onClick={handleBulkSend} disabled={isSending || selectedSectorIds.length === 0} className="gap-2 rounded-xl">
+                {isSending ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
+                {isSending ? "İşleniyor..." : `${selectedIds.length} Acenteye Gönder`}
               </Button>
             </div>
           </div>
@@ -1082,19 +1206,33 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                   className="rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Faaliyet Alanı</Label>
-                <Select value={newSectorId} onValueChange={setNewSectorId}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Faaliyet alanı seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Faaliyet alanı atama</SelectItem>
-                    {sectors.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {sectors.map((s: any) => {
+                    const isChecked = newSectorIds.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() => {
+                            setNewSectorIds(prev =>
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                        />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -1210,19 +1348,33 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                   className="rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Faaliyet Alanı</Label>
-                <Select value={editSectorId} onValueChange={setEditSectorId}>
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Faaliyet alanı seçin..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Faaliyet alanı atama</SelectItem>
-                    {sectors.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2 md:col-span-2">
+                <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  {sectors.map((s: any) => {
+                    const isChecked = editSectorIds.includes(s.id);
+                    return (
+                      <label
+                        key={s.id}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all ${
+                          isChecked
+                            ? "bg-primary/5 border-primary text-primary shadow-sm"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          onCheckedChange={() => {
+                            setEditSectorIds(prev =>
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                        />
+                        <span className="truncate">{s.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

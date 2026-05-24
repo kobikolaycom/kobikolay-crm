@@ -181,6 +181,9 @@ model MailLog {
   status       MailStatus @default(PENDING)
   sentAt       DateTime?  @map("sent_at")
   errorMessage String?    @map("error_message")
+  trackingId   String?    @unique @default(uuid()) @map("tracking_id")
+  openedAt     DateTime?  @map("opened_at")
+  clickedAt    DateTime?  @map("clicked_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   agency       Agency     @relation(fields: [agencyId], references: [id], onDelete: Cascade)
 

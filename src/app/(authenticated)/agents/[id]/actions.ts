@@ -242,96 +242,18 @@ export async function getAllSectorsAction() {
 export async function sendAgencyPitchAction(data: {
   agencyId: string;
   sectorIds: string[];
-  emailBody: string;
-  emailSubject: string;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
-  const { agencyId, sectorIds, emailBody, emailSubject } = data;
+  const { PitchService } = await import("@/services/PitchService");
+  const result = await PitchService.sendPitch(data.agencyId, data.sectorIds);
 
-  // Fetch agency with contacts
-  const agency = await prisma.agency.findUnique({
-    where: { id: agencyId },
-    include: { contacts: true },
-  });
-
-  if (!agency) throw new Error("Acente bulunamadı");
-
-  const toEmail = agency.contacts?.[0]?.email;
-  if (!toEmail) throw new Error("Bu acentenin e-posta adresi tanımlı değil. Lütfen iletişim bilgilerini güncelleyin.");
-
-  // Fetch selected sectors for PDF attachments
-  const sectors = await prisma.sector.findMany({
-    where: { id: { in: sectorIds } },
-    include: { references: true },
-  });
-
-  // Build HTML email body
-  const html = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 24px; color: #333; max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #f0f0f0; border-radius: 12px;">
-      <div style="line-height: 1.8; font-size: 14px; white-space: pre-wrap;">
-${emailBody}
-      </div>
-      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
-      <p style="font-size: 11px; color: #999; text-align: center;">
-        Bu e-posta KobiKolay B2B CRM sistemi üzerinden otomatik olarak gönderilmiştir.
-      </p>
-    </div>
-  `;
-
-  // Prepare PDF attachments from sectors
-  const attachments: { filename: string; path: string }[] = [];
-  for (const sector of sectors) {
-    if (sector.pdfUrl) {
-      // If it's a relative URL, convert to absolute file path
-      const pdfPath = sector.pdfUrl.startsWith("/")
-        ? `${process.cwd()}/public${sector.pdfUrl}`
-        : sector.pdfUrl;
-      attachments.push({
-        filename: `${sector.name.replace(/[^a-zA-Z0-9ÇçĞğıİÖöŞşÜü\s]/g, "").trim()}_brosur.pdf`,
-        path: pdfPath,
-      });
-    }
+  if (!result.success) {
+    throw new Error(result.error || "E-posta gönderilemedi");
   }
 
-  try {
-    // Send email via SMTP
-    const { MailService } = await import("@/services/MailService");
-    await MailService.sendEmail({
-      to: toEmail,
-      subject: emailSubject,
-      html,
-      attachments,
-    });
-
-    // Log to MailLog
-    const sectorNames = sectors.map(s => s.name).join(", ");
-    await prisma.mailLog.create({
-      data: {
-        agencyId,
-        subject: emailSubject,
-        content: `Tanıtım Gönderildi.\nFaaliyet Alanları: ${sectorNames}\nEk PDF: ${attachments.length} adet\n\n${emailBody}`,
-        status: "SENT",
-        sentAt: new Date(),
-      },
-    });
-
-    revalidatePath(`/agents/${agencyId}`);
-    return { success: true };
-  } catch (error: any) {
-    console.error("[sendAgencyPitchAction] SMTP error:", error);
-
-    // Log failed attempt
-    await prisma.mailLog.create({
-      data: {
-        agencyId,
-        subject: emailSubject,
-        content: `Gönderim Hatası: ${error.message}`,
-        status: "FAILED",
-      },
-    }).catch(() => {});
-
-    throw new Error(`E-posta gönderilemedi: ${error.message}`);
-  }
+  revalidatePath(`/agents/${data.agencyId}`);
+  return { success: true };
 }
+

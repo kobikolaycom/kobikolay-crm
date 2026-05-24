@@ -3,8 +3,10 @@ import { SystemSettingService } from "./SystemSettingService";
 
 export interface MailAttachment {
   filename: string;
-  content: any;
+  content?: any;
   contentType?: string;
+  path?: string;    // local file path
+  href?: string;    // remote URL (e.g. Vercel Blob)
 }
 
 export interface SendEmailArgs {

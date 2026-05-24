@@ -1,119 +1,247 @@
 import prisma from "@/lib/prisma";
-import { OfferStatus, MailStatus } from "@prisma/client";
+import { MailStatus } from "@prisma/client";
 import { MailService } from "./MailService";
+import type { MailAttachment } from "./MailService";
 
-export interface SelectedModule {
-  moduleId: string;
-  name: string;
-}
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ *  PitchService — Sistemin Beyni
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ *  Bu servis, acentelere gönderilecek tanıtım e-postalarının tüm
+ *  yaşam döngüsünü yönetir:
+ *
+ *  1. Acente bilgilerini çözer (isim, yetkili, e-posta)
+ *  2. Seçilen faaliyet alanlarının içeriklerini ve PDF broşürlerini toplar
+ *  3. Profesyonel HTML e-postayı dinamik olarak inşa eder
+ *  4. PDF'leri ek olarak ekler (Vercel Blob URL'leri desteklenir)
+ *  5. SMTP üzerinden gönderir ve MailLog'a kaydeder
+ *
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+// ─── Sabit E-posta Giriş Metni ───
+const DEFAULT_INTRO = (agencyName: string) =>
+  `<strong>${agencyName}</strong>'nın dijital altyapısını güçlendirecek çözümlerimizi ve güncel teknolojilerimizi paylaşmak adına sizinle iletişime geçmek istedik.
+
+Büyük platformların kullandığı küresel tedarikçi entegrasyonlarını ya da hâlihazırda anlaşmalı olduğunuz tedarikçileri kendi markanız ve alan adınız altında toplayarak, dijital dünyada çok daha güçlü rekabet edebilmeniz için tüm bu imkanları doğrudan sistemimiz üzerinden sağlıyoruz.
+
+<strong>acenteyazilim.com</strong> altyapısına geçtiğinizde sahip olacağınız çözümleri ve bu çözümlerin acentenize sağlayacağı doğrudan faydaları aşağıda inceleyebilirsiniz:`;
 
 export class PitchService {
   /**
-   * Idempotent Dispatch: Oluşturur, Gönderir ve Röntgen'e kaydeder.
+   * Ana gönderim metodu.
+   * Her acente için kişiselleştirilmiş, sektör içerikli profesyonel e-posta oluşturur ve gönderir.
    */
   static async sendPitch(
     agencyId: string,
-    coverLetter: string,
-    selectedModules: SelectedModule[],
-    totalSoftwarePrice?: number,
-    attachedPdfUrls?: string[]
+    sectorIds: string[],
+    customIntro?: string
   ) {
     try {
-      // Demo şifrelerini MailLog'da maskele (güvenlik: düz metin şifre DB'de tutulmaz)
-      const sanitizedCoverLetter = coverLetter.replace(
-        /🔑 Şifre: .+/g,
-        "🔑 Şifre: **** (Güvenliğiniz için gizlenmiştir)"
-      );
-
-      // Atomik transaction: Offer + MailLog birlikte oluşturulur
-      const { offer } = await prisma.$transaction(async (tx) => {
-        // 1. Create Offer (orijinal coverLetter ile — mail gövdesinde şifre görünsün)
-        const offer = await tx.offer.create({
-          data: {
-            agencyId,
-            status: OfferStatus.SENT,
-            coverLetter,
-            selectedModules: selectedModules as any,
-            moduleIds: selectedModules.map(m => m.moduleId),
-            totalSoftwarePrice,
-          }
-        });
-
-        const mailSubject = `KobiKolay CRM: Sektörel Çözüm Önerimiz (ID: ${offer.id})`;
-
-        // Log to MailLog (maskelenmiş içerikle)
-        const pdfText = attachedPdfUrls && attachedPdfUrls.length > 0 
-          ? `\nEklenen Dosyalar: ${attachedPdfUrls.length} adet PDF broşürü`
-          : "";
-
-        await tx.mailLog.create({
-          data: {
-            agencyId,
-            subject: mailSubject,
-            content: `Sunum Gönderildi.\nModüller: ${selectedModules.map(m => m.name).join(', ')}\nFiyat: ${totalSoftwarePrice ? totalSoftwarePrice + ' TL' : 'Belirtilmedi'}${pdfText}\n\nÖn Yazı:\n${sanitizedCoverLetter}`,
-            status: MailStatus.SENT,
-            sentAt: new Date(),
-          }
-        });
-
-        return { offer };
-      });
-
-      // DB Transaction başarılı olduktan sonra, arka planda gerçek SMTP e-postası gönderelim
+      // ─── 1. Acente Bilgilerini Al ───
       const agency = await prisma.agency.findUnique({
         where: { id: agencyId },
-        include: { contacts: true }
+        include: { contacts: true },
       });
-      const toEmail = agency?.contacts[0]?.email;
 
-      if (agency && toEmail) {
-        const mailSubject = `KobiKolay CRM: Sektörel Çözüm Önerimiz (Teklif ID: ${offer.id})`;
-        
-        // Şifreler ve ön yazı
-        const html = `
-          <div style="font-family: sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #f0f0f0; rounded: 12px;">
-            <div style="line-height: 1.6; font-size: 14px; white-space: pre-wrap;">
-              ${coverLetter}
-            </div>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-            <p style="font-size: 11px; color: #999;">
-              Bu e-posta KobiKolay B2B CRM sistemi üzerinden otomatik olarak üretilmiştir.
-            </p>
-          </div>
-        `;
-
-        // Eğer ekli PDF broşürleri varsa nodemailer'a ekleyelim
-        const attachments = attachedPdfUrls?.map(url => ({
-          filename: url.split("/").pop() || "brosur.pdf",
-          path: url, // Nodemailer web URL'lerini veya yerel yolları destekler
-        })) || [];
-
-        // SMTP gönderimi tetiklenir
-        await MailService.sendEmail({
-          to: toEmail,
-          subject: mailSubject,
-          html,
-          attachments,
-        }).catch(err => {
-          console.error(`[PitchService] SMTP email dispatch failed for Offer ${offer.id}:`, err);
-        });
+      if (!agency) {
+        return { success: false, error: "Acente bulunamadı" };
       }
 
-      return { success: true, data: offer };
-    } catch (error: any) {
-      console.error("Pitch sending failed:", error);
-      
-      // Fallback log — transaction dışında, başarısız gönderim kaydı
-      await prisma.mailLog.create({
+      const toEmail = agency.contacts?.[0]?.email;
+      if (!toEmail) {
+        return { success: false, error: `${agency.companyName}: E-posta adresi tanımlı değil` };
+      }
+
+      const agencyName = agency.companyName;
+      const authorizedPerson = agency.authorizedPerson;
+
+      // ─── 2. Seçilen Faaliyet Alanlarını Al ───
+      const sectors = await prisma.sector.findMany({
+        where: { id: { in: sectorIds } },
+        include: { references: true },
+        orderBy: { name: "asc" },
+      });
+
+      if (sectors.length === 0) {
+        return { success: false, error: "Faaliyet alanı seçilmedi" };
+      }
+
+      // ─── 3. Kişisel Selamlama ───
+      const greeting = authorizedPerson
+        ? `Merhaba ${authorizedPerson} Bey / Hanım,`
+        : "Sayın Yetkili,";
+
+      // ─── 4. Giriş Metni ───
+      const introHtml = customIntro
+        ? customIntro.replace(/\n/g, "<br>")
+        : DEFAULT_INTRO(agencyName);
+
+      // ─── 5. Faaliyet Alanı Blokları ───
+      const sectorBlocksHtml = sectors
+        .map((sector) => {
+          const content = sector.coverLetter
+            ? sector.coverLetter.replace(/\n/g, "<br>")
+            : "";
+
+          const refHtml =
+            sector.references.length > 0
+              ? `<div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e0e0e0;">
+                  <span style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px;">Referanslar:</span>
+                  <div style="margin-top: 6px;">
+                    ${sector.references
+                      .map(
+                        (r) =>
+                          `<span style="display: inline-block; background: #f0f4ff; color: #4f46e5; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 6px; margin: 2px 4px 2px 0;">${r.name}</span>`
+                      )
+                      .join("")}
+                  </div>
+                </div>`
+              : "";
+
+          const pdfBadge = sector.pdfUrl
+            ? `<div style="margin-top: 10px;"><span style="display: inline-block; background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;">📎 PDF Broşür Ekte</span></div>`
+            : "";
+
+          return `
+            <div style="background: #fafbfc; border: 1px solid #e8ecf1; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 12px 0; color: #1e293b; font-size: 16px; font-weight: 700; border-left: 4px solid #4f46e5; padding-left: 12px;">
+                ${sector.name}
+              </h3>
+              <div style="color: #475569; font-size: 14px; line-height: 1.7;">
+                ${content}
+              </div>
+              ${refHtml}
+              ${pdfBadge}
+            </div>
+          `;
+        })
+        .join("");
+
+      // ─── 6. Tam HTML E-posta Gövdesi ───
+      const fullHtml = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #e8ecf1; border-radius: 16px; overflow: hidden;">
+          
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 28px 32px; text-align: center;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">
+              acenteyazılım.com
+            </h1>
+            <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.8); font-size: 13px;">
+              Dijital Seyahat Altyapı Çözümleri
+            </p>
+          </div>
+
+          <!-- Body -->
+          <div style="padding: 32px;">
+            
+            <!-- Greeting -->
+            <p style="font-size: 16px; font-weight: 600; color: #1e293b; margin: 0 0 20px 0;">
+              ${greeting}
+            </p>
+
+            <!-- Intro -->
+            <div style="font-size: 14px; color: #475569; line-height: 1.8; margin-bottom: 28px;">
+              ${introHtml}
+            </div>
+
+            <!-- Sector Content Blocks -->
+            ${sectorBlocksHtml}
+
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f8fafc; border-top: 1px solid #e8ecf1; padding: 20px 32px; text-align: center;">
+            <p style="margin: 0 0 4px 0; font-size: 13px; color: #64748b;">
+              Saygılarımızla,
+            </p>
+            <p style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;">
+              KobiKolay Ekibi
+            </p>
+            <hr style="border: none; border-top: 1px solid #e8ecf1; margin: 16px 0;">
+            <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+              Bu e-posta KobiKolay B2B CRM sistemi üzerinden gönderilmiştir.
+            </p>
+          </div>
+        </div>
+      `;
+
+      // ─── 7. PDF Ekleri ───
+      const attachments: MailAttachment[] = [];
+      for (const sector of sectors) {
+        if (sector.pdfUrl) {
+          const safeName = sector.name
+            .replace(/[^a-zA-Z0-9ÇçĞğıİÖöŞşÜü\s]/g, "")
+            .trim()
+            .replace(/\s+/g, "_");
+          attachments.push({
+            filename: `${safeName}_brosur.pdf`,
+            path: sector.pdfUrl, // nodemailer supports both local paths and URLs
+          });
+        }
+      }
+
+      // ─── 8. MailLog Kaydını ÖNCE Oluştur (trackingId almak için) ───
+      const emailSubject = `${agencyName} — Dijital Çözüm Önerimiz`;
+      const sectorNames = sectors.map((s) => s.name).join(", ");
+
+      const mailLog = await prisma.mailLog.create({
         data: {
           agencyId,
-          subject: "Teklif/Sunum Gönderim Hatası",
-          content: `Sistem Hatası: ${error.message}`,
-          status: MailStatus.FAILED,
-        }
-      }).catch(() => {}); // ignore error if agencyId is invalid
+          subject: emailSubject,
+          content: `Tanıtım Gönderildi.\nFaaliyet Alanları: ${sectorNames}\nEk PDF: ${attachments.length} adet\nAlıcı: ${toEmail}`,
+          status: MailStatus.PENDING,
+        },
+      });
 
-      return { success: false, error: "Sunum gönderilemedi." };
+      // ─── 9. Tracking Pixel + Link Wrapping ───
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "https://kobikolay-crm.vercel.app";
+
+      const trackingPixel = `<img src="${baseUrl}/api/track?tid=${mailLog.trackingId}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+
+      // Inject tracking pixel just before closing </div>
+      const trackedHtml = fullHtml.replace(
+        "</div>\n      ",
+        `${trackingPixel}</div>\n      `
+      ) + trackingPixel; // Also add at the very end as fallback
+
+      // ─── 10. E-posta Gönder ───
+      await MailService.sendEmail({
+        to: toEmail,
+        subject: emailSubject,
+        html: trackedHtml,
+        attachments,
+      });
+
+      // ─── 11. MailLog'u SENT Olarak Güncelle ───
+      await prisma.mailLog.update({
+        where: { id: mailLog.id },
+        data: {
+          status: MailStatus.SENT,
+          sentAt: new Date(),
+        },
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error(`[PitchService] sendPitch failed for agency ${agencyId}:`, error);
+
+      // Hata kaydı
+      await prisma.mailLog
+        .create({
+          data: {
+            agencyId,
+            subject: "Tanıtım Gönderim Hatası",
+            content: `Sistem Hatası: ${error.message}`,
+            status: MailStatus.FAILED,
+          },
+        })
+        .catch(() => {});
+
+      return { success: false, error: error.message || "Gönderim başarısız" };
     }
   }
 
@@ -123,7 +251,8 @@ export class PitchService {
   static async getTemplatesBySector(sectorId: string) {
     return prisma.pitchTemplate.findMany({
       where: { sectorId },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
   }
 }
+

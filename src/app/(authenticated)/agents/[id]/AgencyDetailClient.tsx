@@ -1165,13 +1165,41 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                             </p>
                           )}
 
-                          {/* Info notice for sent mails */}
+                          {/* Tracking Status for sent mails */}
                           {log.status === "SENT" && (
-                            <div className="mt-3 bg-blue-50 rounded-xl px-4 py-2.5 flex items-start gap-2.5">
-                              <Info size={14} className="text-blue-500 mt-0.5 shrink-0" />
-                              <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                                Bu mail başarıyla gönderildi. Alıcı mail içeriğindeki bağlantıya tıkladığında mail ile iletişim kurulduğuna dair bilgilendirileceksiniz.
-                              </p>
+                            <div className="mt-3 space-y-2">
+                              {log.clickedAt ? (
+                                <div className="bg-violet-50 rounded-xl px-4 py-2.5 flex items-start gap-2.5">
+                                  <ExternalLink size={14} className="text-violet-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-[11px] text-violet-700 font-bold">
+                                      🎯 Linke Tıklandı!
+                                    </p>
+                                    <p className="text-[10px] text-violet-500">
+                                      {format(new Date(log.clickedAt), "d MMMM yyyy • HH:mm", { locale: tr })}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : log.openedAt ? (
+                                <div className="bg-blue-50 rounded-xl px-4 py-2.5 flex items-start gap-2.5">
+                                  <Eye size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-[11px] text-blue-700 font-bold">
+                                      📬 E-posta Açıldı
+                                    </p>
+                                    <p className="text-[10px] text-blue-500">
+                                      {format(new Date(log.openedAt), "d MMMM yyyy • HH:mm", { locale: tr })}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-50 rounded-xl px-4 py-2.5 flex items-start gap-2.5">
+                                  <Info size={14} className="text-slate-400 mt-0.5 shrink-0" />
+                                  <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                                    Mail gönderildi. Alıcı e-postayı açtığında veya linke tıkladığında buradan takip edebilirsiniz.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 
@@ -1683,8 +1711,8 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
             </Button>
             <Button
               onClick={async () => {
-                if (!pitchBody.trim() || !pitchSubject.trim()) {
-                  toast.error("E-posta konusu ve içeriği zorunludur");
+                if (pitchSelectedSectorIds.length === 0) {
+                  toast.error("En az bir faaliyet alanı seçmelisiniz");
                   return;
                 }
                 if (!contact?.email) {
@@ -1696,8 +1724,6 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   await sendAgencyPitchAction({
                     agencyId: agency.id,
                     sectorIds: pitchSelectedSectorIds,
-                    emailBody: pitchBody,
-                    emailSubject: pitchSubject,
                   });
                   toast.success("Tanıtım e-postası başarıyla gönderildi! 🚀");
                   setShowPitchDialog(false);
@@ -1707,7 +1733,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 }
                 setPitchSending(false);
               }}
-              disabled={pitchSending || !pitchBody.trim() || !pitchSubject.trim() || !contact?.email}
+              disabled={pitchSending || pitchSelectedSectorIds.length === 0 || !contact?.email}
               className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
             >
               {pitchSending ? (

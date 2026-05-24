@@ -29,14 +29,20 @@ export class DashboardService {
    * Dashboard istatistik kartları için özet veriler.
    */
   static async getStats(): Promise<DashboardStats> {
-    const [totalAgencies, activeConversations, sentCampaigns, totalCampaigns] = await Promise.all([
+    const [totalAgencies, activeConversations, sentCampaigns, totalCampaigns, sentMailLogs] = await Promise.all([
       prisma.agency.count(),
       prisma.conversation.count({ where: { status: "OPEN" } }),
       prisma.campaign.count({ where: { status: "COMPLETED" } }),
       prisma.campaign.count(),
+      prisma.mailLog.count({ where: { status: "SENT" } }),
     ]);
 
-    return { totalAgencies, activeConversations, sentCampaigns, totalCampaigns };
+    return {
+      totalAgencies,
+      activeConversations,
+      sentCampaigns: sentCampaigns + sentMailLogs,
+      totalCampaigns,
+    };
   }
 
   /**
