@@ -26,7 +26,7 @@ const DEFAULT_INTRO = (agencyName: string) =>
 
 Büyük platformların kullandığı küresel tedarikçi entegrasyonlarını ya da hâlihazırda anlaşmalı olduğunuz tedarikçileri kendi markanız ve alan adınız altında toplayarak, dijital dünyada çok daha güçlü rekabet edebilmeniz için tüm bu imkanları doğrudan sistemimiz üzerinden sağlıyoruz.
 
-<strong>acenteyazilim.com</strong> altyapısına geçtiğinizde sahip olacağınız çözümleri ve bu çözümlerin acentenize sağlayacağı doğrudan faydaları aşağıda inceleyebilirsiniz:`;
+<strong><a href="https://acenteyazilim.com" style="color: inherit; text-decoration: none;">acenteyazilim.com</a></strong> altyapısına geçtiğinizde sahip olacağınız çözümleri ve bu çözümlerin acentenize sağlayacağı doğrudan faydaları aşağıda inceleyebilirsiniz:`;
 
 export class PitchService {
   /**
@@ -126,8 +126,8 @@ export class PitchService {
           
           <!-- Header -->
           <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 28px 32px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">
-              acenteyazılım.com
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">
+              <a href="https://acenteyazilim.com" style="color: #ffffff; text-decoration: none;">acenteyazılım.com</a>
             </h1>
             <p style="margin: 6px 0 0 0; color: rgba(255,255,255,0.8); font-size: 13px;">
               Dijital Seyahat Altyapı Çözümleri

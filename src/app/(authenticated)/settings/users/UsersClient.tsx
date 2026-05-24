@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import {
   createUserAction,
+  updateUserAction,
   toggleUserStatusAction,
   deleteUserAction,
   updateUserPasswordAction,
@@ -40,8 +41,10 @@ interface UsersClientProps {
 export function UsersClient({ users, roles }: UsersClientProps) {
   const [isPending, startTransition] = useTransition();
 
-  // New user dialog
+  // New/Edit user dialog
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingUserId, setEditingUserId] = useState("");
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -59,28 +62,59 @@ export function UsersClient({ users, roles }: UsersClientProps) {
   const [deleteUserId, setDeleteUserId] = useState("");
   const [deleteUserName, setDeleteUserName] = useState("");
 
-  const handleCreateUser = () => {
-    if (!newName.trim() || !newEmail.trim() || !newPassword.trim() || !newRoleId) {
-      toast.error("Tüm alanları doldurun");
+  const handleOpenCreate = () => {
+    setIsEditing(false);
+    setEditingUserId("");
+    setNewName("");
+    setNewEmail("");
+    setNewPassword("");
+    setNewRoleId("");
+    setShowNewDialog(true);
+  };
+
+  const handleOpenEdit = (user: any) => {
+    setIsEditing(true);
+    setEditingUserId(user.id);
+    setNewName(user.name || "");
+    setNewEmail(user.email || "");
+    setNewPassword(""); // Left empty for edit, meaning don't change if not provided
+    setNewRoleId(user.roleId || "");
+    setShowNewDialog(true);
+  };
+
+  const handleSaveUser = () => {
+    if (!newName.trim() || !newEmail.trim() || !newRoleId) {
+      toast.error("Ad, e-posta ve rol zorunludur");
       return;
     }
+    if (!isEditing && !newPassword.trim()) {
+      toast.error("Yeni personel için şifre zorunludur");
+      return;
+    }
+    
     startTransition(async () => {
       try {
-        await createUserAction({
-          name: newName.trim(),
-          email: newEmail.trim().toLowerCase(),
-          password: newPassword,
-          roleId: newRoleId,
-        });
-        toast.success("Personel başarıyla oluşturuldu");
+        if (isEditing) {
+          await updateUserAction(editingUserId, {
+            name: newName.trim(),
+            email: newEmail.trim().toLowerCase(),
+            roleId: newRoleId,
+          });
+          // Note: If they want to change password, they use the key icon separately
+          toast.success("Personel güncellendi");
+        } else {
+          await createUserAction({
+            name: newName.trim(),
+            email: newEmail.trim().toLowerCase(),
+            password: newPassword,
+            roleId: newRoleId,
+          });
+          toast.success("Personel başarıyla oluşturuldu");
+        }
         setShowNewDialog(false);
-        setNewName("");
-        setNewEmail("");
-        setNewPassword("");
-        setNewRoleId("");
         window.location.reload();
       } catch (error: any) {
-        toast.error(error.message || "Personel oluşturulamadı");
+        toast.error(error.message || "İşlem başarısız");
       }
     });
   };
@@ -136,7 +170,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
           <span>Toplam <strong className="text-slate-900">{users.length}</strong> personel</span>
         </div>
         <Button
-          onClick={() => setShowNewDialog(true)}
+          onClick={handleOpenCreate}
           className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
         >
           <UserPlus size={16} /> Yeni Personel Ekle
@@ -210,6 +244,15 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
+                          title="Düzenle"
+                          onClick={() => handleOpenEdit(user)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50"
                           title="Şifre Sıfırla"
                           onClick={() => {
@@ -259,16 +302,16 @@ export function UsersClient({ users, roles }: UsersClientProps) {
         </div>
       </div>
 
-      {/* New User Dialog */}
+      {/* New/Edit User Dialog */}
       <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus size={20} className="text-indigo-600" />
-              Yeni Personel Ekle
+              {isEditing ? "Personeli Düzenle" : "Yeni Personel Ekle"}
             </DialogTitle>
             <DialogDescription>
-              Sisteme yeni bir personel ekleyin. Personel bu bilgilerle giriş yapabilecek.
+              {isEditing ? "Personel bilgilerini güncelleyin." : "Sisteme yeni bir personel ekleyin. Personel bu bilgilerle giriş yapabilecek."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -291,25 +334,27 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                 className="rounded-xl"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-600">Şifre *</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="En az 6 karakter"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="rounded-xl pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+            {!isEditing && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-600">Şifre *</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="En az 6 karakter"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="rounded-xl pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-600">Rol *</Label>
               <Select value={newRoleId} onValueChange={setNewRoleId}>
@@ -334,11 +379,11 @@ export function UsersClient({ users, roles }: UsersClientProps) {
               İptal
             </Button>
             <Button
-              onClick={handleCreateUser}
+              onClick={handleSaveUser}
               disabled={isPending}
               className="rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white gap-2"
             >
-              <Plus size={16} /> Personel Oluştur
+              <Plus size={16} /> {isEditing ? "Kaydet" : "Personel Oluştur"}
             </Button>
           </DialogFooter>
         </DialogContent>

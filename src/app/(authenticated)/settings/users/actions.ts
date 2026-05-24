@@ -36,6 +36,28 @@ export async function createUserAction(data: {
   return { success: true };
 }
 
+export async function updateUserAction(userId: string, data: { name: string; email: string; roleId: string }) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  const existing = await prisma.user.findUnique({ where: { email: data.email } });
+  if (existing && existing.id !== userId) {
+    throw new Error("Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      email: data.email,
+      roleId: data.roleId,
+    },
+  });
+
+  revalidatePath("/settings/users");
+  return { success: true };
+}
+
 export async function toggleUserStatusAction(userId: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
