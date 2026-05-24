@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useRef, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,8 +12,8 @@ import {
 import { toast } from "sonner";
 import {
   Briefcase, FileText, Globe, Plus, Pencil, Trash2,
-  X, RefreshCw, AlertTriangle, ExternalLink,
-  Mail, Link2, Star,
+  Upload, X, RefreshCw, AlertTriangle, ExternalLink,
+  Mail, Link2, Star, CheckCircle2,
 } from "lucide-react";
 import { createSectorAction, updateSectorAction, deleteSectorAction, addReferenceAction, deleteReferenceAction } from "./actions";
 
@@ -53,6 +53,11 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
   const [formPdfUrl, setFormPdfUrl] = useState("");
   const [removePdf, setRemovePdf] = useState(false);
 
+  // PDF upload
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Reference dialog
   const [showRefDialog, setShowRefDialog] = useState(false);
   const [refSectorId, setRefSectorId] = useState("");
@@ -65,6 +70,8 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setFormCoverLetter("");
     setFormPdfUrl("");
     setRemovePdf(false);
+    setPdfFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const openAdd = () => { resetForm(); setShowAddDialog(true); };
@@ -76,6 +83,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setFormCoverLetter(sector.coverLetter || "");
     setFormPdfUrl(sector.pdfUrl || "");
     setRemovePdf(false);
+    setPdfFile(null);
     setShowEditDialog(true);
   };
 
@@ -88,16 +96,51 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setShowRefDialog(true);
   };
 
+  // ─── PDF File Selection ───
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") { toast.error("Sadece PDF dosyası yüklenebilir"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("Dosya boyutu 10MB'ı geçemez"); return; }
+    setPdfFile(file);
+    setRemovePdf(false);
+  };
+
+  // ─── Upload PDF to Vercel Blob ───
+  const uploadPdf = async (): Promise<string | null> => {
+    if (!pdfFile) return null;
+    setPdfUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", pdfFile);
+      const res = await fetch("/api/upload-pdf", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Yükleme başarısız");
+      return data.url;
+    } catch (err: any) {
+      toast.error(err.message || "PDF yüklenemedi");
+      return null;
+    } finally {
+      setPdfUploading(false);
+    }
+  };
+
   // ─── EKLE ───
   const handleAdd = () => {
     if (!formName.trim()) { toast.error("Faaliyet alanı adı zorunludur"); return; }
     startTransition(async () => {
       try {
+        let uploadedUrl = formPdfUrl;
+        if (pdfFile) {
+          const url = await uploadPdf();
+          if (url) uploadedUrl = url;
+          else if (pdfFile) return; // upload failed, don't proceed
+        }
         const fd = new FormData();
         fd.append("name", formName.trim());
         fd.append("description", formDescription.trim());
         fd.append("coverLetter", formCoverLetter.trim());
-        if (formPdfUrl.trim()) fd.append("pdfUrl", formPdfUrl.trim());
+        if (uploadedUrl?.trim()) fd.append("pdfUrl", uploadedUrl.trim());
         await createSectorAction(fd);
         toast.success(`"${formName}" faaliyet alanı eklendi`);
         setShowAddDialog(false);
@@ -112,6 +155,12 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     if (!formName.trim() || !editingSector) { toast.error("Faaliyet alanı adı zorunludur"); return; }
     startTransition(async () => {
       try {
+        let uploadedUrl = formPdfUrl;
+        if (pdfFile) {
+          const url = await uploadPdf();
+          if (url) uploadedUrl = url;
+          else if (pdfFile) return;
+        }
         const fd = new FormData();
         fd.append("id", editingSector.id);
         fd.append("name", formName.trim());
@@ -119,8 +168,8 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         fd.append("coverLetter", formCoverLetter.trim());
         if (removePdf) {
           fd.append("removePdf", "true");
-        } else if (formPdfUrl.trim()) {
-          fd.append("pdfUrl", formPdfUrl.trim());
+        } else if (uploadedUrl?.trim()) {
+          fd.append("pdfUrl", uploadedUrl.trim());
         }
         await updateSectorAction(fd);
         toast.success(`"${formName}" güncellendi`);
@@ -171,25 +220,32 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     });
   };
 
-  // ─── PDF URL Input (shared between add/edit) ───
-  const renderPdfInput = (isEdit: boolean) => (
+  // ─── PDF Upload Area ───
+  const renderPdfUpload = (isEdit: boolean) => (
     <div className="space-y-2">
-      <Label>PDF Broşür Linki (isteğe bağlı)</Label>
+      <Label>PDF Broşür (isteğe bağlı)</Label>
 
-      {/* Existing PDF (edit mode only) */}
-      {isEdit && editingSector?.pdfUrl && !removePdf && (
+      {/* Existing PDF (edit mode) */}
+      {isEdit && editingSector?.pdfUrl && !removePdf && !pdfFile && (
         <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 text-sm text-emerald-700 min-w-0">
-            <FileText size={16} className="shrink-0" />
-            <span className="font-medium truncate">{editingSector.pdfUrl}</span>
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span className="font-medium">Mevcut PDF yüklü</span>
           </div>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs gap-1 shrink-0" onClick={() => { setRemovePdf(true); setFormPdfUrl(""); }}>
-            <Trash2 size={12} /> Kaldır
-          </Button>
+          <div className="flex gap-1 shrink-0">
+            <a href={editingSector.pdfUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="ghost" size="sm" className="text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs gap-1">
+                <ExternalLink size={12} /> Görüntüle
+              </Button>
+            </a>
+            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs gap-1" onClick={() => { setRemovePdf(true); setPdfFile(null); setFormPdfUrl(""); }}>
+              <Trash2 size={12} /> Kaldır
+            </Button>
+          </div>
         </div>
       )}
 
-      {isEdit && removePdf && (
+      {isEdit && removePdf && !pdfFile && (
         <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <span className="text-sm text-amber-700">PDF kaldırılacak</span>
           <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 rounded-lg text-xs" onClick={() => { setRemovePdf(false); setFormPdfUrl(editingSector?.pdfUrl || ""); }}>
@@ -198,17 +254,39 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         </div>
       )}
 
-      {(!isEdit || !editingSector?.pdfUrl || removePdf) && (
-        <Input
-          value={formPdfUrl}
-          onChange={(e) => setFormPdfUrl(e.target.value)}
-          placeholder="https://drive.google.com/... veya PDF dosya linki"
-          className="rounded-xl"
-        />
+      {/* File selected */}
+      {pdfFile && (
+        <div className="flex items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 text-sm min-w-0">
+            <FileText size={16} className="text-blue-600 shrink-0" />
+            <span className="font-medium text-blue-900 truncate">{pdfFile.name}</span>
+            <span className="text-blue-500 text-xs shrink-0">({(pdfFile.size / 1024).toFixed(0)} KB)</span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg shrink-0 text-blue-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setPdfFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
+            <X size={14} />
+          </Button>
+        </div>
       )}
-      <p className="text-[11px] text-muted-foreground">
-        Google Drive, Dropbox veya herhangi bir PDF dosya linkini yapıştırın.
-      </p>
+
+      {/* Upload area */}
+      {!pdfFile && (!isEdit || !editingSector?.pdfUrl || removePdf) && (
+        <label className="block cursor-pointer">
+          <div className="border-2 border-dashed rounded-xl p-6 text-center hover:border-primary/50 hover:bg-primary/[0.02] transition-all">
+            <Upload size={28} className="mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">
+              PDF dosyasını seçin veya sürükleyin
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Maks. 10MB • Sadece PDF</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+        </label>
+      )}
     </div>
   );
 
@@ -254,7 +332,6 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
                     </p>
                   </div>
                 </div>
-                {/* Action Buttons */}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(sector)} title="Düzenle">
                     <Pencil size={14} />
@@ -270,8 +347,8 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
                 <p className="text-sm text-muted-foreground line-clamp-2">{sector.description}</p>
               )}
 
-              {/* Cover Letter Status */}
-              <div className="flex items-center gap-2">
+              {/* Cover Letter + PDF + Agency Badges */}
+              <div className="flex items-center gap-2 flex-wrap">
                 {sector.coverLetter ? (
                   <Badge variant="outline" className="gap-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
                     <Mail size={12} /> Ön yazı tanımlı
@@ -281,13 +358,9 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
                     <Mail size={12} /> Ön yazı yok
                   </Badge>
                 )}
-              </div>
-
-              {/* PDF + Agency Badges */}
-              <div className="flex items-center gap-2 flex-wrap">
                 {sector.pdfUrl ? (
                   <a href={sector.pdfUrl} target="_blank" rel="noopener noreferrer" className="inline-flex">
-                    <Badge variant="outline" className="gap-1 text-xs hover:bg-primary/5 cursor-pointer">
+                    <Badge variant="outline" className="gap-1 text-xs hover:bg-primary/5 cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200">
                       <FileText size={12} /> PDF Broşür <ExternalLink size={10} />
                     </Badge>
                   </a>
@@ -345,7 +418,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
           <DialogHeader>
             <DialogTitle>Yeni Faaliyet Alanı Ekle</DialogTitle>
             <DialogDescription>
-              Yeni bir faaliyet alanı oluşturun, isteğe bağlı PDF linki ve ön yazı ekleyin.
+              Yeni bir faaliyet alanı oluşturun, isteğe bağlı PDF broşür ve ön yazı ekleyin.
             </DialogDescription>
           </DialogHeader>
 
@@ -387,16 +460,16 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
               </p>
             </div>
 
-            {renderPdfInput(false)}
+            {renderPdfUpload(false)}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isPending} className="rounded-xl">
+            <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={isPending || pdfUploading} className="rounded-xl">
               İptal
             </Button>
-            <Button onClick={handleAdd} disabled={isPending || !formName.trim()} className="gap-2 rounded-xl">
-              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
-              Faaliyet Alanını Ekle
+            <Button onClick={handleAdd} disabled={isPending || pdfUploading || !formName.trim()} className="gap-2 rounded-xl">
+              {(isPending || pdfUploading) ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
+              {pdfUploading ? "PDF Yükleniyor..." : "Faaliyet Alanını Ekle"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -438,16 +511,16 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
               </p>
             </div>
 
-            {renderPdfInput(true)}
+            {renderPdfUpload(true)}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isPending} className="rounded-xl">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isPending || pdfUploading} className="rounded-xl">
               İptal
             </Button>
-            <Button onClick={handleEdit} disabled={isPending || !formName.trim()} className="gap-2 rounded-xl">
-              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Pencil size={16} />}
-              Kaydet
+            <Button onClick={handleEdit} disabled={isPending || pdfUploading || !formName.trim()} className="gap-2 rounded-xl">
+              {(isPending || pdfUploading) ? <RefreshCw className="animate-spin" size={16} /> : <Pencil size={16} />}
+              {pdfUploading ? "PDF Yükleniyor..." : "Kaydet"}
             </Button>
           </DialogFooter>
         </DialogContent>
