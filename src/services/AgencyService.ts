@@ -19,8 +19,9 @@ export class AgencyService {
     campaignFilter?: string;
     dateFrom?: string;
     dateTo?: string;
+    mailInteraction?: string;
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo } = params || {};
+    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction } = params || {};
     
     let where: Prisma.AgencyWhereInput = {};
 
@@ -38,6 +39,17 @@ export class AgencyService {
     if (pitchStatus === "sent") {
       where.mailLogs = { some: {} };
     } else if (pitchStatus === "pending") {
+      where.mailLogs = { none: {} };
+    }
+
+    // Mail interaction filter
+    if (mailInteraction === "clicked") {
+      where.mailLogs = { some: { clickedAt: { not: null } } };
+    } else if (mailInteraction === "opened") {
+      where.mailLogs = { some: { openedAt: { not: null }, clickedAt: null } };
+    } else if (mailInteraction === "sent_only") {
+      where.mailLogs = { some: { status: "SENT", openedAt: null, clickedAt: null } };
+    } else if (mailInteraction === "no_mail") {
       where.mailLogs = { none: {} };
     }
 

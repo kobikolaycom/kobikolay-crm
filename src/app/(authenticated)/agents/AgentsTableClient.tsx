@@ -51,6 +51,7 @@ interface AgentsTableClientProps {
   initialCampaignFilter?: string;
   initialDateFrom?: string;
   initialDateTo?: string;
+  initialMailInteraction?: string;
 }
 
 function statusBadge(status: string) {
@@ -65,7 +66,7 @@ function statusBadge(status: string) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -585,6 +586,40 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         </div>
       </div>
 
+      {/* Mail Interaction Filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-muted-foreground font-semibold mr-1">📧 Etkileşim:</span>
+        {[
+          { key: "all", label: "Tümü", icon: "" },
+          { key: "clicked", label: "🔗 İletişim Kuruldu", cls: "bg-violet-600 hover:bg-violet-700" },
+          { key: "opened", label: "👁️ Maili Açtı", cls: "bg-blue-600 hover:bg-blue-700" },
+          { key: "sent_only", label: "✉️ Gönderildi (Açılmadı)", cls: "bg-emerald-600 hover:bg-emerald-700" },
+          { key: "no_mail", label: "⚪ Mail Gönderilmemiş", cls: "bg-slate-600 hover:bg-slate-700" },
+        ].map((f) => {
+          const isActive = initialMailInteraction === f.key;
+          return (
+            <Button
+              key={f.key}
+              size="sm"
+              variant={isActive ? "default" : "outline"}
+              className={`rounded-lg text-xs h-7 px-3 ${isActive && f.cls ? f.cls : ""}`}
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                if (f.key === "all") {
+                  params.delete("mailInteraction");
+                } else {
+                  params.set("mailInteraction", f.key);
+                }
+                params.delete("page");
+                router.push(`${pathname}?${params.toString()}`);
+              }}
+            >
+              {f.label}
+            </Button>
+          );
+        })}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -602,7 +637,9 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail / Temsilci</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Etkileşim</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Temsilci</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
               </tr>
@@ -610,7 +647,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             <tbody className="divide-y">
               {agencies.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-20">
+                  <td colSpan={11} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
                     <p className="text-muted-foreground">Acente bulunamadı</p>
                   </td>
@@ -650,18 +687,11 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                       </div>
                     </td>
                     <td className="px-4 py-3">{statusBadge(agency.status)}</td>
+                    {/* Son Mail */}
                     <td className="px-4 py-3">
                       {lastMail ? (
                         <div className="flex flex-col gap-0.5">
-                          {lastMail.clickedAt ? (
-                            <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
-                              <ExternalLink size={9} /> Tıklandı
-                            </Badge>
-                          ) : lastMail.openedAt ? (
-                            <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
-                              <Eye size={9} /> Açıldı
-                            </Badge>
-                          ) : lastMail.status === "SENT" ? (
+                          {lastMail.status === "SENT" ? (
                             <Badge variant="outline" className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
                               <CheckCircle2 size={9} /> Gönderildi
                             </Badge>
@@ -679,16 +709,42 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                               {new Date(lastMail.sentAt).toLocaleDateString("tr-TR")}
                             </span>
                           )}
-                          {lastMail.sentBy?.name && (
-                            <span className="text-[9px] text-indigo-500 font-medium flex items-center gap-0.5">
-                              👤 {lastMail.sentBy.name}
-                            </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    {/* Etkileşim */}
+                    <td className="px-4 py-3">
+                      {lastMail ? (
+                        <div className="flex flex-col gap-0.5">
+                          {lastMail.clickedAt ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                              <ExternalLink size={9} /> İletişim Kuruldu
+                            </Badge>
+                          ) : lastMail.openedAt ? (
+                            <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                              <Eye size={9} /> Maili Açtı
+                            </Badge>
+                          ) : (
+                            <span className="text-[9px] text-slate-400">Henüz etkileşim yok</span>
                           )}
                         </div>
                       ) : (
                         <span className="text-[10px] text-slate-300">—</span>
                       )}
                     </td>
+                    {/* Temsilci */}
+                    <td className="px-4 py-3">
+                      {lastMail?.sentBy?.name ? (
+                        <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
+                          👤 {lastMail.sentBy.name}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    {/* İletişim */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         {agency.contacts?.[0]?.email && (

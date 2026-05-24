@@ -19,6 +19,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const campaignFilter = (params.campaignFilter as string) || "all";
   const dateFrom = (params.dateFrom as string) || "";
   const dateTo = (params.dateTo as string) || "";
+  const mailInteraction = (params.mailInteraction as string) || "all";
 
   const { data: agencies, total } = await AgencyService.list({
     skip: (page - 1) * pageSize,
@@ -29,6 +30,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     campaignFilter,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    mailInteraction: mailInteraction !== "all" ? mailInteraction : undefined,
   });
 
   const sectors = await SectorService.list();
@@ -48,6 +50,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialCampaignFilter={campaignFilter}
         initialDateFrom={dateFrom}
         initialDateTo={dateTo}
+        initialMailInteraction={mailInteraction}
       />
     </div>
   );
