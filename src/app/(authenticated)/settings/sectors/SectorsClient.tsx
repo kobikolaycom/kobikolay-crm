@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 import {
   Briefcase, FileText, Globe, Plus, Pencil, Trash2,
-  Upload, X, RefreshCw, AlertTriangle, ExternalLink,
+  X, RefreshCw, AlertTriangle, ExternalLink,
   Mail, Link2, Star,
 } from "lucide-react";
 import { createSectorAction, updateSectorAction, deleteSectorAction, addReferenceAction, deleteReferenceAction } from "./actions";
@@ -50,9 +50,8 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formCoverLetter, setFormCoverLetter] = useState("");
-  const [formPdfFile, setFormPdfFile] = useState<File | null>(null);
+  const [formPdfUrl, setFormPdfUrl] = useState("");
   const [removePdf, setRemovePdf] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reference dialog
   const [showRefDialog, setShowRefDialog] = useState(false);
@@ -64,9 +63,8 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setFormName("");
     setFormDescription("");
     setFormCoverLetter("");
-    setFormPdfFile(null);
+    setFormPdfUrl("");
     setRemovePdf(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const openAdd = () => { resetForm(); setShowAddDialog(true); };
@@ -76,7 +74,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setFormName(sector.name);
     setFormDescription(sector.description || "");
     setFormCoverLetter(sector.coverLetter || "");
-    setFormPdfFile(null);
+    setFormPdfUrl(sector.pdfUrl || "");
     setRemovePdf(false);
     setShowEditDialog(true);
   };
@@ -90,16 +88,6 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     setShowRefDialog(true);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type !== "application/pdf") { toast.error("Sadece PDF dosyası yüklenebilir"); return; }
-      if (file.size > 10 * 1024 * 1024) { toast.error("Dosya boyutu 10MB'ı geçemez"); return; }
-      setFormPdfFile(file);
-      setRemovePdf(false);
-    }
-  };
-
   // ─── EKLE ───
   const handleAdd = () => {
     if (!formName.trim()) { toast.error("Faaliyet alanı adı zorunludur"); return; }
@@ -109,7 +97,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         fd.append("name", formName.trim());
         fd.append("description", formDescription.trim());
         fd.append("coverLetter", formCoverLetter.trim());
-        if (formPdfFile) fd.append("pdf", formPdfFile);
+        if (formPdfUrl.trim()) fd.append("pdfUrl", formPdfUrl.trim());
         await createSectorAction(fd);
         toast.success(`"${formName}" faaliyet alanı eklendi`);
         setShowAddDialog(false);
@@ -129,8 +117,11 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         fd.append("name", formName.trim());
         fd.append("description", formDescription.trim());
         fd.append("coverLetter", formCoverLetter.trim());
-        if (removePdf) fd.append("removePdf", "true");
-        if (formPdfFile) fd.append("pdf", formPdfFile);
+        if (removePdf) {
+          fd.append("removePdf", "true");
+        } else if (formPdfUrl.trim()) {
+          fd.append("pdfUrl", formPdfUrl.trim());
+        }
         await updateSectorAction(fd);
         toast.success(`"${formName}" güncellendi`);
         setShowEditDialog(false);
@@ -180,56 +171,44 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
     });
   };
 
-  // ─── PDF Upload Area (shared between add/edit) ───
-  const renderPdfUpload = (isEdit: boolean) => (
+  // ─── PDF URL Input (shared between add/edit) ───
+  const renderPdfInput = (isEdit: boolean) => (
     <div className="space-y-2">
-      <Label>PDF Broşür (isteğe bağlı)</Label>
+      <Label>PDF Broşür Linki (isteğe bağlı)</Label>
 
       {/* Existing PDF (edit mode only) */}
-      {isEdit && editingSector?.pdfUrl && !removePdf && !formPdfFile && (
+      {isEdit && editingSector?.pdfUrl && !removePdf && (
         <div className="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-          <div className="flex items-center gap-2 text-sm text-emerald-700">
-            <FileText size={16} />
-            <span className="font-medium">Mevcut PDF yüklü</span>
+          <div className="flex items-center gap-2 text-sm text-emerald-700 min-w-0">
+            <FileText size={16} className="shrink-0" />
+            <span className="font-medium truncate">{editingSector.pdfUrl}</span>
           </div>
-          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs gap-1" onClick={() => setRemovePdf(true)}>
+          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs gap-1 shrink-0" onClick={() => { setRemovePdf(true); setFormPdfUrl(""); }}>
             <Trash2 size={12} /> Kaldır
           </Button>
         </div>
       )}
 
-      {isEdit && removePdf && !formPdfFile && (
+      {isEdit && removePdf && (
         <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <span className="text-sm text-amber-700">PDF kaldırılacak</span>
-          <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 rounded-lg text-xs" onClick={() => setRemovePdf(false)}>
+          <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 rounded-lg text-xs" onClick={() => { setRemovePdf(false); setFormPdfUrl(editingSector?.pdfUrl || ""); }}>
             Geri Al
           </Button>
         </div>
       )}
 
-      <div className="border-2 border-dashed rounded-xl p-4 text-center hover:border-primary/50 transition-colors">
-        {formPdfFile ? (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <FileText size={16} className="text-primary" />
-              <span className="font-medium truncate">{formPdfFile.name}</span>
-              <span className="text-muted-foreground text-xs">({(formPdfFile.size / 1024).toFixed(0)} KB)</span>
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => { setFormPdfFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
-              <X size={14} />
-            </Button>
-          </div>
-        ) : (
-          <label className="cursor-pointer block">
-            <Upload size={24} className="mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {isEdit && editingSector?.pdfUrl && !removePdf ? "Yeni PDF ile değiştir" : "PDF dosyasını seçin veya sürükleyin"}
-            </p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Maks. 10MB</p>
-            <input ref={fileInputRef} type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFileChange} />
-          </label>
-        )}
-      </div>
+      {(!isEdit || !editingSector?.pdfUrl || removePdf) && (
+        <Input
+          value={formPdfUrl}
+          onChange={(e) => setFormPdfUrl(e.target.value)}
+          placeholder="https://drive.google.com/... veya PDF dosya linki"
+          className="rounded-xl"
+        />
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        Google Drive, Dropbox veya herhangi bir PDF dosya linkini yapıştırın.
+      </p>
     </div>
   );
 
@@ -366,7 +345,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
           <DialogHeader>
             <DialogTitle>Yeni Faaliyet Alanı Ekle</DialogTitle>
             <DialogDescription>
-              Yeni bir faaliyet alanı oluşturun, isteğe bağlı PDF broşür ve ön yazı ekleyin.
+              Yeni bir faaliyet alanı oluşturun, isteğe bağlı PDF linki ve ön yazı ekleyin.
             </DialogDescription>
           </DialogHeader>
 
@@ -408,7 +387,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
               </p>
             </div>
 
-            {renderPdfUpload(false)}
+            {renderPdfInput(false)}
           </div>
 
           <DialogFooter>
@@ -459,7 +438,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
               </p>
             </div>
 
-            {renderPdfUpload(true)}
+            {renderPdfInput(true)}
           </div>
 
           <DialogFooter>

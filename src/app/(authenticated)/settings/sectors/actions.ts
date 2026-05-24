@@ -3,8 +3,6 @@
 import { auth } from "@/auth";
 import { SectorService } from "@/services/SectorService";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 export async function createSectorAction(formData: FormData) {
   const session = await auth();
@@ -13,19 +11,18 @@ export async function createSectorAction(formData: FormData) {
   const name = formData.get("name") as string;
   const description = (formData.get("description") as string) || undefined;
   const coverLetter = (formData.get("coverLetter") as string) || undefined;
-  const pdfFile = formData.get("pdf") as File | null;
+  const pdfUrl = (formData.get("pdfUrl") as string) || undefined;
 
   if (!name || name.trim().length === 0) {
     throw new Error("Faaliyet alanı adı zorunludur");
   }
 
-  let pdfUrl: string | undefined;
-
-  if (pdfFile && pdfFile.size > 0) {
-    pdfUrl = await savePdfFile(pdfFile, name);
-  }
-
-  await SectorService.create({ name: name.trim(), description, pdfUrl, coverLetter });
+  await SectorService.create({
+    name: name.trim(),
+    description,
+    pdfUrl: pdfUrl?.trim() || undefined,
+    coverLetter,
+  });
   revalidatePath("/settings/sectors");
   return { success: true };
 }
@@ -38,7 +35,7 @@ export async function updateSectorAction(formData: FormData) {
   const name = formData.get("name") as string;
   const description = (formData.get("description") as string) || undefined;
   const coverLetter = (formData.get("coverLetter") as string) || undefined;
-  const pdfFile = formData.get("pdf") as File | null;
+  const pdfUrl = (formData.get("pdfUrl") as string) || undefined;
   const removePdf = formData.get("removePdf") === "true";
 
   if (!id) throw new Error("Faaliyet alanı ID gerekli");
@@ -51,9 +48,9 @@ export async function updateSectorAction(formData: FormData) {
   };
 
   if (removePdf) {
-    updateData.pdfUrl = null as any;
-  } else if (pdfFile && pdfFile.size > 0) {
-    updateData.pdfUrl = await savePdfFile(pdfFile, name);
+    updateData.pdfUrl = null;
+  } else if (pdfUrl?.trim()) {
+    updateData.pdfUrl = pdfUrl.trim();
   }
 
   await SectorService.update(id, updateData);
@@ -95,25 +92,4 @@ export async function deleteReferenceAction(id: string) {
   await SectorService.deleteReference(id);
   revalidatePath("/settings/sectors");
   return { success: true };
-}
-
-// ─── Helper: Save PDF ───
-async function savePdfFile(file: File, sectorName: string): Promise<string> {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "sectors");
-  await mkdir(uploadsDir, { recursive: true });
-
-  const safeName = sectorName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "_")
-    .replace(/_+/g, "_");
-  const timestamp = Date.now();
-  const ext = path.extname(file.name) || ".pdf";
-  const fileName = `${safeName}_${timestamp}${ext}`;
-  const filePath = path.join(uploadsDir, fileName);
-
-  await writeFile(filePath, buffer);
-  return `/uploads/sectors/${fileName}`;
 }
