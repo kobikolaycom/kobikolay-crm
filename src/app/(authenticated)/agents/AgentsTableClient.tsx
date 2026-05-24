@@ -26,7 +26,8 @@ import {
   MoreHorizontal, Send, X, RefreshCw, AlertCircle,
   Search, ChevronLeft, ChevronRight, Users, Mail,
   Upload, FileSpreadsheet, CheckCircle2, FileText,
-  ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone
+  ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone,
+  Pencil, Eye
 } from "lucide-react";
 import {
   Dialog,
@@ -37,7 +38,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { dispatchBulkPitchChunkAction, deleteAgencyAction, createAgencyAction, resetBatchImportedAgenciesAction } from "./actions";
+import { dispatchBulkPitchChunkAction, deleteAgencyAction, createAgencyAction, resetBatchImportedAgenciesAction, updateAgencyAction } from "./actions";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useDebounce } from "use-debounce";
 
@@ -110,6 +111,72 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [newAuthorized, setNewAuthorized] = useState("");
   const [newWebsite, setNewWebsite] = useState("");
   const [newSectorId, setNewSectorId] = useState("none");
+
+  // Edit Agency State
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingAgency, setEditingAgency] = useState<any>(null);
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [editDocumentNo, setEditDocumentNo] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editProvince, setEditProvince] = useState("");
+  const [editDistrict, setEditDistrict] = useState("");
+  const [editAuthorized, setEditAuthorized] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [editSectorId, setEditSectorId] = useState("none");
+
+  const openEditDialog = (agency: any) => {
+    setEditingAgency(agency);
+    setEditCompanyName(agency.companyName || "");
+    setEditDocumentNo(agency.documentNo || "");
+    setEditAuthorized(agency.authorizedPerson || "");
+    setEditWebsite(agency.website || "");
+    
+    const contact = agency.contacts?.[0];
+    setEditPhone(contact?.phone || "");
+    setEditEmail(contact?.email || "");
+    setEditAddress(contact?.address || "");
+    setEditProvince(contact?.province || "");
+    setEditDistrict(contact?.district || "");
+    
+    const sectorId = agency.sectors?.[0]?.id || "none";
+    setEditSectorId(sectorId);
+    
+    setShowEditDialog(true);
+  };
+
+  const handleUpdateAgency = async () => {
+    if (!editingAgency) return;
+    if (!editCompanyName.trim() || !editDocumentNo.trim() || !editPhone.trim() || !editEmail.trim()) {
+      toast.error("Firma adı, TÜRSAB numarası, telefon ve e-posta zorunludur");
+      return;
+    }
+    setIsEditing(true);
+    try {
+      await updateAgencyAction(editingAgency.id, {
+        companyName: editCompanyName.trim(),
+        documentNo: editDocumentNo.trim(),
+        phone: editPhone.trim() || undefined,
+        email: editEmail.trim() || undefined,
+        address: editAddress.trim() || undefined,
+        province: editProvince.trim() || undefined,
+        district: editDistrict.trim() || undefined,
+        authorizedPerson: editAuthorized.trim() || undefined,
+        website: editWebsite.trim() || undefined,
+        sectorId: editSectorId !== "none" ? editSectorId : undefined,
+      });
+      toast.success(`"${editCompanyName.trim()}" başarıyla güncellendi`);
+      setShowEditDialog(false);
+      setEditingAgency(null);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Acente güncellenemedi");
+    } finally {
+      setIsEditing(false);
+    }
+  };
 
   // Modal State
   const [selectedSectorId, setSelectedSectorId] = useState("");
@@ -558,28 +625,20 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                            <MoreHorizontal size={16} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                          <DropdownMenuItem asChild className="gap-2 cursor-pointer">
-                            <Link href={`/agents/${agency.id}`}>
-                              <ExternalLink size={14} /> Detayına Git
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                            onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }}
-                          >
-                            <Trash2 size={14} /> Acenteyi Sil
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
+                       <div className="flex items-center justify-end gap-1.5">
+                         <Link href={`/agents/${agency.id}`}>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors" title="Detayına Git">
+                             <Eye size={15} />
+                           </Button>
+                         </Link>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors" onClick={() => openEditDialog(agency)} title="Acenteyi Güncelle">
+                           <Pencil size={15} />
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }} title="Acenteyi Sil">
+                           <Trash2 size={15} />
+                         </Button>
+                       </div>
+                     </td>
                   </tr>
                 ))
               )}
@@ -1051,6 +1110,134 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             >
               {isCreating ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
               Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ─── ACENTE GÜNCELLE DIALOG ─── */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 size={20} className="text-primary" />
+              Acente Bilgilerini Güncelle
+            </DialogTitle>
+            <DialogDescription>
+              Acente bilgilerini güncelleyin. TÜRSAB numarası mükerrer olamaz.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <Label>Firma Adı *</Label>
+                <Input
+                  value={editCompanyName}
+                  onChange={(e) => setEditCompanyName(e.target.value)}
+                  placeholder="Örn: ABC Turizm Ltd. Şti."
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>TÜRSAB / Belge No *</Label>
+                <Input
+                  value={editDocumentNo}
+                  onChange={(e) => setEditDocumentNo(e.target.value)}
+                  placeholder="Örn: 12345"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Yetkili Kişi</Label>
+                <Input
+                  value={editAuthorized}
+                  onChange={(e) => setEditAuthorized(e.target.value)}
+                  placeholder="Ad Soyad"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon *</Label>
+                <Input
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="0212 XXX XX XX"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>E-posta *</Label>
+                <Input
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="info@firma.com"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label>Adres</Label>
+                <Input
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="Cadde/Sokak No"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>İl</Label>
+                <Input
+                  value={editProvince}
+                  onChange={(e) => setEditProvince(e.target.value)}
+                  placeholder="İstanbul"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>İlçe</Label>
+                <Input
+                  value={editDistrict}
+                  onChange={(e) => setEditDistrict(e.target.value)}
+                  placeholder="Beyoğlu"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Web Sitesi</Label>
+                <Input
+                  value={editWebsite}
+                  onChange={(e) => setEditWebsite(e.target.value)}
+                  placeholder="https://www.firma.com"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Faaliyet Alanı</Label>
+                <Select value={editSectorId} onValueChange={setEditSectorId}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue placeholder="Faaliyet alanı seçin..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Faaliyet alanı atama</SelectItem>
+                    {sectors.map((s: any) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)} disabled={isEditing} className="rounded-xl">
+              İptal
+            </Button>
+            <Button
+              onClick={handleUpdateAgency}
+              disabled={isEditing || !editCompanyName.trim() || !editDocumentNo.trim() || !editPhone.trim() || !editEmail.trim()}
+              className="gap-2 rounded-xl"
+            >
+              {isEditing ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
+              Güncelle
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -181,3 +181,83 @@ export async function resetBatchImportedAgenciesAction() {
 
   return { success: true, count: 0 };
 }
+
+export async function updateAgencyAction(
+  id: string,
+  data: {
+    companyName: string;
+    documentNo: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    province?: string;
+    district?: string;
+    authorizedPerson?: string;
+    website?: string;
+    sectorId?: string;
+  }
+) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  // Duplicate TURSAB number check (excluding the current agency)
+  if (data.documentNo) {
+    const existing = await prisma.agency.findFirst({
+      where: { 
+        documentNo: data.documentNo,
+        id: { not: id }
+      },
+      select: { id: true, companyName: true },
+    });
+    if (existing) {
+      throw new Error(
+        `Bu TÜRSAB numarası zaten kayıtlı: "${existing.companyName}" (${data.documentNo})`
+      );
+    }
+  }
+
+  // Update agency
+  await prisma.agency.update({
+    where: { id },
+    data: {
+      companyName: data.companyName,
+      documentNo: data.documentNo,
+      authorizedPerson: data.authorizedPerson || null,
+      website: data.website || null,
+      sectors: data.sectorId && data.sectorId !== "none" ? { set: [{ id: data.sectorId }] } : { set: [] },
+    },
+  });
+
+  // Update or create contact details
+  const existingContact = await prisma.contact.findFirst({
+    where: { agencyId: id },
+  });
+
+  if (existingContact) {
+    await prisma.contact.update({
+      where: { id: existingContact.id },
+      data: {
+        phone: data.phone || null,
+        email: data.email || null,
+        address: data.address || null,
+        province: data.province || null,
+        district: data.district || null,
+      },
+    });
+  } else if (data.phone || data.email || data.address || data.province || data.district) {
+    await prisma.contact.create({
+      data: {
+        agencyId: id,
+        phone: data.phone || null,
+        email: data.email || null,
+        address: data.address || null,
+        province: data.province || null,
+        district: data.district || null,
+      },
+    });
+  }
+
+  revalidatePath("/agents");
+  return { success: true };
+}
+
