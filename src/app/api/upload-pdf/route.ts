@@ -8,6 +8,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
   }
 
+  // Check if BLOB_READ_WRITE_TOKEN is configured
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      { 
+        error: "Vercel Blob token bulunamadı! Lütfen Vercel Dashboard -> Settings -> Environment Variables sayfasından BLOB_READ_WRITE_TOKEN değişkenini tanımlayın. (Değer olarak size verilen tokenı eklemelisiniz)" 
+      }, 
+      { status: 500 }
+    );
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -33,8 +43,12 @@ export async function POST(request: NextRequest) {
       .replace(/_+/g, "_");
     const blobPath = `sectors/${timestamp}_${safeName}`;
 
+    // Convert file to Buffer for robust compatibility in serverless environments
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     // Upload to Vercel Blob
-    const blob = await put(blobPath, file, {
+    const blob = await put(blobPath, buffer, {
       access: "public",
       addRandomSuffix: false,
     });
@@ -42,9 +56,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: blob.url, success: true });
   } catch (error: any) {
     console.error("[upload-pdf] Error:", error);
+    
+    let message = error.message || "Dosya yüklenemedi";
+    if (message.toLowerCase().includes("no token found") || message.toLowerCase().includes("token")) {
+      message = "Vercel Blob token geçersiz veya bulunamadı! Lütfen Vercel Dashboard -> Settings -> Environment Variables sayfasından BLOB_READ_WRITE_TOKEN değişkeninin doğru şekilde tanımlandığından emin olun.";
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Dosya yüklenemedi" },
+      { error: message },
       { status: 500 }
     );
   }
 }
+
