@@ -114,7 +114,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   // Modal State
   const [selectedSectorId, setSelectedSectorId] = useState("");
   const [coverLetter, setCoverLetter] = useState(
-    "Sayın {{authorizedPerson}},\n\nDeğerli iş ortağımız {{agencyName}} için hazırladığımız sektörel çözüm önerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi"
+    "Sayın {{authorizedPerson}},\n\nDeğerli iş ortağımız {{agencyName}} için hazırladığımız faaliyet alanı çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi"
   );
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -500,7 +500,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Şirket Adı</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Belge No</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Sektörler</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
@@ -678,10 +678,10 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
 
             <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
               <div className="space-y-2">
-                <Label>Hedef Sektör</Label>
+                <Label>Hedef Faaliyet Alanı</Label>
                 <Select value={selectedSectorId} onValueChange={setSelectedSectorId}>
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Sektör seçin..." />
+                    <SelectValue placeholder="Faaliyet alanı seçin..." />
                   </SelectTrigger>
                   <SelectContent>
                     {sectors.map((s: any) => (
@@ -792,13 +792,13 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
 
             {/* Sector Assignment */}
             <div className="space-y-2">
-              <Label>Sektör Ataması (isteğe bağlı)</Label>
+              <Label>Faaliyet Alanı Ataması (isteğe bağlı)</Label>
               <Select value={importSectorId} onValueChange={setImportSectorId} disabled={importing}>
                 <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Sektör seçin..." />
+                  <SelectValue placeholder="Faaliyet alanı seçin..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sektör atama</SelectItem>
+                  <SelectItem value="none">Faaliyet alanı atama</SelectItem>
                   {sectors.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -1024,13 +1024,13 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sektör</Label>
+                <Label>Faaliyet Alanı</Label>
                 <Select value={newSectorId} onValueChange={setNewSectorId}>
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Sektör seçin..." />
+                    <SelectValue placeholder="Faaliyet alanı seçin..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sektör atama</SelectItem>
+                    <SelectItem value="none">Faaliyet alanı atama</SelectItem>
                     {sectors.map((s: any) => (
                       <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                     ))}

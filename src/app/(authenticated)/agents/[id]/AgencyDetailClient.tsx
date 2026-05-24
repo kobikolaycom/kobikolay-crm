@@ -45,7 +45,10 @@ import {
   resolveAgencyConversationAction,
   reopenAgencyConversationAction,
   getAgencyConversationsAction,
+  getAllSectorsAction,
+  sendAgencyPitchAction,
 } from "./actions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // ─── Channel Configuration ───
 type ChannelType = "WHATSAPP" | "INSTAGRAM" | "MESSENGER" | "MANUAL_NOTE";
@@ -186,8 +189,17 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // ─── Pitch (Tanıtım) Modal State ───
+  const [showPitchDialog, setShowPitchDialog] = useState(false);
+  const [allSectors, setAllSectors] = useState<any[]>([]);
+  const [pitchSelectedSectorIds, setPitchSelectedSectorIds] = useState<string[]>([]);
+  const [pitchSubject, setPitchSubject] = useState("");
+  const [pitchBody, setPitchBody] = useState("");
+  const [pitchSending, setPitchSending] = useState(false);
+
   useEffect(() => {
     getActiveUsersForAssignAction().then(setUsers).catch(() => {});
+    getAllSectorsAction().then(setAllSectors).catch(() => {});
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -563,7 +575,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
           {/* ─── Sectors Card ─── */}
           <div className="bg-white rounded-2xl border shadow-sm p-5">
             <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Tag size={12} /> Sektörler
+              <Tag size={12} /> Faaliyet Alanları
             </h3>
             {agency.sectors?.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -574,7 +586,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 font-medium">Sektör atanmamış</p>
+              <p className="text-xs text-slate-400 font-medium">Faaliyet alanı atanmamış</p>
             )}
           </div>
 
@@ -1073,9 +1085,39 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </div>
                   Gönderilen Mailler
                 </h3>
-                <Badge variant="outline" className="text-xs font-bold bg-slate-50">
-                  {agency.mailLogs?.length || 0} mail
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs font-bold bg-slate-50">
+                    {agency.mailLogs?.length || 0} mail
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="gap-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
+                    onClick={() => {
+                      const agencySectorIds = agency.sectors?.map((s: any) => s.id) || [];
+                      setPitchSelectedSectorIds(agencySectorIds);
+                      setPitchSubject(`KobiKolay: ${agency.companyName} İçin Faaliyet Alanı Tanıtımı`);
+                      // Build merged email body
+                      const selectedSectors = allSectors.filter((s: any) => agencySectorIds.includes(s.id));
+                      const authorizedPerson = agency.authorizedPerson || 'Yetkili';
+                      let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız faaliyet alanı çözümlerimizi bilgilerinize sunarız.\n`;
+                      if (selectedSectors.length > 0) {
+                        selectedSectors.forEach((s: any) => {
+                          body += `\n━━━ ${s.name.toUpperCase()} ━━━\n`;
+                          if (s.coverLetter) { body += `${s.coverLetter}\n`; }
+                          if (s.references?.length > 0) {
+                            body += `\nReferanslarımız:\n`;
+                            s.references.forEach((r: any) => { body += `  • ${r.name} (${r.domain})\n`; });
+                          }
+                        });
+                      }
+                      body += `\nSaygılarımızla,\nKobiKolay Ekibi`;
+                      setPitchBody(body);
+                      setShowPitchDialog(true);
+                    }}
+                  >
+                    <Mail size={14} /> Tanıtım E-postası Gönder
+                  </Button>
+                </div>
               </div>
 
               {agency.mailLogs?.length > 0 ? (
@@ -1482,6 +1524,198 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
             >
               {newConvoLoading ? <RefreshCw className="animate-spin" size={16} /> : <Plus size={16} />}
               Başlat
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── TANITIM E-POSTASI GÖNDER DİALOG ─── */}
+      <Dialog open={showPitchDialog} onOpenChange={setShowPitchDialog}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                <Mail size={18} />
+              </div>
+              Tanıtım E-postası Gönder
+            </DialogTitle>
+            <DialogDescription>
+              {agency.companyName} acentesine faaliyet alanlarına göre tanıtım e-postası gönderin.
+              PDF broşürler otomatik eklenir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-4">
+            {/* Recipient Info */}
+            <div className="bg-slate-50 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-white font-black text-lg">
+                {agency.companyName?.charAt(0)?.toUpperCase() || "?"}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">{agency.companyName}</p>
+                <p className="text-xs text-slate-500">{contact?.email || "E-posta tanımlı değil"}</p>
+              </div>
+            </div>
+
+            {/* Sector Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700">Faaliyet Alanı Seçimi</Label>
+              <p className="text-[11px] text-slate-400 mb-2">Hangi alanların tanıtımını göndermek istiyorsunuz? Seçim değiştikçe e-posta içeriği otomatik güncellenir.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {allSectors.map((sector: any) => {
+                  const isChecked = pitchSelectedSectorIds.includes(sector.id);
+                  return (
+                    <label
+                      key={sector.id}
+                      className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-all ${
+                        isChecked
+                          ? "bg-indigo-50 border-indigo-300 ring-1 ring-indigo-200"
+                          : "bg-white border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          const newIds = checked
+                            ? [...pitchSelectedSectorIds, sector.id]
+                            : pitchSelectedSectorIds.filter((id: string) => id !== sector.id);
+                          setPitchSelectedSectorIds(newIds);
+                          // Rebuild email body
+                          const selectedSectors = allSectors.filter((s: any) => newIds.includes(s.id));
+                          const authorizedPerson = agency.authorizedPerson || "Yetkili";
+                          let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız faaliyet alanı çözümlerimizi bilgilerinize sunarız.\n`;
+                          if (selectedSectors.length > 0) {
+                            selectedSectors.forEach((s: any) => {
+                              body += `\n━━━ ${s.name.toUpperCase()} ━━━\n`;
+                              if (s.coverLetter) body += `${s.coverLetter}\n`;
+                              if (s.references?.length > 0) {
+                                body += `\nReferanslarımız:\n`;
+                                s.references.forEach((r: any) => { body += `  • ${r.name} (${r.domain})\n`; });
+                              }
+                            });
+                          }
+                          body += `\nSaygılarımızla,\nKobiKolay Ekibi`;
+                          setPitchBody(body);
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-bold text-slate-800">{sector.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {sector.pdfUrl && (
+                            <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5">
+                              <FileText size={10} /> PDF
+                            </span>
+                          )}
+                          {sector.coverLetter && (
+                            <span className="text-[10px] text-blue-600 font-semibold flex items-center gap-0.5">
+                              <Mail size={10} /> Ön yazı
+                            </span>
+                          )}
+                          {sector.references?.length > 0 && (
+                            <span className="text-[10px] text-purple-600 font-semibold flex items-center gap-0.5">
+                              <Star size={10} /> {sector.references.length} referans
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              {allSectors.length === 0 && (
+                <div className="text-center py-6 bg-amber-50 rounded-xl border border-amber-200">
+                  <AlertTriangle size={20} className="mx-auto text-amber-500 mb-2" />
+                  <p className="text-xs text-amber-700 font-bold">Henüz faaliyet alanı tanımlanmamış.</p>
+                  <p className="text-[10px] text-amber-600 mt-1">Ayarlar → Faaliyet Alanları bölümünden oluşturun.</p>
+                </div>
+              )}
+            </div>
+
+            {/* PDF Attachments Indicator */}
+            {pitchSelectedSectorIds.length > 0 && (() => {
+              const attachedPdfs = allSectors.filter((s: any) => pitchSelectedSectorIds.includes(s.id) && s.pdfUrl);
+              if (attachedPdfs.length === 0) return null;
+              return (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                  <p className="text-xs font-bold text-emerald-700 mb-1.5 flex items-center gap-1.5">
+                    <FileText size={13} /> Otomatik Eklenecek PDF Broşürler
+                  </p>
+                  <div className="space-y-1">
+                    {attachedPdfs.map((s: any) => (
+                      <div key={s.id} className="flex items-center gap-2 text-xs text-emerald-800">
+                        <FileText size={11} className="text-emerald-500" />
+                        <span className="font-medium">{s.name} - Broşür</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Email Subject */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700">E-posta Konusu</Label>
+              <Input
+                value={pitchSubject}
+                onChange={(e) => setPitchSubject(e.target.value)}
+                placeholder="E-posta konusu..."
+                className="rounded-xl"
+              />
+            </div>
+
+            {/* Email Body */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700">E-posta İçeriği (düzenlenebilir)</Label>
+              <Textarea
+                value={pitchBody}
+                onChange={(e) => setPitchBody(e.target.value)}
+                className="rounded-xl min-h-[240px] font-mono text-sm"
+              />
+              <p className="text-[10px] text-slate-400">
+                Faaliyet alanı seçiminize göre ön yazılar, referanslar otomatik birleştirilmiştir. Göndermeden önce dilediğiniz gibi düzenleyebilirsiniz.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPitchDialog(false)} disabled={pitchSending} className="rounded-xl">
+              İptal
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!pitchBody.trim() || !pitchSubject.trim()) {
+                  toast.error("E-posta konusu ve içeriği zorunludur");
+                  return;
+                }
+                if (!contact?.email) {
+                  toast.error("Bu acentenin e-posta adresi tanımlı değil");
+                  return;
+                }
+                setPitchSending(true);
+                try {
+                  await sendAgencyPitchAction({
+                    agencyId: agency.id,
+                    sectorIds: pitchSelectedSectorIds,
+                    emailBody: pitchBody,
+                    emailSubject: pitchSubject,
+                  });
+                  toast.success("Tanıtım e-postası başarıyla gönderildi! 🚀");
+                  setShowPitchDialog(false);
+                  window.location.reload();
+                } catch (err: any) {
+                  toast.error(err.message || "E-posta gönderilemedi");
+                }
+                setPitchSending(false);
+              }}
+              disabled={pitchSending || !pitchBody.trim() || !pitchSubject.trim() || !contact?.email}
+              className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
+            >
+              {pitchSending ? (
+                <RefreshCw size={16} className="animate-spin" />
+              ) : (
+                <Send size={16} />
+              )}
+              Tanıtımı Gönder
             </Button>
           </DialogFooter>
         </DialogContent>

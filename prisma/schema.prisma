@@ -63,16 +63,31 @@ model Agency {
 }
 
 model Sector {
-  id          String          @id @default(cuid())
-  name        String          @unique
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
+  id          String             @id @default(cuid())
+  name        String             @unique
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
   description String?
-  pdfUrl      String?         @map("pdf_url")
+  pdfUrl      String?            @map("pdf_url")
+  coverLetter String?            @map("cover_letter") @db.Text
   templates   PitchTemplate[]
-  agencies    Agency[]        @relation("AgencySectors")
+  references  SectorReference[]
+  agencies    Agency[]           @relation("AgencySectors")
 
   @@map("sectors")
+}
+
+model SectorReference {
+  id        String   @id @default(cuid())
+  sectorId  String   @map("sector_id")
+  name      String
+  domain    String
+  logoUrl   String?  @map("logo_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  sector    Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@map("sector_references")
 }
 
 model Contact {
