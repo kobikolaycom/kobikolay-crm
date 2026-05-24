@@ -49,22 +49,37 @@ export class AgencyService {
         const toDate = new Date(dateTo); toDate.setHours(23,59,59,999);
         sentAtFilter.sentAt = { ...sentAtFilter.sentAt, lte: toDate };
       }
-      where.campaignLogs = { some: sentAtFilter };
+      where.OR = [
+        { campaignLogs: { some: sentAtFilter } },
+        { mailLogs: { some: sentAtFilter } },
+      ];
     }
-    // Campaign send period filter
+    // Campaign send period filter — checks both campaignLogs AND mailLogs
     else if (campaignFilter && campaignFilter !== "all") {
       const now = new Date();
       if (campaignFilter === "today") {
         const todayStart = new Date(now); todayStart.setHours(0,0,0,0);
-        where.campaignLogs = { some: { sentAt: { gte: todayStart }, status: "SENT" } };
+        const filter = { sentAt: { gte: todayStart }, status: "SENT" as const };
+        where.OR = [
+          { campaignLogs: { some: filter } },
+          { mailLogs: { some: filter } },
+        ];
       } else if (campaignFilter === "week") {
         const weekStart = new Date(now);
         weekStart.setHours(0,0,0,0);
         weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
-        where.campaignLogs = { some: { sentAt: { gte: weekStart }, status: "SENT" } };
+        const filter = { sentAt: { gte: weekStart }, status: "SENT" as const };
+        where.OR = [
+          { campaignLogs: { some: filter } },
+          { mailLogs: { some: filter } },
+        ];
       } else if (campaignFilter === "month") {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        where.campaignLogs = { some: { sentAt: { gte: monthStart }, status: "SENT" } };
+        const filter = { sentAt: { gte: monthStart }, status: "SENT" as const };
+        where.OR = [
+          { campaignLogs: { some: filter } },
+          { mailLogs: { some: filter } },
+        ];
       } else if (campaignFilter === "never") {
         where.campaignLogs = { none: {} };
         where.mailLogs = { none: {} };

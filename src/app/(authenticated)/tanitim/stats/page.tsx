@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Send, TrendingUp, TrendingDown, Minus,
   Calendar, CalendarDays, CalendarRange,
-  BarChart3, Users, Mail, Megaphone
+  BarChart3, Users, Mail, Megaphone, Eye, ExternalLink, CheckCircle2
 } from "lucide-react";
 import { CampaignService } from "@/services/CampaignService";
 
@@ -42,14 +42,14 @@ export default async function TanitimStatsPage() {
   let stats;
   try {
     stats = await CampaignService.getCampaignStats();
-  } catch (e) {
-    // Raw query might fail if tables don't have data / join table name differs
+  } catch {
     stats = {
       today: 0, yesterday: 0,
       thisWeek: 0, lastWeek: 0,
       thisMonth: 0, lastMonth: 0,
       total: 0, totalCampaigns: 0,
       recentCampaigns: [],
+      recentMailLogs: [],
       sectorStats: [],
     };
   }
@@ -65,13 +65,12 @@ export default async function TanitimStatsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Megaphone size={24} className="text-purple-600" /> Tanıtım İstatistikleri
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gönderilen kampanya performans özeti</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Kampanya ve tanıtım e-postası performans özeti</p>
         </div>
       </div>
 
       {/* Period Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Bugün */}
         <Link href="/agents?campaignFilter=today" className="glass-card rounded-2xl p-5 border shadow-sm space-y-2 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5">
@@ -85,7 +84,6 @@ export default async function TanitimStatsPage() {
           <PerformanceBadge current={stats.today} previous={stats.yesterday} label="Düne göre" />
         </Link>
 
-        {/* Bu Hafta */}
         <Link href="/agents?campaignFilter=week" className="glass-card rounded-2xl p-5 border shadow-sm space-y-2 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5">
@@ -99,7 +97,6 @@ export default async function TanitimStatsPage() {
           <PerformanceBadge current={stats.thisWeek} previous={stats.lastWeek} label="Geçen haftaya göre" />
         </Link>
 
-        {/* Bu Ay */}
         <Link href="/agents?campaignFilter=month" className="glass-card rounded-2xl p-5 border shadow-sm space-y-2 hover:border-green-300 hover:shadow-md transition-all cursor-pointer group">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5">
@@ -113,7 +110,6 @@ export default async function TanitimStatsPage() {
           <PerformanceBadge current={stats.thisMonth} previous={stats.lastMonth} label="Geçen aya göre" />
         </Link>
 
-        {/* Toplam */}
         <div className="glass-card rounded-2xl p-5 border shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider flex items-center gap-1.5">
@@ -130,52 +126,113 @@ export default async function TanitimStatsPage() {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Son Kampanyalar */}
-        <div className="lg:col-span-2 glass-card rounded-3xl border shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <Megaphone size={18} className="text-purple-600" /> Son Kampanyalar
-            </h3>
-            <Button variant="ghost" size="sm" asChild className="text-xs gap-1">
-              <Link href="/tanitim">Tümünü Gör →</Link>
-            </Button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-slate-50/50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Kampanya</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Durum</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Hedef</th>
-                  <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Gönderilen</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Tarih</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {stats.recentCampaigns.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
-                      Henüz kampanya oluşturulmamış
-                    </td>
+        {/* Left: Son Tanıtım Mailleri + Son Kampanyalar */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Son Tanıtım Mailleri */}
+          <div className="glass-card rounded-3xl border shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <Mail size={18} className="text-indigo-600" /> Son Tanıtım E-postaları
+              </h3>
+              <Badge variant="outline" className="text-[10px] font-bold">
+                {(stats.recentMailLogs || []).length} kayıt
+              </Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50/50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Acente</th>
+                    <th className="text-left px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Konu</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Takip</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Tarih</th>
                   </tr>
-                ) : (
-                  stats.recentCampaigns.map((c: any) => (
-                    <tr key={c.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-5 py-3">
-                        <p className="font-medium text-slate-900">{c.name}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[250px]">{c.subject}</p>
-                      </td>
-                      <td className="text-center px-3 py-3">{statusLabel(c.status)}</td>
-                      <td className="text-center px-3 py-3 font-semibold">{c.targetCount}</td>
-                      <td className="text-center px-3 py-3 font-semibold text-purple-600">{c.logCount}</td>
-                      <td className="text-right px-5 py-3 text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleDateString("tr-TR")}
+                </thead>
+                <tbody className="divide-y">
+                  {(stats.recentMailLogs || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-10 text-muted-foreground text-sm">
+                        Henüz tanıtım maili gönderilmemiş
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    (stats.recentMailLogs || []).map((m: any) => (
+                      <tr key={m.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3 font-medium text-slate-900">{m.agencyName}</td>
+                        <td className="px-3 py-3 text-muted-foreground truncate max-w-[200px]">{m.subject}</td>
+                        <td className="text-center px-3 py-3">
+                          {m.clickedAt ? (
+                            <Badge className="text-[9px] bg-violet-100 text-violet-700 border-violet-200 gap-1" variant="outline">
+                              <ExternalLink size={9} /> Tıklandı
+                            </Badge>
+                          ) : m.openedAt ? (
+                            <Badge className="text-[9px] bg-blue-100 text-blue-700 border-blue-200 gap-1" variant="outline">
+                              <Eye size={9} /> Açıldı
+                            </Badge>
+                          ) : (
+                            <Badge className="text-[9px] bg-emerald-100 text-emerald-700 border-emerald-200 gap-1" variant="outline">
+                              <CheckCircle2 size={9} /> Gönderildi
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="text-right px-5 py-3 text-xs text-muted-foreground">
+                          {m.sentAt ? new Date(m.sentAt).toLocaleDateString("tr-TR") : "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Son Kampanyalar */}
+          <div className="glass-card rounded-3xl border shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <Megaphone size={18} className="text-purple-600" /> Son Kampanyalar
+              </h3>
+              <Button variant="ghost" size="sm" asChild className="text-xs gap-1">
+                <Link href="/tanitim">Tümünü Gör →</Link>
+              </Button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50/50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Kampanya</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Durum</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Hedef</th>
+                    <th className="text-center px-3 py-3 text-xs font-semibold text-muted-foreground uppercase">Gönderilen</th>
+                    <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase">Tarih</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {stats.recentCampaigns.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
+                        Henüz kampanya oluşturulmamış
+                      </td>
+                    </tr>
+                  ) : (
+                    stats.recentCampaigns.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-3">
+                          <p className="font-medium text-slate-900">{c.name}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[250px]">{c.subject}</p>
+                        </td>
+                        <td className="text-center px-3 py-3">{statusLabel(c.status)}</td>
+                        <td className="text-center px-3 py-3 font-semibold">{c.targetCount}</td>
+                        <td className="text-center px-3 py-3 font-semibold text-purple-600">{c.logCount}</td>
+                        <td className="text-right px-5 py-3 text-xs text-muted-foreground">
+                          {new Date(c.createdAt).toLocaleDateString("tr-TR")}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 

@@ -227,7 +227,7 @@ export class CampaignService {
   }
 
   /**
-   * Tanıtım istatistikleri
+   * Tanıtım istatistikleri — CampaignLog + MailLog birleşik
    */
   static async getCampaignStats() {
     const now = new Date();
@@ -244,26 +244,34 @@ export class CampaignService {
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-    // Count helper
-    const countInRange = async (from: Date, to: Date) => {
-      return prisma.campaignLog.count({
+    // Count helpers — both tables
+    const countCampaignInRange = (from: Date, to: Date) =>
+      prisma.campaignLog.count({
         where: { sentAt: { gte: from, lte: to }, status: "SENT" },
       });
-    };
+    const countMailInRange = (from: Date, to: Date) =>
+      prisma.mailLog.count({
+        where: { sentAt: { gte: from, lte: to }, status: "SENT" },
+      });
 
     const [
-      todayCount, yesterdayCount,
-      thisWeekCount, lastWeekCount,
-      thisMonthCount, lastMonthCount,
-      totalCount, totalCampaigns,
+      clToday, mlToday,
+      clYesterday, mlYesterday,
+      clWeek, mlWeek,
+      clLastWeek, mlLastWeek,
+      clMonth, mlMonth,
+      clLastMonth, mlLastMonth,
+      clTotal, mlTotal,
+      totalCampaigns,
     ] = await Promise.all([
-      countInRange(todayStart, now),
-      countInRange(yesterdayStart, todayStart),
-      countInRange(weekStart, now),
-      countInRange(lastWeekStart, weekStart),
-      countInRange(monthStart, now),
-      countInRange(lastMonthStart, lastMonthEnd),
+      countCampaignInRange(todayStart, now), countMailInRange(todayStart, now),
+      countCampaignInRange(yesterdayStart, todayStart), countMailInRange(yesterdayStart, todayStart),
+      countCampaignInRange(weekStart, now), countMailInRange(weekStart, now),
+      countCampaignInRange(lastWeekStart, weekStart), countMailInRange(lastWeekStart, weekStart),
+      countCampaignInRange(monthStart, now), countMailInRange(monthStart, now),
+      countCampaignInRange(lastMonthStart, lastMonthEnd), countMailInRange(lastMonthStart, lastMonthEnd),
       prisma.campaignLog.count({ where: { status: "SENT" } }),
+      prisma.mailLog.count({ where: { status: "SENT" } }),
       prisma.campaign.count(),
     ]);
 
@@ -276,27 +284,45 @@ export class CampaignService {
       },
     });
 
-    // Sektör bazlı gönderim (CampaignLog -> Agency -> Sectors)
-    const sectorStats = await prisma.$queryRaw<{ name: string; count: bigint }[]>`
-      SELECT s.name, COUNT(cl.id)::bigint as count
-      FROM campaign_logs cl
-      JOIN agencies a ON a.id = cl.agency_id
-      JOIN "_AgencySectors" as2 ON as2."A" = a.id
-      JOIN sectors s ON s.id = as2."B"
-      WHERE cl.status = 'SENT'
-      GROUP BY s.name
-      ORDER BY count DESC
-      LIMIT 10
-    `;
+    // Son tanıtım mailleri (PitchService üzerinden gönderilenler)
+    const recentMailLogs = await prisma.mailLog.findMany({
+      where: { status: "SENT" },
+      orderBy: { sentAt: "desc" },
+      take: 10,
+      include: {
+        agency: { select: { companyName: true } },
+      },
+    });
+
+    // Sektör bazlı gönderim — CampaignLog + MailLog birleşik
+    let sectorStats: { name: string; count: number }[] = [];
+    try {
+      const rawStats = await prisma.$queryRaw<{ name: string; count: bigint }[]>`
+        SELECT s.name, COUNT(*)::bigint as count FROM (
+          SELECT cl.agency_id FROM campaign_logs cl WHERE cl.status = 'SENT'
+          UNION ALL
+          SELECT ml.agency_id FROM mail_logs ml WHERE ml.status = 'SENT'
+        ) combined
+        JOIN agencies a ON a.id = combined.agency_id
+        JOIN "_AgencySectors" as2 ON as2."A" = a.id
+        JOIN sectors s ON s.id = as2."B"
+        GROUP BY s.name
+        ORDER BY count DESC
+        LIMIT 10
+      `;
+      sectorStats = rawStats.map(s => ({ name: s.name, count: Number(s.count) }));
+    } catch {
+      sectorStats = [];
+    }
 
     return {
-      today: todayCount,
-      yesterday: yesterdayCount,
-      thisWeek: thisWeekCount,
-      lastWeek: lastWeekCount,
-      thisMonth: thisMonthCount,
-      lastMonth: lastMonthCount,
-      total: totalCount,
+      today: clToday + mlToday,
+      yesterday: clYesterday + mlYesterday,
+      thisWeek: clWeek + mlWeek,
+      lastWeek: clLastWeek + mlLastWeek,
+      thisMonth: clMonth + mlMonth,
+      lastMonth: clLastMonth + mlLastMonth,
+      total: clTotal + mlTotal,
       totalCampaigns,
       recentCampaigns: recentCampaigns.map(c => ({
         id: c.id,
@@ -307,10 +333,15 @@ export class CampaignService {
         logCount: c._count.logs,
         createdAt: c.createdAt,
       })),
-      sectorStats: sectorStats.map(s => ({
-        name: s.name,
-        count: Number(s.count),
+      recentMailLogs: recentMailLogs.map(m => ({
+        id: m.id,
+        subject: m.subject,
+        agencyName: m.agency?.companyName || "—",
+        sentAt: m.sentAt,
+        openedAt: m.openedAt,
+        clickedAt: m.clickedAt,
       })),
+      sectorStats,
     };
   }
 }
