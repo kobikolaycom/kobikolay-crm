@@ -472,7 +472,7 @@ export default function IntegrationsPage() {
             </div>
             <div className="flex items-center gap-2">
               <code className="flex-1 bg-white border rounded-xl px-4 py-2.5 text-xs font-mono text-slate-700 select-all">
-                {typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/instagram` : "/api/webhooks/instagram"}
+                {loaded && typeof window !== "undefined" ? `${window.location.origin}/api/webhooks/instagram` : "/api/webhooks/instagram"}
               </code>
               <Button
                 variant="outline"
