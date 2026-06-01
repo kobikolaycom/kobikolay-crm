@@ -68,7 +68,7 @@ export class CampaignService {
     parsed = parsed.replace(/{{sectorNames}}/g, agency.sectors?.map((s: any) => s.name).join(", ") || "");
     parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
-    parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/unsubscribe?token=${agency.unsubscribeToken}`);
+    parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}`);
     return parsed;
   }
 
@@ -86,7 +86,7 @@ export class CampaignService {
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="font-size: 11px; color: #999;">
           Bu e-posta KobiKolay CRM üzerinden gönderilmiştir.
-          E-posta listesinden çıkmak için <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/unsubscribe?token=${agency.unsubscribeToken}">buraya tıklayabilirsiniz</a>.
+          E-posta listesinden çıkmak için <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}">buraya tıklayabilirsiniz</a>.
         </p>
       </div>
     `;

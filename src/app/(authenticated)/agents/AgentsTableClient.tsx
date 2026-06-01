@@ -242,10 +242,11 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   };
 
   const toggleAll = () => {
-    if (selectedIds.length === agencies.length) {
+    const selectableAgencies = agencies.filter(a => !a.isUnsubscribed);
+    if (selectedIds.length === selectableAgencies.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(agencies.map((a) => a.id));
+      setSelectedIds(selectableAgencies.map((a) => a.id));
     }
   };
 
@@ -561,6 +562,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                     <Checkbox
                       checked={selectedIds.includes(agency.id)}
                       onCheckedChange={() => toggleSelect(agency.id)}
+                      disabled={agency.isUnsubscribed}
                       className="mt-1"
                     />
                     <div className="min-w-0">
@@ -570,8 +572,13 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                       <p className="text-[10px] text-slate-400 font-mono mt-0.5">{agency.documentNo}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                     {statusBadge(agency.status)}
+                    {agency.isUnsubscribed && (
+                      <Badge variant="outline" className="text-[9px] font-semibold bg-red-50 text-red-600 border-red-200 gap-0.5">
+                        <MailX size={9} /> Ayrıldı
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 {agency.authorizedPerson && (
@@ -621,7 +628,10 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               <tr className="border-b bg-slate-50/50">
                 <th className="text-left px-4 py-3 w-10">
                   <Checkbox
-                    checked={selectedIds.length === agencies.length && agencies.length > 0}
+                    checked={
+                      agencies.length > 0 &&
+                      selectedIds.length === agencies.filter(a => !a.isUnsubscribed).length
+                    }
                     onCheckedChange={toggleAll}
                   />
                 </th>
@@ -656,6 +666,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                       <Checkbox
                         checked={selectedIds.includes(agency.id)}
                         onCheckedChange={() => toggleSelect(agency.id)}
+                        disabled={agency.isUnsubscribed}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -681,7 +692,16 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3">{statusBadge(agency.status)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {statusBadge(agency.status)}
+                        {agency.isUnsubscribed && (
+                          <Badge variant="outline" className="text-[10px] font-semibold bg-red-50 text-red-600 border-red-200 gap-1 shrink-0">
+                            <MailX size={9} /> Ayrıldı
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
                     {/* Son Mail */}
                     <td className="px-4 py-3">
                       {lastMail ? (

@@ -14,7 +14,10 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isApiRoute = nextUrl.pathname.startsWith("/api");
-      const isPublicRoute = nextUrl.pathname === "/" || nextUrl.pathname === "/login";
+      const isPublicRoute = 
+        nextUrl.pathname === "/" || 
+        nextUrl.pathname === "/login" || 
+        nextUrl.pathname === "/unsubscribe";
 
       // Allow all API routes to handle their own auth (or webhooks to bypass)
       if (isApiRoute) return true;

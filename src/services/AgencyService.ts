@@ -43,7 +43,9 @@ export class AgencyService {
     }
 
     // Mail interaction filter — exclusive logic across ALL mails
-    if (mailInteraction === "clicked") {
+    if (mailInteraction === "unsubscribed") {
+      where.isUnsubscribed = true;
+    } else if (mailInteraction === "clicked") {
       // En az bir mailde tıklama var
       where.mailLogs = { some: { clickedAt: { not: null } } };
     } else if (mailInteraction === "opened") {

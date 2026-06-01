@@ -11,6 +11,7 @@ interface CustomInteractionPickerProps {
 
 export const interactionOptions = [
   { id: "all", label: "Tümü", icon: "📧" },
+  { id: "unsubscribed", label: "Abonelikten Ayrılanlar", icon: "🔕" },
   { id: "clicked", label: "İletişim Kuruldu", icon: "🔗" },
   { id: "opened", label: "Maili Açtı", icon: "👁️" },
   { id: "sent_only", label: "Gönderildi (Açılmadı)", icon: "✉️" },

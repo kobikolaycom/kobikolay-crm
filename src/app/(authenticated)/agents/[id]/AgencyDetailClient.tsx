@@ -443,9 +443,14 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
           </Button>
         </Link>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">{agency.companyName}</h1>
             {statusBadge(agency.status)}
+            {agency.isUnsubscribed && (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 gap-1 font-semibold text-[10px]">
+                <MailX size={9} /> Mail Listesinden Ayrıldı
+              </Badge>
+            )}
           </div>
           {agency.documentNo && (
             <p className="text-sm text-slate-400 mt-0.5 font-medium">Belge No: {agency.documentNo}</p>
@@ -480,6 +485,19 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
           <CalendarPlus size={14} /> Hatırlatıcı
         </Button>
       </div>
+
+      {/* Unsubscribed Banner */}
+      {agency.isUnsubscribed && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-2xl px-5 py-4 flex items-start gap-3 animate-in slide-in-from-top-4 duration-300">
+          <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={20} />
+          <div>
+            <h4 className="font-bold text-sm tracking-tight">E-posta Listesinden Ayrıldı</h4>
+            <p className="text-xs text-red-700/90 leading-relaxed mt-1">
+              Bu acente e-posta listesinden kendi isteğiyle veya manuel olarak ayrılmıştır. Yasal düzenlemeler gereği bu acenteye toplu veya B2B tanıtım e-postaları <strong>gönderilemez</strong>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ─── Main Grid ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1130,7 +1148,8 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </Badge>
                   <Button
                     size="sm"
-                    className="gap-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
+                    disabled={agency.isUnsubscribed}
+                    className="gap-2 rounded-xl text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md disabled:from-slate-100 disabled:to-slate-200 disabled:text-slate-400"
                     onClick={() => {
                       const agencySectorIds = agency.sectors?.map((s: any) => s.id) || [];
                       setPitchSelectedSectorIds(agencySectorIds);
