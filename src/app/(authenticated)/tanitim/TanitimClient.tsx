@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,6 +132,53 @@ export function TanitimClient({
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("custom");
+
+  const [activeField, setActiveField] = useState<"subject" | "content">("content");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertPlaceholder = (placeholder: string) => {
+    if (activeField === "subject") {
+      const input = document.getElementById("campaign-subject") as HTMLInputElement;
+      if (!input) {
+        setSubject((prev) => prev + placeholder);
+        return;
+      }
+
+      const start = input.selectionStart ?? 0;
+      const end = input.selectionEnd ?? 0;
+      const text = input.value;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+
+      const newSubject = before + placeholder + after;
+      setSubject(newSubject);
+
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
+    } else {
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        setContent((prev) => prev + placeholder);
+        return;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+
+      const newContent = before + placeholder + after;
+      setContent(newContent);
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
+    }
+  };
 
   // Step 2: Filtreler + Acente Seçimi
   const [searchQuery, setSearchQuery] = useState("");
@@ -475,8 +522,11 @@ export function TanitimClient({
                 <div className="space-y-2">
                   <Label>E-posta Konu Satırı *</Label>
                   <Input
+                    id="campaign-subject"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
+                    onFocus={() => setActiveField("subject")}
+                    onClick={() => setActiveField("subject")}
                     placeholder="Örn: KobiKolay CRM - Sektörünüze Özel Çözüm"
                     className="rounded-xl"
                   />
@@ -485,8 +535,11 @@ export function TanitimClient({
                   <div className="space-y-2">
                     <Label>E-posta İçeriği *</Label>
                     <Textarea
+                      ref={textareaRef}
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
+                      onFocus={() => setActiveField("content")}
+                      onClick={() => setActiveField("content")}
                       className="rounded-xl min-h-[220px] font-mono text-sm"
                       placeholder="Sayın {{authorizedPerson}},&#10;&#10;{{companyName}} olarak sizlere..."
                     />
@@ -495,7 +548,7 @@ export function TanitimClient({
                         <button
                           key={v}
                           type="button"
-                          onClick={() => setContent(prev => prev + " " + v)}
+                          onMouseDown={(e) => { e.preventDefault(); insertPlaceholder(v); }}
                           className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary transition-colors font-mono cursor-pointer"
                         >
                           {v}
@@ -505,9 +558,14 @@ export function TanitimClient({
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1.5"><Eye size={14} /> Canlı Önizleme</Label>
-                    <div className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[220px] max-h-[280px] overflow-y-auto">
-                      {previewContent || <span className="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>}
-                    </div>
+                    <div 
+                      className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed min-h-[220px] max-h-[280px] overflow-y-auto"
+                      dangerouslySetInnerHTML={{
+                        __html: previewContent 
+                          ? previewContent.replace(/\n/g, "<br>")
+                          : '<span class="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>'
+                      }}
+                    />
                   </div>
                 </div>
               </>
@@ -754,9 +812,12 @@ export function TanitimClient({
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">E-posta Önizleme (Örnek Veriyle)</p>
                   <div className="bg-slate-50 border rounded-2xl p-5">
                     <p className="text-xs text-muted-foreground mb-2">Konu: <strong>{subject}</strong></p>
-                    <div className="bg-white border rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                      {previewContent}
-                    </div>
+                    <div 
+                      className="bg-white border rounded-xl p-4 text-sm leading-relaxed max-h-[200px] overflow-y-auto"
+                      dangerouslySetInnerHTML={{
+                        __html: previewContent ? previewContent.replace(/\n/g, "<br>") : ""
+                      }}
+                    />
                   </div>
                 </div>
 
