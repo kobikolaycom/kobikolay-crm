@@ -33,7 +33,7 @@ export class DashboardService {
     try {
       const [totalAgencies, activeConversations, sentCampaigns, totalCampaigns, sentMailLogs] = await Promise.all([
         prisma.agency.count(),
-        prisma.conversation.count({ where: { status: "OPEN", messages: { some: {} } } }),
+        prisma.conversation.count({ where: { status: "OPEN", channelType: { not: "MANUAL_NOTE" }, messages: { some: {} } } }),
         prisma.campaign.count({ where: { status: "COMPLETED" } }),
         prisma.campaign.count(),
         prisma.mailLog.count({ where: { status: "SENT" } }),
