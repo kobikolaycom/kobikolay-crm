@@ -512,7 +512,7 @@ export function TanitimClient({
                         <SelectItem value="custom">✏️ Serbest Yaz</SelectItem>
                         {promotionTemplates.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.category === "special" ? "🎉" : t.category === "offer_intro" ? "📋" : "🎁"} {t.name}
+                            {t.category === "special" ? "🎉" : t.category === "offer_intro" ? "📢" : "🎁"} {t.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

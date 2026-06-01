@@ -242,9 +242,15 @@ export class EmailTemplateService {
         where: { category: "promotion_intro" }
       });
 
+      // Ayrıca eski seeded offer_intro ismini güncelle (Migration)
+      await model.updateMany({
+        where: { category: "offer_intro", name: "Teklif Ön Yazısı" },
+        data: { name: "Tanıtım Maili Ön Yazısı" }
+      });
+
       const defaults = [
         {
-          name: "Teklif Ön Yazısı",
+          name: "Tanıtım Maili Ön Yazısı",
           category: "offer_intro",
           content:
             "Sayın {{authorizedPerson}},\n\n{{companyName}} olarak sizlere sunduğumuz hizmetleri tanıtmak istiyoruz.",

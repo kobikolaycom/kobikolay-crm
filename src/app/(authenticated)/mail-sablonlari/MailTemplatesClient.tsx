@@ -72,7 +72,7 @@ const PLACEHOLDERS = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  offer_intro: "Teklif Ön Yazısı",
+  offer_intro: "Tanıtım Maili Ön Yazısı",
   special: "Özel Gün Şablonu",
 };
 
@@ -234,18 +234,18 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
 
   return (
     <>
-      {/* ─── ÜST BÖLÜM: Teklif Ön Yazısı ─── */}
+      {/* ─── ÜST BÖLÜM: Tanıtım Maili Ön Yazısı ─── */}
       <div className="w-full">
-        {/* Teklif Maili Ön Yazısı */}
+        {/* Tanıtım Maili Ön Yazısı */}
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl">
-              📋
+              📢
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-slate-900">
-                  Teklif Maili Ön Yazısı
+                  Tanıtım Maili Ön Yazısı
                 </h3>
                 <Badge
                   variant="outline"
@@ -255,7 +255,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Teklif e-postalarında kullanılan giriş metni
+                Tanıtım ve teklif e-postalarında kullanılan genel giriş metni
               </p>
             </div>
           </div>
@@ -278,7 +278,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
               </>
             ) : (
               <p className="text-sm text-muted-foreground italic">
-                Henüz bir teklif ön yazısı tanımlanmamış.
+                Henüz bir tanıtım ön yazısı tanımlanmamış.
               </p>
             )}
           </div>
@@ -435,7 +435,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="offer_intro">
-                        Teklif Ön Yazısı
+                        Tanıtım Maili Ön Yazısı
                       </SelectItem>
                       <SelectItem value="special">
                         Özel Gün Şablonu
