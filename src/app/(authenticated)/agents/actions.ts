@@ -37,13 +37,51 @@ export async function deleteAgencyAction(id: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
-  const agency = await prisma.agency.findUnique({
-    where: { id },
+  // Only Super Admin is authorized to delete agencies
+  if (session.user.role !== "Super Admin") {
+    throw new Error("Acenteleri silme yetkiniz bulunmamaktadır. Sadece Yöneticiler acente silebilir.");
+  }
+
+  // Fetch test mode setting from system settings
+  const testModeSetting = await prisma.systemSetting.findUnique({
+    where: { category_key: { category: "system", key: "testMode" } },
   });
+  const isTestMode = testModeSetting?.value === "true";
 
-  if (!agency) throw new Error("Acente bulunamadı");
+  if (!isTestMode) {
+    // In live mode (testMode is false), prevent deletion if the agency has related records
+    const agencyWithCounts = await prisma.agency.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            conversations: true,
+            activities: true,
+            mailLogs: true,
+            campaignLogs: true,
+            offers: true,
+          },
+        },
+      },
+    });
 
-  // Cascade delete all related records
+    if (!agencyWithCounts) throw new Error("Acente bulunamadı");
+
+    const blocks: string[] = [];
+    if (agencyWithCounts._count.conversations > 0) blocks.push(`${agencyWithCounts._count.conversations} yazışma`);
+    if (agencyWithCounts._count.activities > 0) blocks.push(`${agencyWithCounts._count.activities} aktivite`);
+    if (agencyWithCounts._count.mailLogs > 0) blocks.push(`${agencyWithCounts._count.mailLogs} mail kaydı`);
+    if (agencyWithCounts._count.campaignLogs > 0) blocks.push(`${agencyWithCounts._count.campaignLogs} kampanya kaydı`);
+    if (agencyWithCounts._count.offers > 0) blocks.push(`${agencyWithCounts._count.offers} teklif`);
+
+    if (blocks.length > 0) {
+      throw new Error(
+        `Bu acente canlı modda silinemez. Bağlı geçmiş kayıtlar var: ${blocks.join(", ")}. Sistem Ayarları > API & Entegrasyonlar sayfasından Test Modunu açarak silebilirsiniz.`
+      );
+    }
+  }
+
+  // Safe to delete or in Test Mode (Cascade Delete)
   // 1. Delete conversation messages first (associated with the agency's conversations)
   await prisma.conversationMessage.deleteMany({
     where: {

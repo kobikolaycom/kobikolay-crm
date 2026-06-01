@@ -16,11 +16,13 @@ interface IntegrationSettings {
   smtp: Record<string, string>;
   whatsapp: Record<string, string>;
   meta: Record<string, string>;
+  system?: Record<string, string>;
+  userRole?: string | null;
 }
 
 async function loadSettings(): Promise<IntegrationSettings> {
   const res = await fetch("/api/settings/integrations");
-  if (!res.ok) return { smtp: {}, whatsapp: {}, meta: {} };
+  if (!res.ok) return { smtp: {}, whatsapp: {}, meta: {}, system: {}, userRole: null };
   return res.json();
 }
 
@@ -101,6 +103,9 @@ export default function IntegrationsPage() {
   const [metaWebhookVerifyToken, setMetaWebhookVerifyToken] = useState("");
 
   const [loaded, setLoaded] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [testMode, setTestMode] = useState(false);
+  const [isTestModePending, setIsTestModePending] = useState(false);
 
   // Load on mount
   useEffect(() => {
@@ -126,9 +131,30 @@ export default function IntegrationsPage() {
         setIgAccountId(data.meta.igAccountId || "");
         setMetaWebhookVerifyToken(data.meta.webhookVerifyToken || "");
       }
+      if (data.system) {
+        setTestMode(data.system.testMode === "true");
+      }
+      if (data.userRole) {
+        setUserRole(data.userRole);
+      }
       setLoaded(true);
     });
   }, []);
+
+  const handleToggleTestMode = async (checked: boolean) => {
+    setIsTestModePending(true);
+    try {
+      await saveSettings("system", [
+        { key: "testMode", value: checked ? "true" : "false" },
+      ]);
+      setTestMode(checked);
+      toast.success(checked ? "Test modu aktif edildi. Acenteler artık bağlı kayıtlarıyla birlikte silinebilir." : "Test modu kapatıldı. Canlı veri koruması aktif.");
+    } catch {
+      toast.error("İşlem gerçekleştirilemedi");
+    } finally {
+      setIsTestModePending(false);
+    }
+  };
 
 
 
@@ -274,6 +300,56 @@ export default function IntegrationsPage() {
         title="API & Entegrasyonlar"
         description="E-posta sunucusu, WhatsApp Business ve Meta API bağlantılarını yapılandırın."
       />
+
+      {/* Test Mode Toggle - Only for Super Admin */}
+      {userRole === "Super Admin" && (
+        <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 rounded-2xl border border-indigo-100 dark:border-slate-700 shadow-sm overflow-hidden p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${testMode ? 'bg-amber-500 text-white animate-pulse' : 'bg-indigo-600 text-white'}`}>
+                {testMode ? <RefreshCw size={24} /> : <Server size={24} />}
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-lg">
+                  Sistem Çalışma Modu (Acente Silme Kilidi)
+                  {testMode ? (
+                    <Badge className="bg-amber-500 hover:bg-amber-600 border-none text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-bounce">TEST / SEED MODU</Badge>
+                  ) : (
+                    <Badge className="bg-indigo-600 hover:bg-indigo-700 border-none text-white text-[10px] font-bold px-2 py-0.5 rounded-full">CANLI KORUMA MODU</Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                  {testMode 
+                    ? "⚠️ DİKKAT: Test modu aktif! Adminler acenteleri silerken bağlı tüm geçmiş yazışmaları, teklifleri ve aktiviteleri veritabanından kalıcı olarak temizler (Cascade Delete)." 
+                    : "🔒 GÜVENLİ: Canlı mod aktif. Acenteler yanlışlıkla silinemez; bağlı herhangi bir geçmiş yazışma veya işlem varsa silme işlemi engellenir."
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+              <span className={`text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${testMode ? 'text-amber-600' : 'text-slate-500'}`}>
+                {testMode ? 'Test Modu Açık' : 'Güvenli Kilit Aktif'}
+              </span>
+              <button
+                disabled={isTestModePending}
+                onClick={() => handleToggleTestMode(!testMode)}
+                className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-opacity-75 ${
+                  testMode ? 'bg-amber-500 animate-pulse' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <span className="sr-only">Toggle Test Mode</span>
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 ease-in-out ${
+                    testMode ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SMTP */}
       <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
