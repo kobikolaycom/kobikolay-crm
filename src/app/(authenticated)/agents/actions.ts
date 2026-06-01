@@ -37,40 +37,54 @@ export async function deleteAgencyAction(id: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
-  // Safety checks - prevent deletion if agency has related data
   const agency = await prisma.agency.findUnique({
     where: { id },
-    include: {
-      _count: {
-        select: {
-          conversations: true,
-          activities: true,
-          mailLogs: true,
-          campaignLogs: true,
-          offers: true,
-        },
-      },
-    },
   });
 
   if (!agency) throw new Error("Acente bulunamadı");
 
-  const blocks: string[] = [];
-  if (agency._count.conversations > 0) blocks.push(`${agency._count.conversations} yazışma`);
-  if (agency._count.activities > 0) blocks.push(`${agency._count.activities} aktivite`);
-  if (agency._count.mailLogs > 0) blocks.push(`${agency._count.mailLogs} mail kaydı`);
-  if (agency._count.campaignLogs > 0) blocks.push(`${agency._count.campaignLogs} kampanya kaydı`);
-  if (agency._count.offers > 0) blocks.push(`${agency._count.offers} teklif`);
+  // Cascade delete all related records
+  // 1. Delete conversation messages first (associated with the agency's conversations)
+  await prisma.conversationMessage.deleteMany({
+    where: {
+      conversation: {
+        agencyId: id,
+      },
+    },
+  });
 
-  if (blocks.length > 0) {
-    throw new Error(
-      `Bu acente silinemez. Bağlı kayıtlar: ${blocks.join(", ")}. Önce bu kayıtları kaldırın.`
-    );
-  }
+  // 2. Delete conversations
+  await prisma.conversation.deleteMany({
+    where: { agencyId: id },
+  });
 
-  // Safe to delete - remove contacts and tax info first
+  // 3. Delete activities
+  await prisma.activity.deleteMany({
+    where: { agencyId: id },
+  });
+
+  // 4. Delete mail logs
+  await prisma.mailLog.deleteMany({
+    where: { agencyId: id },
+  });
+
+  // 5. Delete campaign logs
+  await prisma.campaignLog.deleteMany({
+    where: { agencyId: id },
+  });
+
+  // 6. Delete offers
+  await prisma.offer.deleteMany({
+    where: { agencyId: id },
+  });
+
+  // 7. Delete contacts
   await prisma.contact.deleteMany({ where: { agencyId: id } });
+
+  // 8. Delete tax info
   await prisma.taxInfo.deleteMany({ where: { agencyId: id } });
+
+  // 9. Finally delete the agency itself
   await prisma.agency.delete({ where: { id } });
 
   revalidatePath("/agents");
