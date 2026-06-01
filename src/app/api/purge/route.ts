@@ -11,6 +11,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Security: Only Super Admin is authorized to purge data
+  if (session.user.role !== "Super Admin") {
+    return new Response(JSON.stringify({ error: "Yetersiz yetki. Sadece yöneticiler verileri temizleyebilir." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const body = await req.json();
     const { target } = body;
@@ -18,8 +26,8 @@ export async function POST(req: NextRequest) {
     const results: string[] = [];
 
     if (target === "conversations" || target === "all") {
-      // Delete all messages first, then conversations
-      const msgCount = await prisma.message.deleteMany({});
+      // Delete all conversation messages first (correct Prisma model)
+      const msgCount = await prisma.conversationMessage.deleteMany({});
       const convoCount = await prisma.conversation.deleteMany({});
       results.push(`${convoCount.count} konuşma ve ${msgCount.count} mesaj silindi`);
     }

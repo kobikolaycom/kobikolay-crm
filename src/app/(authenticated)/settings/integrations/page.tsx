@@ -156,6 +156,35 @@ export default function IntegrationsPage() {
     }
   };
 
+  const [isPurgingMessages, setIsPurgingMessages] = useState(false);
+
+  const handlePurgeMessages = async () => {
+    const confirmDelete = window.confirm(
+      "⚠️ DİKKAT: Sistemdeki tüm WhatsApp, Instagram, Messenger sohbetleri ve mesaj geçmişi kalıcı olarak silinecektir! Bu işlem geri alınamaz.\n\nDevam etmek istediğinizden emin misiniz?"
+    );
+    if (!confirmDelete) return;
+
+    setIsPurgingMessages(true);
+    try {
+      const res = await fetch("/api/purge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "conversations" }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.results?.[0] || "Tüm mesajlaşma verileri başarıyla temizlendi!");
+      } else {
+        toast.error(data.error || "Temizleme işlemi gerçekleştirilemedi");
+      }
+    } catch {
+      toast.error("Bir hata oluştu");
+    } finally {
+      setIsPurgingMessages(false);
+    }
+  };
+
 
 
   const handleSaveSmtp = () => {
@@ -348,6 +377,23 @@ export default function IntegrationsPage() {
               </button>
             </div>
           </div>
+          {testMode && (
+            <div className="mt-5 pt-4 border-t border-amber-200/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-300">
+              <div>
+                <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">💬 Mesajlaşma & Sohbet Temizliği</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sistemde birikmiş tüm omnichannel canlı sohbetleri ve mesajlaşma geçmişini tek tıkla veritabanından kalıcı olarak silebilirsiniz.</p>
+              </div>
+              <Button
+                disabled={isPurgingMessages}
+                onClick={handlePurgeMessages}
+                variant="outline"
+                className="rounded-xl text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 w-full sm:w-auto shrink-0 font-bold transition-all flex items-center justify-center gap-2"
+              >
+                {isPurgingMessages ? <RefreshCw className="animate-spin" size={16} /> : <AlertCircle size={16} />}
+                Tüm Mesajlaşmaları Temizle
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
