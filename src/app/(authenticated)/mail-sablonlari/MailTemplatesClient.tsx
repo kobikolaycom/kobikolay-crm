@@ -73,7 +73,7 @@ const PLACEHOLDERS = [
 
 const CATEGORY_LABELS: Record<string, string> = {
   offer_intro: "Teklif Ön Yazısı",
-  promotion_intro: "Tanıtım Ön Yazısı",
+  promotion_intro: "Özel Gün Ön Yazısı",
   special: "Özel Gün Şablonu",
 };
 
@@ -289,26 +289,26 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
           </div>
         </div>
 
-        {/* Tanıtım Maili Ön Yazısı */}
+        {/* Özel Gün Maili Ön Yazısı */}
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">
-              📢
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-xl">
+              🎉
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-slate-900">
-                  Tanıtım Maili Ön Yazısı
+                  Özel Gün Maili Ön Yazısı
                 </h3>
                 <Badge
                   variant="outline"
-                  className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 border-emerald-200"
+                  className="text-[10px] font-semibold bg-purple-100 text-purple-700 border-purple-200"
                 >
                   Varsayılan
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Tanıtım e-postalarında kullanılan giriş metni
+                Özel gün e-postalarında kullanılan giriş metni
               </p>
             </div>
           </div>
@@ -491,7 +491,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                         Teklif Ön Yazısı
                       </SelectItem>
                       <SelectItem value="promotion_intro">
-                        Tanıtım Ön Yazısı
+                        Özel Gün Ön Yazısı
                       </SelectItem>
                       <SelectItem value="special">
                         Özel Gün Şablonu

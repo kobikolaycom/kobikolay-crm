@@ -237,6 +237,12 @@ export class EmailTemplateService {
         return;
       }
 
+      // Ayrıca eski seeded ismini güncelle (Migration)
+      await model.updateMany({
+        where: { category: "promotion_intro", name: "Tanıtım Ön Yazısı" },
+        data: { name: "Özel Gün Ön Yazısı" }
+      });
+
       const defaults = [
         {
           name: "Teklif Ön Yazısı",
@@ -246,7 +252,7 @@ export class EmailTemplateService {
           isDefault: true,
         },
         {
-          name: "Tanıtım Ön Yazısı",
+          name: "Özel Gün Ön Yazısı",
           category: "promotion_intro",
           content:
             "Sayın {{authorizedPerson}},\n\n{{companyName}} olarak sizlerle iletişime geçmek istiyoruz.",
