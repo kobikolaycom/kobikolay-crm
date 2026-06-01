@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,8 @@ import { toast } from "sonner";
 import {
   Send, Mail, Users, Clock, CheckCircle2, Plus, Trash2,
   AlertTriangle, RefreshCw, Target, FileText, ArrowRight, Rocket,
-  Eye, ChevronRight,
+  Eye, ChevronRight, Search, MapPin, Filter, X, TestTube2,
+  Megaphone, Building2, MessageSquare, MailCheck, MailX,
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -35,6 +37,10 @@ import {
   getTargetAgenciesPreviewAction,
   createAndDispatchCampaignAction,
   deleteCampaignAction,
+  getFilteredAgenciesAction,
+  getDistrictsAction,
+  sendBulkPromotionAction,
+  sendTestEmailAction,
 } from "./actions";
 
 interface Campaign {
@@ -52,6 +58,26 @@ interface Sector {
   name: string;
 }
 
+interface EmailTemplate {
+  id: string;
+  name: string;
+  category: string;
+  subject: string | null;
+  content: string;
+  isDefault: boolean;
+}
+
+interface AgencyRow {
+  id: string;
+  companyName: string;
+  authorizedPerson: string | null;
+  status: string;
+  contacts: { email: string | null; province: string | null; district: string | null }[];
+  sectors: { id: string; name: string }[];
+  mailLogs: { sentAt: string | null; status: string }[];
+  _count: { mailLogs: number; campaignLogs: number; conversations: number };
+}
+
 function statusBadge(status: string) {
   const map: Record<string, { label: string; cls: string }> = {
     COMPLETED: { label: "Tamamlandı", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -63,7 +89,35 @@ function statusBadge(status: string) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Campaign[] }) {
+function agencyStatusBadge(status: string) {
+  const map: Record<string, { label: string; cls: string }> = {
+    ACTIVE: { label: "Aktif", cls: "bg-emerald-100 text-emerald-700" },
+    PASSIVE: { label: "Pasif", cls: "bg-slate-100 text-slate-600" },
+    LEAD: { label: "Lead", cls: "bg-blue-100 text-blue-700" },
+  };
+  const v = map[status] || { label: status, cls: "bg-muted text-muted-foreground" };
+  return <Badge variant="outline" className={`text-[9px] ${v.cls}`}>{v.label}</Badge>;
+}
+
+function mailStatusIcon(count: { mailLogs: number; campaignLogs: number }) {
+  const total = count.mailLogs + count.campaignLogs;
+  if (total > 0) {
+    return <Badge variant="outline" className="text-[9px] bg-violet-50 text-violet-600 border-violet-200 gap-0.5"><MailCheck size={9} /> Gönderildi</Badge>;
+  }
+  return <Badge variant="outline" className="text-[9px] bg-slate-50 text-slate-500 gap-0.5"><MailX size={9} /> Yeni</Badge>;
+}
+
+export function TanitimClient({
+  campaigns: initialCampaigns,
+  templates: initialTemplates,
+  provinces: initialProvinces,
+  sectors: initialSectors,
+}: {
+  campaigns: Campaign[];
+  templates: EmailTemplate[];
+  provinces: string[];
+  sectors: Sector[];
+}) {
   const [campaigns] = useState(initialCampaigns);
   const [isPending, startTransition] = useTransition();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -72,53 +126,107 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
 
   // Wizard state
   const [step, setStep] = useState(1); // 1: İçerik, 2: Hedef Kitle, 3: Önizleme & Gönder
-  const [sectors, setSectors] = useState<Sector[]>([]);
 
-  // Form
+  // Step 1: İçerik
   const [campaignName, setCampaignName] = useState("");
   const [subject, setSubject] = useState("");
-  const [content, setContent] = useState(
-    "Sayın Yetkili,\n\nSizlere özel hazırladığımız sektörel CRM çözümümüzü tanıtmak isteriz.\n\nKobiKolay CRM ile:\n• Müşteri yönetimini kolaylaştırın\n• Satış süreçlerinizi otomatikleştirin\n• Raporlama ve analiz yapın\n\nDetaylı bilgi ve demo talepleriniz için bizimle iletişime geçebilirsiniz.\n\nSaygılarımızla,\nKobiKolay Ekibi"
-  );
-  const [selectedSector, setSelectedSector] = useState("all");
+  const [content, setContent] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("custom");
+
+  // Step 2: Filtreler + Acente Seçimi
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("all");
+  const [selectedDistrict, setSelectedDistrict] = useState("all");
+  const [districts, setDistricts] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [targetCount, setTargetCount] = useState(0);
-  const [targetPreview, setTargetPreview] = useState<{ id: string; companyName: string; email: string }[]>([]);
-  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [selectedSector, setSelectedSector] = useState("all");
+  const [mailHistory, setMailHistory] = useState("all");
+  const [contactHistory, setContactHistory] = useState("all");
+  const [agencies, setAgencies] = useState<AgencyRow[]>([]);
+  const [totalAgencies, setTotalAgencies] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [loadingAgencies, setLoadingAgencies] = useState(false);
 
-  // Load sectors
+  // Şablon seçilince içeriği doldur
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (templateId === "custom") return;
+    const tpl = initialTemplates.find(t => t.id === templateId);
+    if (tpl) {
+      setContent(tpl.content);
+      if (tpl.subject) setSubject(tpl.subject);
+    }
+  };
+
+  // İl değişince ilçeleri yükle
   useEffect(() => {
-    getSectorsAction().then(setSectors).catch(() => {});
-  }, []);
+    setSelectedDistrict("all");
+    if (selectedProvince && selectedProvince !== "all") {
+      getDistrictsAction(selectedProvince).then(setDistricts).catch(() => setDistricts([]));
+    } else {
+      setDistricts([]);
+    }
+  }, [selectedProvince]);
 
-  // Recalculate targets when filters change (step 2)
+  // Acente listesini filtrele
+  const loadAgencies = useCallback(() => {
+    setLoadingAgencies(true);
+    getFilteredAgenciesAction({
+      search: searchQuery || undefined,
+      province: selectedProvince !== "all" ? selectedProvince : undefined,
+      district: selectedDistrict !== "all" ? selectedDistrict : undefined,
+      status: selectedStatus !== "all" ? selectedStatus : undefined,
+      sectorId: selectedSector !== "all" ? selectedSector : undefined,
+      mailHistory: mailHistory !== "all" ? mailHistory : undefined,
+      contactHistory: contactHistory !== "all" ? contactHistory : undefined,
+    }).then(({ data, total }) => {
+      setAgencies(data);
+      setTotalAgencies(total);
+      setLoadingAgencies(false);
+    }).catch(() => {
+      setLoadingAgencies(false);
+    });
+  }, [searchQuery, selectedProvince, selectedDistrict, selectedStatus, selectedSector, mailHistory, contactHistory]);
+
+  // Step 2'ye geçince acente listesini yükle
   useEffect(() => {
     if (step === 2) {
-      setLoadingTargets(true);
-      const filter: any = {};
-      if (selectedSector !== "all") filter.sectorId = selectedSector;
-      if (selectedStatus !== "all") filter.status = selectedStatus;
-
-      Promise.all([
-        getTargetCountAction(filter),
-        getTargetAgenciesPreviewAction(filter),
-      ]).then(([count, preview]) => {
-        setTargetCount(count);
-        setTargetPreview(preview);
-        setLoadingTargets(false);
-      }).catch(() => setLoadingTargets(false));
+      loadAgencies();
     }
-  }, [step, selectedSector, selectedStatus]);
+  }, [step, loadAgencies]);
 
+  // Select all toggle
+  const toggleSelectAll = () => {
+    if (selectedIds.length === agencies.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(agencies.map(a => a.id));
+    }
+  };
+
+  // Single toggle
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  // Reset
   const resetForm = () => {
     setStep(1);
     setCampaignName("");
     setSubject("");
-    setContent("Sayın Yetkili,\n\nSizlere özel hazırladığımız sektörel CRM çözümümüzü tanıtmak isteriz.\n\nKobiKolay CRM ile:\n• Müşteri yönetimini kolaylaştırın\n• Satış süreçlerinizi otomatikleştirin\n• Raporlama ve analiz yapın\n\nDetaylı bilgi ve demo talepleriniz için bizimle iletişime geçebilirsiniz.\n\nSaygılarımızla,\nKobiKolay Ekibi");
-    setSelectedSector("all");
+    setContent("");
+    setSelectedTemplateId("custom");
+    setSearchQuery("");
+    setSelectedProvince("all");
+    setSelectedDistrict("all");
     setSelectedStatus("all");
-    setTargetCount(0);
-    setTargetPreview([]);
+    setSelectedSector("all");
+    setMailHistory("all");
+    setContactHistory("all");
+    setAgencies([]);
+    setSelectedIds([]);
   };
 
   const openCreate = () => {
@@ -126,26 +234,45 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
     setShowCreateDialog(true);
   };
 
+  // Test mail gönder
+  const handleTestEmail = () => {
+    if (!subject.trim() || !content.trim()) {
+      toast.error("Konu ve içerik alanlarını doldurun");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const result = await sendTestEmailAction({
+          subject: subject.trim(),
+          content: content.trim(),
+        });
+        toast.success(`Test maili ${result.sentTo} adresine gönderildi!`);
+      } catch (err: any) {
+        toast.error(err.message || "Test gönderimi başarısız");
+      }
+    });
+  };
+
+  // Toplu gönder
   const handleDispatch = () => {
     if (!campaignName.trim() || !subject.trim() || !content.trim()) {
       toast.error("Tüm alanları doldurun");
       return;
     }
-    if (targetCount === 0) {
-      toast.error("Hedef kitle boş, filtre ayarlarını kontrol edin");
+    if (selectedIds.length === 0) {
+      toast.error("En az bir acente seçin");
       return;
     }
 
     startTransition(async () => {
       try {
-        const result = await createAndDispatchCampaignAction({
-          name: campaignName.trim(),
+        const result = await sendBulkPromotionAction({
+          agencyIds: selectedIds,
           subject: subject.trim(),
           content: content.trim(),
-          sectorId: selectedSector !== "all" ? selectedSector : undefined,
-          agencyStatus: selectedStatus !== "all" ? selectedStatus : undefined,
+          campaignName: campaignName.trim(),
         });
-        toast.success(`Kampanya ${result.count} acenteye gönderildi!`);
+        toast.success(`${result.sent} acenteye mail gönderildi!${result.failed > 0 ? ` (${result.failed} başarısız)` : ""}`);
         setShowCreateDialog(false);
         window.location.reload();
       } catch (err: any) {
@@ -154,6 +281,7 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
     });
   };
 
+  // Delete
   const handleDelete = (campaign: Campaign) => {
     setDeletingCampaign(campaign);
     setShowDeleteDialog(true);
@@ -173,17 +301,31 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
     });
   };
 
+  // Promotıon vs special templates
+  const promotionTemplates = initialTemplates.filter(t => t.category === "promotion_intro" || t.category === "special");
+
   const canProceedStep1 = campaignName.trim() && subject.trim() && content.trim();
-  const canProceedStep2 = targetCount > 0;
+  const canProceedStep2 = selectedIds.length > 0;
+
+  // Canlı önizleme (örnek veriyle)
+  const previewContent = content
+    .replace(/{{companyName}}/g, "ABC Turizm Ltd.")
+    .replace(/{{authorizedPerson}}/g, "Ahmet Bey")
+    .replace(/{{documentNo}}/g, "12345")
+    .replace(/{{sectorNames}}/g, "Yazılım, Turizm")
+    .replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"))
+    .replace(/{{unsubscribeUrl}}/g, "#");
 
   return (
     <>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Tanıtım Kampanyaları</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+            <Megaphone size={24} className="text-primary" /> Tanıtım Kampanyaları
+          </h2>
           <p className="text-sm text-slate-500">
-            Acentelerinize toplu e-posta gönderin ve performanslarını takip edin.
+            Toplu tanıtım ve özel gün e-postalarınızı gelişmiş filtrelerle gönderin.
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
@@ -262,21 +404,21 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
 
       {/* ─── KAMPANYA OLUŞTUR WIZARD ─── */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col rounded-2xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Rocket size={20} className="text-primary" />
               Yeni Kampanya Oluştur
             </DialogTitle>
             <DialogDescription>
-              3 adımda kampanyanızı hazırlayın ve gönderin.
+              3 adımda kampanyanızı hazırlayın, filtreleyin ve gönderin.
             </DialogDescription>
           </DialogHeader>
 
           {/* Step Indicator */}
           <div className="flex items-center gap-2 py-3 border-b">
             {[
-              { num: 1, label: "İçerik" },
+              { num: 1, label: "İçerik & Şablon" },
               { num: 2, label: "Hedef Kitle" },
               { num: 3, label: "Önizleme & Gönder" },
             ].map((s, i) => (
@@ -300,17 +442,35 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
 
           {/* Step Content */}
           <div className="flex-1 overflow-y-auto py-4 space-y-4">
-            {/* ─── ADIM 1: İÇERİK ─── */}
+            {/* ─── ADIM 1: İÇERİK & ŞABLON ─── */}
             {step === 1 && (
               <>
-                <div className="space-y-2">
-                  <Label>Kampanya Adı *</Label>
-                  <Input
-                    value={campaignName}
-                    onChange={(e) => setCampaignName(e.target.value)}
-                    placeholder="Örn: Mayıs 2026 Otel CRM Tanıtımı"
-                    className="rounded-xl"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Kampanya Adı *</Label>
+                    <Input
+                      value={campaignName}
+                      onChange={(e) => setCampaignName(e.target.value)}
+                      placeholder="Örn: Mayıs 2026 Otel CRM Tanıtımı"
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Şablon Seç</Label>
+                    <Select value={selectedTemplateId} onValueChange={handleTemplateSelect}>
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue placeholder="Şablon seçin..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="custom">✏️ Serbest Yaz</SelectItem>
+                        {promotionTemplates.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.category === "special" ? "🎉" : "📢"} {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>E-posta Konu Satırı *</Label>
@@ -321,16 +481,34 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
                     className="rounded-xl"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>E-posta İçeriği *</Label>
-                  <Textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="rounded-xl min-h-[200px] font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Kullanılabilir değişkenler: {"{{companyName}}, {{documentNo}}, {{unsubscribeUrl}}"}
-                  </p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>E-posta İçeriği *</Label>
+                    <Textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="rounded-xl min-h-[220px] font-mono text-sm"
+                      placeholder="Sayın {{authorizedPerson}},&#10;&#10;{{companyName}} olarak sizlere..."
+                    />
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {["{{companyName}}", "{{authorizedPerson}}", "{{sectorNames}}", "{{currentDate}}", "{{unsubscribeUrl}}"].map(v => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setContent(prev => prev + " " + v)}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary transition-colors font-mono cursor-pointer"
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5"><Eye size={14} /> Canlı Önizleme</Label>
+                    <div className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[220px] max-h-[280px] overflow-y-auto">
+                      {previewContent || <span className="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -338,70 +516,211 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
             {/* ─── ADIM 2: HEDEF KİTLE ─── */}
             {step === 2 && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Sektör Filtresi</Label>
-                    <Select value={selectedSector} onValueChange={setSelectedSector}>
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm Sektörler</SelectItem>
-                        {sectors.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Filtreler */}
+                <div className="bg-slate-50 rounded-2xl border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Filter size={14} /> Filtreler
+                    </h4>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7 rounded-lg"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedProvince("all");
+                        setSelectedDistrict("all");
+                        setSelectedStatus("all");
+                        setSelectedSector("all");
+                        setMailHistory("all");
+                        setContactHistory("all");
+                      }}
+                    >
+                      <X size={12} className="mr-1" /> Temizle
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Durum Filtresi</Label>
-                    <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tüm Durumlar</SelectItem>
-                        <SelectItem value="ACTIVE">Aktif</SelectItem>
-                        <SelectItem value="PASSIVE">Pasif</SelectItem>
-                        <SelectItem value="LEAD">Lead</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+                  {/* Arama */}
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Acente ara..."
+                      className="pl-9 rounded-xl h-9 text-sm"
+                    />
                   </div>
-                </div>
 
-                {/* Target Count */}
-                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
-                  {loadingTargets ? (
-                    <RefreshCw className="animate-spin mx-auto text-primary" size={24} />
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <Target size={20} className="text-primary" />
-                        <span className="text-3xl font-bold text-primary">{targetCount}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        acente bu filtrelere uyuyor ve e-posta alabilir
-                      </p>
-                    </>
-                  )}
-                </div>
-
-                {/* Preview List */}
-                {targetPreview.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                      Hedef Kitle Önizleme (ilk 20)
-                    </p>
-                    <div className="bg-white border rounded-xl divide-y max-h-[200px] overflow-y-auto">
-                      {targetPreview.map((t) => (
-                        <div key={t.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
-                          <span className="font-medium text-slate-900">{t.companyName}</span>
-                          <span className="text-xs text-muted-foreground">{t.email}</span>
-                        </div>
-                      ))}
+                  {/* Filtre row 1: İl, İlçe, Durum, Sektör */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><MapPin size={10} /> İl</Label>
+                      <Select value={selectedProvince} onValueChange={setSelectedProvince}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          {initialProvinces.map((p) => (
+                            <SelectItem key={p} value={p}>{p}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><MapPin size={10} /> İlçe</Label>
+                      <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={selectedProvince === "all"}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          {districts.map((d) => (
+                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><Building2 size={10} /> Durum</Label>
+                      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="ACTIVE">Aktif</SelectItem>
+                          <SelectItem value="PASSIVE">Pasif</SelectItem>
+                          <SelectItem value="LEAD">Lead</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><FileText size={10} /> Sektör</Label>
+                      <Select value={selectedSector} onValueChange={setSelectedSector}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          {initialSectors.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                )}
+
+                  {/* Filtre row 2: Mail geçmişi, İletişim */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><Mail size={10} /> Mail Geçmişi</Label>
+                      <Select value={mailHistory} onValueChange={setMailHistory}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="sent">✉️ Daha Önce Gönderildi</SelectItem>
+                          <SelectItem value="not_sent">🆕 Hiç Gönderilmedi</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs flex items-center gap-1"><MessageSquare size={10} /> İletişim</Label>
+                      <Select value={contactHistory} onValueChange={setContactHistory}>
+                        <SelectTrigger className="rounded-xl h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="contacted">💬 İletişim Kuruldu</SelectItem>
+                          <SelectItem value="not_contacted">⚪ İletişim Kurulmadı</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Filtre butonu + sayaç */}
+                  <div className="flex items-center justify-between pt-1">
+                    <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs gap-1" onClick={loadAgencies} disabled={loadingAgencies}>
+                      {loadingAgencies ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
+                      Filtrele
+                    </Button>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Target size={14} className="text-primary" />
+                      <span className="font-bold text-primary">{totalAgencies}</span>
+                      <span className="text-muted-foreground text-xs">acente bulundu</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acente Listesi */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={agencies.length > 0 && selectedIds.length === agencies.length}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                      Tümünü Seç ({agencies.length})
+                    </button>
+                    {selectedIds.length > 0 && (
+                      <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                        {selectedIds.length} acente seçildi
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="bg-white border rounded-xl divide-y max-h-[300px] overflow-y-auto">
+                    {loadingAgencies ? (
+                      <div className="flex items-center justify-center py-10">
+                        <RefreshCw size={20} className="animate-spin text-primary" />
+                      </div>
+                    ) : agencies.length === 0 ? (
+                      <div className="text-center py-10 text-sm text-muted-foreground">
+                        Filtrelere uygun acente bulunamadı.
+                      </div>
+                    ) : (
+                      agencies.map((agency) => (
+                        <div
+                          key={agency.id}
+                          className={`px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer ${
+                            selectedIds.includes(agency.id) ? "bg-primary/5" : ""
+                          }`}
+                          onClick={() => toggleSelect(agency.id)}
+                        >
+                          <Checkbox
+                            checked={selectedIds.includes(agency.id)}
+                            onCheckedChange={() => toggleSelect(agency.id)}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-slate-900 truncate">{agency.companyName}</span>
+                              {agencyStatusBadge(agency.status)}
+                              {mailStatusIcon(agency._count)}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                              {agency.contacts[0]?.province && (
+                                <span className="flex items-center gap-0.5">
+                                  <MapPin size={9} /> {agency.contacts[0].province}
+                                  {agency.contacts[0]?.district && ` / ${agency.contacts[0].district}`}
+                                </span>
+                              )}
+                              {agency.contacts[0]?.email && (
+                                <span className="truncate">{agency.contacts[0].email}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </>
             )}
 
@@ -419,24 +738,24 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
                   </div>
                   <div className="px-5 py-3 flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Hedef Kitle</span>
-                    <span className="text-sm font-bold text-primary">{targetCount} acente</span>
+                    <span className="text-sm font-bold text-primary">{selectedIds.length} acente</span>
                   </div>
                   <div className="px-5 py-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Sektör</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Şablon</span>
                     <span className="text-sm">
-                      {selectedSector === "all"
-                        ? "Tümü"
-                        : sectors.find((s) => s.id === selectedSector)?.name || "—"}
+                      {selectedTemplateId === "custom"
+                        ? "Serbest Yazı"
+                        : initialTemplates.find(t => t.id === selectedTemplateId)?.name || "—"}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">E-posta Önizleme</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">E-posta Önizleme (Örnek Veriyle)</p>
                   <div className="bg-slate-50 border rounded-2xl p-5">
                     <p className="text-xs text-muted-foreground mb-2">Konu: <strong>{subject}</strong></p>
                     <div className="bg-white border rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                      {content}
+                      {previewContent}
                     </div>
                   </div>
                 </div>
@@ -444,7 +763,9 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 flex items-start gap-2">
                   <AlertTriangle size={16} className="mt-0.5 shrink-0" />
                   <span>
-                    <strong>{targetCount} acenteye</strong> e-posta gönderilecek. Abonelikten çıkan acenteler otomatik olarak hariç tutulur. Bu işlem geri alınamaz.
+                    <strong>{selectedIds.length} acenteye</strong> e-posta gönderilecek.
+                    Her 10 mailden sonra gönderim hızı yavaşlatılır (SMTP güvenliği).
+                    Abonelikten çıkan acenteler otomatik hariç tutulur. Bu işlem geri alınamaz.
                   </span>
                 </div>
               </>
@@ -454,10 +775,20 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
           {/* Footer Navigation */}
           <DialogFooter className="border-t pt-4">
             <div className="flex w-full justify-between">
-              <div>
+              <div className="flex gap-2">
                 {step > 1 && (
                   <Button variant="outline" onClick={() => setStep(step - 1)} disabled={isPending} className="rounded-xl">
                     Geri
+                  </Button>
+                )}
+                {step === 1 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleTestEmail}
+                    disabled={isPending || !subject.trim() || !content.trim()}
+                    className="gap-1.5 rounded-xl text-xs"
+                  >
+                    <TestTube2 size={14} /> Kendime Test Gönder
                   </Button>
                 )}
               </div>
@@ -476,7 +807,7 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
                 ) : (
                   <Button
                     onClick={handleDispatch}
-                    disabled={isPending || targetCount === 0}
+                    disabled={isPending || selectedIds.length === 0}
                     className="gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700"
                   >
                     {isPending ? (
@@ -484,7 +815,7 @@ export function TanitimClient({ campaigns: initialCampaigns }: { campaigns: Camp
                     ) : (
                       <Rocket size={16} />
                     )}
-                    {isPending ? "Gönderiliyor..." : `${targetCount} Acenteye Gönder`}
+                    {isPending ? "Gönderiliyor..." : `${selectedIds.length} Acenteye Gönder`}
                   </Button>
                 )}
               </div>

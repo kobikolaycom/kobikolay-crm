@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Users, Mail, ShieldCheck, CheckCircle2, XCircle,
-  Plus, Trash2, Eye, EyeOff, KeyRound, UserPlus
+  Plus, Trash2, Eye, EyeOff, KeyRound, UserPlus, BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,7 @@ import {
   toggleUserStatusAction,
   deleteUserAction,
   updateUserPasswordAction,
+  toggleReportRecipientAction,
 } from "./actions";
 
 interface UsersClientProps {
@@ -188,13 +189,14 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                 <th className="text-left px-6 py-3 font-semibold text-slate-600">Rol</th>
                 <th className="text-left px-6 py-3 font-semibold text-slate-600">Durum</th>
                 <th className="text-left px-6 py-3 font-semibold text-slate-600">Kayıt Tarihi</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-600">📊 Rapor</th>
                 <th className="text-right px-6 py-3 font-semibold text-slate-600">İşlemler</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-20">
+                  <td colSpan={7} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
                     <p className="text-muted-foreground">Personel bulunamadı</p>
                   </td>
@@ -238,6 +240,29 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                         month: "short",
                         year: "numeric",
                       })}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => {
+                          startTransition(async () => {
+                            try {
+                              await toggleReportRecipientAction(user.id);
+                              toast.success(user.receivesReports ? "Rapor gönderimi kapatıldı" : "Rapor gönderimi açıldı");
+                              window.location.reload();
+                            } catch (e: any) { toast.error(e?.message || "İşlem başarısız"); }
+                          });
+                        }}
+                        disabled={isPending}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                          user.receivesReports
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                        }`}
+                        title={user.receivesReports ? "Rapor alıyor — kapatmak için tıklayın" : "Rapor almıyor — açmak için tıklayın"}
+                      >
+                        <BarChart3 size={12} />
+                        {user.receivesReports ? "Aktif" : "Kapalı"}
+                      </button>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">

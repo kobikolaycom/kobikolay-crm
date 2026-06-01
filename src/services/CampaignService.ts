@@ -63,7 +63,10 @@ export class CampaignService {
     if (!template) return "";
     let parsed = template;
     parsed = parsed.replace(/{{companyName}}/g, agency.companyName || "");
+    parsed = parsed.replace(/{{authorizedPerson}}/g, agency.authorizedPerson || "Yetkili");
     parsed = parsed.replace(/{{documentNo}}/g, agency.documentNo || "");
+    parsed = parsed.replace(/{{sectorNames}}/g, agency.sectors?.map((s: any) => s.name).join(", ") || "");
+    parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
     parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/unsubscribe?token=${agency.unsubscribeToken}`);
     return parsed;
@@ -106,10 +109,18 @@ export class CampaignService {
 
     const targets = await this.getTargetAgencies(filter);
     
-    // Send emails sequentially or in parallel chunks
-    for (const agency of targets) {
+    // Progressive rate limiting: 500ms base + 2s extra every 10 emails
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    for (let i = 0; i < targets.length; i++) {
+      const agency = targets[i];
       const email = agency.contacts[0]?.email;
       if (!email) continue;
+
+      // Progressive bekleme: her 10 mailde +2 saniye ekle
+      const baseDelay = 500; // 500ms temel bekleme
+      const extraDelay = Math.floor(i / 10) * 2000; // Her 10 mailde +2sn
+      if (i > 0) await delay(baseDelay + extraDelay);
 
       try {
         // Send actual email via SMTP

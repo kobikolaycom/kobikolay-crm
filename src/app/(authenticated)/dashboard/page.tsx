@@ -17,6 +17,7 @@ import {
 import { DashboardService } from "@/services/DashboardService";
 import { DashboardTasksClient } from "./DashboardTasksClient";
 import { auth } from "@/auth";
+import prisma from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,12 @@ function channelIcon(channelType: string) {
 export default async function DashboardPage() {
   const session = await auth();
   
+  let logoUrl: string | null = null;
+  try {
+    const logoSetting = await prisma.systemSetting.findFirst({ where: { category: "corporate", key: "logo_url" } });
+    logoUrl = logoSetting?.value || null;
+  } catch {}
+
   const [stats, recentConversations, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
     DashboardService.getStats(),
     DashboardService.getRecentConversations(),
@@ -66,12 +73,30 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 lg:p-8">
       {/* Welcome banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hoş Geldiniz, {session?.user?.name || "Özdemir Bey"}!</h1>
-          <p className="text-muted-foreground mt-1">KobiKolay B2B CRM ile acente ilişkilerinizi ve tekliflerinizi verimli yönetin.</p>
-        </div>
-      </div>
+      {(() => {
+        const quotes = [
+          "İnsanlar ne yaptığınızı satın almazlar, neden yaptığınızı satın alırlar.",
+          "Müşterilerinize satış yapmayı bırakın; onlara yardımcı olmayı seçin.",
+          "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.",
+          "Tüketiciyle bağ kurmayan her pazarlama fikri ölü doğar.",
+        ];
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        const fullName = session?.user?.name || "Kullanıcı";
+        const firstName = fullName.split(" ")[0];
+        return (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hoşgeldin, {firstName}!</h1>
+              <p className="text-muted-foreground mt-1 italic">&ldquo;{randomQuote}&rdquo;</p>
+            </div>
+            {logoUrl && (
+              <div className="shrink-0">
+                <img src={logoUrl} alt="Şirket Logosu" className="h-12 max-w-[200px] object-contain" />
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -113,8 +113,15 @@ export async function deleteUserAction(userId: string) {
     user._count.sentMailLogs;
 
   if (total > 0) {
+    const details: string[] = [];
+    if (user._count.assignedActivities > 0) details.push(`${user._count.assignedActivities} atanmış görev`);
+    if (user._count.createdActivities > 0) details.push(`${user._count.createdActivities} oluşturulan aktivite`);
+    if (user._count.assignedConversations > 0) details.push(`${user._count.assignedConversations} atanmış sohbet`);
+    if (user._count.createdConversations > 0) details.push(`${user._count.createdConversations} oluşturulan sohbet`);
+    if (user._count.sentMailLogs > 0) details.push(`${user._count.sentMailLogs} gönderilmiş e-posta`);
+
     throw new Error(
-      "Bu kullanıcının sistemde işlem geçmişi bulunduğu için silinemez. Pasife çekmeyi tercih edin."
+      `Bu personel silinemez. Sistemde şu kayıtları bulunuyor: ${details.join(", ")}. Silmek yerine hesabı pasife çekmenizi öneriyoruz.`
     );
   }
 
@@ -140,4 +147,20 @@ export async function updateUserPasswordAction(userId: string, newPassword: stri
 
   revalidatePath("/settings/users");
   return { success: true };
+}
+
+export async function toggleReportRecipientAction(userId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error("Kullanıcı bulunamadı");
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { receivesReports: !user.receivesReports },
+  });
+
+  revalidatePath("/settings/users");
+  return { success: true, receivesReports: !user.receivesReports };
 }

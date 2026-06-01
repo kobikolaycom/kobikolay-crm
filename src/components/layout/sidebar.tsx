@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   MessageSquare,
-  LogOut
+  LogOut,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const navItems = [
   { name: "Acenteler", href: "/agents", icon: Users },
   { name: "Mesajlar", href: "/inbox", icon: MessageSquare },
   { name: "Tanıtım", href: "/tanitim", icon: Mail },
+  { name: "Mail Şablonları", href: "/mail-sablonlari", icon: FileText },
   { name: "Faaliyet Alanları", href: "/settings/sectors", icon: Briefcase },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];

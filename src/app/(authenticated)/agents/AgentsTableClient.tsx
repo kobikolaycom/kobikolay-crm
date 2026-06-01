@@ -8,6 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { CustomDateRangePicker } from "@/components/ui/custom-date-picker";
+import { CustomInteractionPicker } from "@/components/ui/custom-interaction-picker";
 import {
   Select,
   SelectContent,
@@ -75,8 +77,6 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [debouncedSearch] = useDebounce(searchTerm, 400);
-  const [dateFrom, setDateFrom] = useState(initialDateFrom);
-  const [dateTo, setDateTo] = useState(initialDateTo);
 
   // Excel Import State
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -494,130 +494,47 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         </div>
       </div>
 
-      {/* Campaign Filter Tabs */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-muted-foreground font-semibold mr-1">Filtre:</span>
-        {[
-          { key: "all", label: "Tümü" },
-          { key: "today", label: "Bugün Gönderilenler" },
-          { key: "week", label: "Bu Hafta" },
-          { key: "month", label: "Bu Ay" },
-          { key: "never", label: "Hiç İşlem Yapılmamış" },
-        ].map((f) => {
-          const isActive = initialCampaignFilter === f.key && !initialDateFrom && !initialDateTo;
-          return (
-            <Button
-              key={f.key}
-              size="sm"
-              variant={isActive ? "default" : "outline"}
-              className={`rounded-lg text-xs h-7 px-3 ${
-                f.key === "never" && isActive ? "bg-red-600 hover:bg-red-700" : ""
-              }`}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                if (f.key === "all") {
-                  params.delete("campaignFilter");
-                } else {
-                  params.set("campaignFilter", f.key);
-                }
-                params.delete("page");
-                params.delete("dateFrom");
-                params.delete("dateTo");
-                setDateFrom("");
-                setDateTo("");
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-            >
-              {f.label}
-            </Button>
-          );
-        })}
-
-        {/* Date Range */}
-        <div className="ml-auto flex items-center gap-2">
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-lg h-7 text-xs w-[140px]"
-            placeholder="Başlangıç"
-          />
-          <span className="text-xs text-muted-foreground">—</span>
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-lg h-7 text-xs w-[140px]"
-          />
-          <Button
-            size="sm"
-            variant={(initialDateFrom || initialDateTo) ? "default" : "outline"}
-            className="rounded-lg text-xs h-7 px-3"
-            disabled={!dateFrom && !dateTo}
-            onClick={() => {
-              const params = new URLSearchParams(searchParams.toString());
+      {/* Filters */}
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <CustomDateRangePicker
+          initialFilter={initialCampaignFilter}
+          initialDateFrom={initialDateFrom}
+          initialDateTo={initialDateTo}
+          onApply={(filter, from, to) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (filter === "all") {
               params.delete("campaignFilter");
-              params.delete("page");
-              if (dateFrom) params.set("dateFrom", dateFrom); else params.delete("dateFrom");
-              if (dateTo) params.set("dateTo", dateTo); else params.delete("dateTo");
-              router.push(`${pathname}?${params.toString()}`);
-            }}
-          >
-            Filtrele
-          </Button>
-          {(initialDateFrom || initialDateTo) && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="rounded-lg text-xs h-7 px-2 text-red-500 hover:text-red-700"
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                params.delete("dateFrom");
-                params.delete("dateTo");
-                params.delete("page");
-                setDateFrom("");
-                setDateTo("");
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-            >
-              <X size={14} /> Temizle
-            </Button>
-          )}
-        </div>
-      </div>
+            } else {
+              params.set("campaignFilter", filter);
+            }
+            if (from) params.set("dateFrom", from); else params.delete("dateFrom");
+            if (to) params.set("dateTo", to); else params.delete("dateTo");
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+          onClear={() => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("campaignFilter");
+            params.delete("dateFrom");
+            params.delete("dateTo");
+            params.delete("page");
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        />
 
-      {/* Mail Interaction Filter */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-muted-foreground font-semibold mr-1">📧 Etkileşim:</span>
-        {[
-          { key: "all", label: "Tümü", icon: "" },
-          { key: "clicked", label: "🔗 İletişim Kuruldu", cls: "bg-violet-600 hover:bg-violet-700" },
-          { key: "opened", label: "👁️ Maili Açtı", cls: "bg-blue-600 hover:bg-blue-700" },
-          { key: "sent_only", label: "✉️ Gönderildi (Açılmadı)", cls: "bg-emerald-600 hover:bg-emerald-700" },
-          { key: "no_mail", label: "⚪ Mail Gönderilmemiş", cls: "bg-slate-600 hover:bg-slate-700" },
-        ].map((f) => {
-          const isActive = initialMailInteraction === f.key;
-          return (
-            <Button
-              key={f.key}
-              size="sm"
-              variant={isActive ? "default" : "outline"}
-              className={`rounded-lg text-xs h-7 px-3 ${isActive && f.cls ? f.cls : ""}`}
-              onClick={() => {
-                const params = new URLSearchParams(searchParams.toString());
-                if (f.key === "all") {
-                  params.delete("mailInteraction");
-                } else {
-                  params.set("mailInteraction", f.key);
-                }
-                params.delete("page");
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-            >
-              {f.label}
-            </Button>
-          );
-        })}
+        <CustomInteractionPicker
+          initialFilter={initialMailInteraction}
+          onApply={(filter) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (filter === "all") {
+              params.delete("mailInteraction");
+            } else {
+              params.set("mailInteraction", filter);
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        />
       </div>
 
       {/* Table */}
@@ -655,6 +572,8 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               ) : (
                 agencies.map((agency) => {
                   const lastMail = agency.mailLogs?.[0];
+                  const anyClicked = agency.mailLogs?.some((m: any) => m.clickedAt);
+                  const anyOpened = agency.mailLogs?.some((m: any) => m.openedAt);
                   return (
                   <tr key={agency.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-4 py-3">
@@ -714,19 +633,39 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                         <span className="text-[10px] text-slate-300">—</span>
                       )}
                     </td>
-                    {/* Etkileşim */}
+                    {/* Etkileşim — tüm mailleri kontrol et */}
                     <td className="px-4 py-3">
-                      {lastMail ? (
+                      {agency.mailLogs?.length > 0 ? (
                         <div className="flex flex-col gap-0.5">
-                          {lastMail.clickedAt ? (
-                            <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
-                              <ExternalLink size={9} /> İletişim Kuruldu
-                            </Badge>
-                          ) : lastMail.openedAt ? (
-                            <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
-                              <Eye size={9} /> Maili Açtı
-                            </Badge>
-                          ) : (
+                          {anyClicked ? (() => {
+                            const clickedMail = agency.mailLogs?.find((m: any) => m.clickedAt);
+                            return (
+                              <>
+                                <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                  <ExternalLink size={9} /> 🎯 Linke Tıkladı
+                                </Badge>
+                                {clickedMail?.clickedAt && (
+                                  <span className="text-[9px] text-violet-500">
+                                    {new Date(clickedMail.clickedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })() : anyOpened ? (() => {
+                            const openedMail = agency.mailLogs?.find((m: any) => m.openedAt);
+                            return (
+                              <>
+                                <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                  <Eye size={9} /> 📬 Maili Açtı
+                                </Badge>
+                                {openedMail?.openedAt && (
+                                  <span className="text-[9px] text-blue-500">
+                                    {new Date(openedMail.openedAt).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })() : (
                             <span className="text-[9px] text-slate-400">Henüz etkileşim yok</span>
                           )}
                         </div>

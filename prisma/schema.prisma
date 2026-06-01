@@ -27,6 +27,7 @@ model User {
   password                String         @map("password_hash")
   roleId                  String         @map("role_id")
   isActive                Boolean        @default(true) @map("is_active")
+  receivesReports         Boolean        @default(false) @map("receives_reports")
   createdAt               DateTime       @default(now()) @map("created_at")
   updatedAt               DateTime       @updatedAt @map("updated_at")
   assignedActivities      Activity[]     @relation("AssignedActivities")
@@ -364,4 +365,19 @@ model SystemSetting {
 
   @@unique([category, key])
   @@map("system_settings")
+}
+
+// ─── Mail Şablonları ───
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String                          // "Yılbaşı Şablonu", "Genel Tanıtım" vb.
+  category  String   @default("special")    // "offer_intro" | "promotion_intro" | "special"
+  subject   String?                         // Konu satırı şablonu
+  content   String   @db.Text               // Şablon içeriği (placeholder'lı)
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("email_templates")
 }

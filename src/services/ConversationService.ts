@@ -13,40 +13,45 @@ export class ConversationService {
    * Tüm konuşmaları filtreli olarak getirir.
    */
   static async getConversations(filter: ConversationFilter = {}) {
-    const where: Record<string, any> = {};
+    try {
+      const where: Record<string, any> = {};
 
-    if (filter.channelType) {
-      where.channelType = filter.channelType;
-    } else {
-      where.channelType = { not: "MANUAL_NOTE" };
-    }
-    if (filter.status) where.status = filter.status;
-    if (filter.agencyId) where.agencyId = filter.agencyId;
+      if (filter.channelType) {
+        where.channelType = filter.channelType;
+      } else {
+        where.channelType = { not: "MANUAL_NOTE" };
+      }
+      if (filter.status) where.status = filter.status;
+      if (filter.agencyId) where.agencyId = filter.agencyId;
 
-    if (filter.search) {
-      where.OR = [
-        { contactName: { contains: filter.search, mode: "insensitive" } },
-        { contactPhone: { contains: filter.search } },
-        { agency: { companyName: { contains: filter.search, mode: "insensitive" } } },
-      ];
-    }
+      if (filter.search) {
+        where.OR = [
+          { contactName: { contains: filter.search, mode: "insensitive" } },
+          { contactPhone: { contains: filter.search } },
+          { agency: { companyName: { contains: filter.search, mode: "insensitive" } } },
+        ];
+      }
 
-    return prisma.conversation.findMany({
-      where,
-      include: {
-        agency: { select: { id: true, companyName: true } },
-        assignedUser: { select: { id: true, name: true } },
-        createdByUser: { select: { id: true, name: true } },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1, // Sadece son mesaj
+      return await prisma.conversation.findMany({
+        where,
+        include: {
+          agency: { select: { id: true, companyName: true } },
+          assignedUser: { select: { id: true, name: true } },
+          createdByUser: { select: { id: true, name: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1, // Sadece son mesaj
+          },
+          _count: {
+            select: { messages: true },
+          },
         },
-        _count: {
-          select: { messages: true },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+        orderBy: { updatedAt: "desc" },
+      });
+    } catch (error) {
+      console.warn("Database connection failed in ConversationService.getConversations");
+      return [];
+    }
   }
 
   /**

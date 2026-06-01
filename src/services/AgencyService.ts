@@ -42,13 +42,26 @@ export class AgencyService {
       where.mailLogs = { none: {} };
     }
 
-    // Mail interaction filter
+    // Mail interaction filter — exclusive logic across ALL mails
     if (mailInteraction === "clicked") {
+      // En az bir mailde tıklama var
       where.mailLogs = { some: { clickedAt: { not: null } } };
     } else if (mailInteraction === "opened") {
-      where.mailLogs = { some: { openedAt: { not: null }, clickedAt: null } };
+      // En az bir mail açıldı AMA hiçbir mailde tıklama yok
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [
+        ...existingAnd,
+        { mailLogs: { some: { openedAt: { not: null } } } },
+        { mailLogs: { none: { clickedAt: { not: null } } } },
+      ];
     } else if (mailInteraction === "sent_only") {
-      where.mailLogs = { some: { status: "SENT", openedAt: null, clickedAt: null } };
+      // En az bir mail gönderildi AMA hiçbir mail açılmadı
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [
+        ...existingAnd,
+        { mailLogs: { some: { status: "SENT" } } },
+        { mailLogs: { none: { openedAt: { not: null } } } },
+      ];
     } else if (mailInteraction === "no_mail") {
       where.mailLogs = { none: {} };
     }
@@ -100,6 +113,15 @@ export class AgencyService {
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
         ];
+      } else if (campaignFilter.startsWith("last_")) {
+        const months = parseInt(campaignFilter.split("_")[1]);
+        const start = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth() - months, nowTR.getUTCDate()));
+        start.setTime(start.getTime() - TR_OFFSET);
+        const filter = { sentAt: { gte: start }, status: "SENT" as const };
+        where.OR = [
+          { campaignLogs: { some: filter } },
+          { mailLogs: { some: filter } },
+        ];
       } else if (campaignFilter === "never") {
         where.campaignLogs = { none: {} };
         where.mailLogs = { none: {} };
@@ -119,7 +141,7 @@ export class AgencyService {
             offers: { orderBy: { createdAt: "desc" } },
             mailLogs: {
               orderBy: { createdAt: "desc" },
-              take: 1,
+              take: 10,
               select: {
                 id: true,
                 status: true,
@@ -202,5 +224,122 @@ export class AgencyService {
     await prisma.agency.delete({
       where: { id },
     });
+  }
+
+  /**
+   * İl listesini getirir (filtreleme için).
+   */
+  static async getDistinctProvinces(): Promise<string[]> {
+    try {
+      const result = await prisma.contact.findMany({
+        where: { province: { not: null } },
+        select: { province: true },
+        distinct: ["province"],
+        orderBy: { province: "asc" },
+      });
+      return result.map(r => r.province!).filter(Boolean);
+    } catch (error) {
+      console.warn("Database connection failed in AgencyService.getDistinctProvinces");
+      return [];
+    }
+  }
+
+  /**
+   * Seçili ile göre ilçe listesini getirir.
+   */
+  static async getDistrictsByProvince(province: string): Promise<string[]> {
+    try {
+      const result = await prisma.contact.findMany({
+        where: { province, district: { not: null } },
+        select: { district: true },
+        distinct: ["district"],
+        orderBy: { district: "asc" },
+      });
+      return result.map(r => r.district!).filter(Boolean);
+    } catch (error) {
+      console.warn("Database connection failed in AgencyService.getDistrictsByProvince");
+      return [];
+    }
+  }
+
+  /**
+   * Tanıtım sayfası için gelişmiş filtreleme ile acente listesi.
+   */
+  static async getFilteredForPromotion(params: {
+    search?: string;
+    province?: string;
+    district?: string;
+    status?: string;
+    sectorId?: string;
+    mailHistory?: string; // "sent" | "not_sent" | "all"
+    contactHistory?: string; // "contacted" | "not_contacted" | "all"
+  }): Promise<{ data: any[]; total: number }> {
+    try {
+      const { search, province, district, status, sectorId, mailHistory, contactHistory } = params;
+      const where: any = {
+        isUnsubscribed: false,
+        contacts: { some: { email: { not: null } } }, // Email'i olanlar
+      };
+
+      if (search) {
+        where.OR = [
+          { companyName: { contains: search, mode: "insensitive" } },
+          { documentNo: { contains: search } },
+        ];
+      }
+
+      if (province) {
+        where.contacts = { ...where.contacts, some: { ...where.contacts?.some, province } };
+      }
+      if (district) {
+        where.contacts = { ...where.contacts, some: { ...where.contacts?.some, district } };
+      }
+
+      if (status && status !== "all") {
+        where.status = status;
+      }
+
+      if (sectorId && sectorId !== "all") {
+        where.sectors = { some: { id: sectorId } };
+      }
+
+      // Mail geçmişi filtresi
+      if (mailHistory === "sent") {
+        where.OR = [
+          { mailLogs: { some: { status: "SENT" } } },
+          { campaignLogs: { some: { status: "SENT" } } },
+        ];
+      } else if (mailHistory === "not_sent") {
+        where.mailLogs = { none: {} };
+        where.campaignLogs = { none: {} };
+      }
+
+      // İletişim geçmişi filtresi
+      if (contactHistory === "contacted") {
+        where.conversations = { some: {} };
+      } else if (contactHistory === "not_contacted") {
+        where.conversations = { none: {} };
+      }
+
+      const [data, total] = await prisma.$transaction([
+        prisma.agency.findMany({
+          where,
+          include: {
+            contacts: { select: { email: true, province: true, district: true } },
+            sectors: { select: { id: true, name: true } },
+            mailLogs: { take: 1, orderBy: { sentAt: "desc" }, select: { sentAt: true, status: true } },
+            _count: { select: { mailLogs: true, campaignLogs: true, conversations: true } },
+          },
+          orderBy: { companyName: "asc" },
+          take: 500, // Güvenlik limiti
+        }),
+        prisma.agency.count({ where }),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      console.warn("Database connection failed in AgencyService.getFilteredForPromotion");
+      return { data: [], total: 0 };
+    }
   }
 }

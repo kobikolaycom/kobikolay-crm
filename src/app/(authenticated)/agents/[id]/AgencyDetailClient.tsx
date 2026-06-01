@@ -529,14 +529,39 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </div>
                 </div>
               )}
-              {contact?.address && (
-                <div className="flex items-start gap-3 bg-amber-50 rounded-xl px-4 py-3 group hover:bg-amber-100 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+              {/* İl / İlçe — adres olmasa bile göster */}
+              {(contact?.province || contact?.district) && (
+                <div className="flex items-center gap-3 bg-amber-50 rounded-xl px-4 py-3 group hover:bg-amber-100 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                     <MapPin size={15} className="text-amber-600" />
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Adres</span>
-                    <p className="text-sm font-bold text-amber-900">{[contact.address, contact.district, contact.province].filter(Boolean).join(", ")}</p>
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">İl / İlçe</span>
+                    <p className="text-sm font-bold text-amber-900">{[contact.province, contact.district].filter(Boolean).join(" / ")}</p>
+                  </div>
+                </div>
+              )}
+              {/* Adres — varsa ayrı göster */}
+              {contact?.address && (
+                <div className="flex items-start gap-3 bg-orange-50 rounded-xl px-4 py-3 group hover:bg-orange-100 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin size={15} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Adres</span>
+                    <p className="text-sm font-bold text-orange-900">{contact.address}</p>
+                  </div>
+                </div>
+              )}
+              {/* BTK Bölgesi */}
+              {agency.btkZone && (
+                <div className="flex items-center gap-3 bg-cyan-50 rounded-xl px-4 py-3 group hover:bg-cyan-100 transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
+                    <Building2 size={15} className="text-cyan-600" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">BTK Bölgesi</span>
+                    <p className="text-sm font-bold text-cyan-900">{agency.btkZone}</p>
                   </div>
                 </div>
               )}
@@ -563,7 +588,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </div>
                 </div>
               )}
-              {!contact?.phone && !contact?.email && !contact?.address && !agency.website && !agency.authorizedPerson && (
+              {!contact?.phone && !contact?.email && !contact?.province && !contact?.address && !agency.website && !agency.authorizedPerson && !agency.btkZone && (
                 <div className="text-center py-6">
                   <Building2 size={28} className="mx-auto text-slate-200 mb-2" />
                   <p className="text-xs text-slate-400 font-medium">İletişim bilgisi yok</p>

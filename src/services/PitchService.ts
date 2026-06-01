@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { MailStatus } from "@prisma/client";
 import { MailService } from "./MailService";
 import type { MailAttachment } from "./MailService";
+import { EmailTemplateService } from "./EmailTemplateService";
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -20,8 +21,8 @@ import type { MailAttachment } from "./MailService";
  * ═══════════════════════════════════════════════════════════════════
  */
 
-// ─── Sabit E-posta Giriş Metni ───
-const DEFAULT_INTRO = (agencyName: string) =>
+// ─── Varsayılan Giriş Metni (EmailTemplate bulunamazsa fallback) ───
+const FALLBACK_INTRO = (agencyName: string) =>
   `<strong>${agencyName}</strong>'nın dijital altyapısını güçlendirecek çözümlerimizi ve güncel teknolojilerimizi paylaşmak adına sizinle iletişime geçmek istedik.
 
 Büyük platformların kullandığı küresel tedarikçi entegrasyonlarını ya da hâlihazırda anlaşmalı olduğunuz tedarikçileri kendi markanız ve alan adınız altında toplayarak, dijital dünyada çok daha güçlü rekabet edebilmeniz için tüm bu imkanları doğrudan sistemimiz üzerinden sağlıyoruz.
@@ -74,10 +75,24 @@ export class PitchService {
         ? `Merhaba ${authorizedPerson} Bey / Hanım,`
         : "Sayın Yetkili,";
 
-      // ─── 4. Giriş Metni ───
-      const introHtml = customIntro
-        ? customIntro.replace(/\n/g, "<br>")
-        : DEFAULT_INTRO(agencyName);
+      // ─── 4. Giriş Metni (Mail Şablonlarından çek, yoksa fallback) ───
+      let introHtml: string;
+      if (customIntro) {
+        introHtml = customIntro.replace(/\n/g, "<br>");
+      } else {
+        // Mail Şablonları sayfasından "Teklif Ön Yazısı" şablonunu al
+        const offerTemplate = await EmailTemplateService.getDefault("offer_intro");
+        if (offerTemplate) {
+          const parsedIntro = EmailTemplateService.parseTemplate(offerTemplate.content, {
+            companyName: agencyName,
+            authorizedPerson,
+            sectors: sectors.map(s => ({ name: s.name })),
+          });
+          introHtml = parsedIntro.replace(/\n/g, "<br>");
+        } else {
+          introHtml = FALLBACK_INTRO(agencyName);
+        }
+      }
 
       // ─── 5. Faaliyet Alanı Blokları ───
       const sectorBlocksHtml = sectors
