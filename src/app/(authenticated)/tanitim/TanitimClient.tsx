@@ -319,16 +319,16 @@ export function TanitimClient({
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Megaphone size={24} className="text-primary" /> Tanıtım Kampanyaları
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-xs sm:text-sm text-slate-500">
             Toplu tanıtım ve özel gün e-postalarınızı gelişmiş filtrelerle gönderin.
           </p>
         </div>
-        <Button onClick={openCreate} className="gap-2 rounded-xl shadow-lg shadow-primary/20">
+        <Button onClick={openCreate} className="gap-2 rounded-xl shadow-lg shadow-primary/20 w-full sm:w-auto">
           <Plus size={16} /> Yeni Kampanya Oluştur
         </Button>
       </div>

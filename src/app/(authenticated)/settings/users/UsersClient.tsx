@@ -165,21 +165,100 @@ export function UsersClient({ users, roles }: UsersClientProps) {
   return (
     <>
       {/* Action Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Users size={16} />
           <span>Toplam <strong className="text-slate-900">{users.length}</strong> personel</span>
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
+          className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md w-full sm:w-auto"
         >
           <UserPlus size={16} /> Yeni Personel Ekle
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {users.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border">
+            <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground">Personel bulunamadı</p>
+          </div>
+        ) : (
+          users.map((user: any) => (
+            <div key={user.id} className="bg-white rounded-2xl border shadow-sm p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+                    {user.name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm text-slate-900 truncate">{user.name || "—"}</p>
+                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                  </div>
+                </div>
+                {user.isActive ? (
+                  <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-[10px] gap-1 shrink-0">
+                    <CheckCircle2 size={10} /> Aktif
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] gap-1 text-red-600 shrink-0">
+                    <XCircle size={10} /> Pasif
+                  </Badge>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge variant="outline" className="gap-1 text-[10px]">
+                  <ShieldCheck size={10} /> {user.role?.name || "—"}
+                </Badge>
+                <button
+                  onClick={() => {
+                    startTransition(async () => {
+                      try {
+                        await toggleReportRecipientAction(user.id);
+                        toast.success(user.receivesReports ? "Rapor gönderimi kapatıldı" : "Rapor gönderimi açıldı");
+                        window.location.reload();
+                      } catch (e: any) { toast.error(e?.message || "İşlem başarısız"); }
+                    });
+                  }}
+                  disabled={isPending}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    user.receivesReports
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  <BarChart3 size={12} />
+                  {user.receivesReports ? "Rapor Aktif" : "Rapor Kapalı"}
+                </button>
+              </div>
+              <div className="flex items-center justify-end gap-1 border-t pt-3">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-500 hover:text-indigo-600" title="Düzenle" onClick={() => handleOpenEdit(user)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-500 hover:text-amber-600" title="Şifre Sıfırla"
+                  onClick={() => { setPasswordUserId(user.id); setPasswordUserName(user.name || user.email); setResetPassword(""); setShowPasswordDialog(true); }}>
+                  <KeyRound size={15} />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-500 hover:text-red-600" title="Sil"
+                  onClick={() => {
+                    startTransition(async () => {
+                      try { await deleteUserAction(user.id); toast.success("Personel silindi"); window.location.reload(); }
+                      catch (e: any) { toast.error(e?.message || "Silme başarısız"); }
+                    });
+                  }}>
+                  <Trash2 size={15} />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-2xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>

@@ -293,12 +293,12 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
   return (
     <>
       {/* Header + Add Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Faaliyet Alanı Yönetimi</h2>
-          <p className="text-sm text-slate-500">Faaliyet alanlarını, tanıtım PDF&apos;lerini, ön yazıları ve referansları yönetin.</p>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Faaliyet Alanı Yönetimi</h2>
+          <p className="text-xs sm:text-sm text-slate-500">Faaliyet alanlarını, tanıtım PDF&apos;lerini, ön yazıları ve referansları yönetin.</p>
         </div>
-        <Button onClick={openAdd} className="gap-2 rounded-xl">
+        <Button onClick={openAdd} className="gap-2 rounded-xl w-full sm:w-auto">
           <Plus size={16} /> Yeni Faaliyet Alanı Ekle
         </Button>
       </div>
