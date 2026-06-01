@@ -513,6 +513,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     value={formSubject}
                     onChange={(e) => setFormSubject(e.target.value)}
                     onFocus={() => setActiveField("subject")}
+                    onClick={() => setActiveField("subject")}
                     placeholder="Örn: {{companyName}} - Mutlu Yıllar! 🎄"
                     className="rounded-xl"
                   />
@@ -528,7 +529,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     <div className="flex flex-wrap gap-1 bg-slate-50 border p-2 rounded-xl">
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("Sayın {{authorizedPerson}},\n\n")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("Sayın {{authorizedPerson}},\n\n"); }}
                         className="text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 transition-all rounded-lg px-2.5 py-1 flex items-center gap-1 cursor-pointer"
                         title="Sayın Yetkili veya Sayın Ahmet Bey karşılama satırı ekler"
                       >
@@ -536,42 +537,42 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{companyName}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{companyName}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         🏢 Şirket Adı
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{authorizedPerson}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{authorizedPerson}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         👤 Yetkili Kişi
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{documentNo}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{documentNo}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         📄 TÜRSAB No
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{sectorNames}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{sectorNames}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         💼 Sektörler
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{currentDate}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{currentDate}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         📅 Tarih
                       </button>
                       <button
                         type="button"
-                        onClick={() => insertPlaceholder("{{unsubscribeUrl}}")}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder("{{unsubscribeUrl}}"); }}
                         className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
                       >
                         🔕 Ayrılma Linki
@@ -583,6 +584,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
                     onFocus={() => setActiveField("content")}
+                    onClick={() => setActiveField("content")}
                     className="rounded-xl min-h-[220px] font-mono text-sm leading-relaxed"
                     placeholder="Sayın {{authorizedPerson}},&#10;&#10;Şablon içeriğinizi buraya yazın..."
                   />
@@ -636,7 +638,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       <button
                         key={key}
                         type="button"
-                        onClick={() => insertPlaceholder(`{{${key}}}`)}
+                        onMouseDown={(e) => { e.preventDefault(); insertPlaceholder(`{{${key}}}`); }}
                         className="text-[10px] bg-white hover:bg-primary/[0.04] hover:text-primary border hover:border-primary/30 rounded px-1.5 py-0.5 text-slate-500 font-medium cursor-pointer transition-all active:scale-95 flex items-center"
                         title={`Metne {{${key}}} eklemek için tıklayın`}
                       >
