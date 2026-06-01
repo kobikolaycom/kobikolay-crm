@@ -84,8 +84,11 @@ export class CampaignService {
           ${parsedContent.replace(/\n/g, '<br>')}
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="font-size: 11px; color: #999;">
-          Bu e-posta KobiKolay CRM üzerinden gönderilmiştir.
+        <p style="font-size: 11px; color: #999; line-height: 1.5; margin: 0 0 8px 0;">
+          <strong>Adres:</strong> Barbaros Mah. Şebboy Sokak No:4/1 İç Kapı No:1 Ataşehir/İstanbul (Dijitalpark Teknokent)
+        </p>
+        <p style="font-size: 11px; color: #999; margin: 0;">
+          Bu e-posta KobiKolay CRM üzerinden gönderilmiştir.<br>
           E-posta listesinden çıkmak için <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}">buraya tıklayabilirsiniz</a>.
         </p>
       </div>

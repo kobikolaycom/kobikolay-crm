@@ -168,6 +168,9 @@ export class PitchService {
             <p style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;">
               KobiKolay Ekibi
             </p>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+              Barbaros Mah. Şebboy Sokak No:4/1 İç Kapı No:1 Ataşehir/İstanbul (Dijitalpark Teknokent)
+            </p>
             <hr style="border: none; border-top: 1px solid #e8ecf1; margin: 16px 0;">
             <p style="margin: 0; font-size: 11px; color: #94a3b8;">
               Bu e-posta KobiKolay B2B CRM sistemi üzerinden gönderilmiştir.
