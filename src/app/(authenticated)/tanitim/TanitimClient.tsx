@@ -348,8 +348,8 @@ export function TanitimClient({
     });
   };
 
-  // Tüm kullanılabilir şablonlar (Teklif, Özel Gün ve Diğer Şablonlar)
-  const promotionTemplates = initialTemplates.filter(t => t.category === "offer_intro" || t.category === "promotion_intro" || t.category === "special");
+  // Tüm kullanılabilir şablonlar (Teklif ve Özel Gün Şablonları)
+  const promotionTemplates = initialTemplates.filter(t => t.category === "offer_intro" || t.category === "special");
 
   const canProceedStep1 = campaignName.trim() && subject.trim() && content.trim();
   const canProceedStep2 = selectedIds.length > 0;

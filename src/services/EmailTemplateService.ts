@@ -237,10 +237,9 @@ export class EmailTemplateService {
         return;
       }
 
-      // Ayrıca eski seeded ismini güncelle (Migration)
-      await model.updateMany({
-        where: { category: "promotion_intro", name: "Tanıtım Ön Yazısı" },
-        data: { name: "Özel Gün Ön Yazısı" }
+      // Ayrıca eski seeded promotion_intro kayıtlarını temizle (Migration)
+      await model.deleteMany({
+        where: { category: "promotion_intro" }
       });
 
       const defaults = [
@@ -249,13 +248,6 @@ export class EmailTemplateService {
           category: "offer_intro",
           content:
             "Sayın {{authorizedPerson}},\n\n{{companyName}} olarak sizlere sunduğumuz hizmetleri tanıtmak istiyoruz.",
-          isDefault: true,
-        },
-        {
-          name: "Özel Gün Ön Yazısı",
-          category: "promotion_intro",
-          content:
-            "Sayın {{authorizedPerson}},\n\n{{companyName}} olarak sizlerle iletişime geçmek istiyoruz.",
           isDefault: true,
         },
       ];

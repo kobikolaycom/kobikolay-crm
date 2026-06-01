@@ -73,7 +73,6 @@ const PLACEHOLDERS = [
 
 const CATEGORY_LABELS: Record<string, string> = {
   offer_intro: "Teklif Ön Yazısı",
-  promotion_intro: "Özel Gün Ön Yazısı",
   special: "Özel Gün Şablonu",
 };
 
@@ -153,9 +152,6 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
   const offerIntro = templates.find(
     (t) => t.category === "offer_intro" && t.isDefault
   );
-  const promotionIntro = templates.find(
-    (t) => t.category === "promotion_intro" && t.isDefault
-  );
   const specialTemplates = templates.filter((t) => t.category === "special");
 
   // Önizleme
@@ -234,13 +230,12 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
 
   const isEditingDefault =
     editingTemplate !== null &&
-    (editingTemplate.category === "offer_intro" ||
-      editingTemplate.category === "promotion_intro");
+    editingTemplate.category === "offer_intro";
 
   return (
     <>
-      {/* ─── ÜST BÖLÜM: Teklif & Tanıtım Ön Yazıları ─── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* ─── ÜST BÖLÜM: Teklif Ön Yazısı ─── */}
+      <div className="w-full">
         {/* Teklif Maili Ön Yazısı */}
         <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b flex items-center gap-3">
@@ -284,54 +279,6 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 Henüz bir teklif ön yazısı tanımlanmamış.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Özel Gün Maili Ön Yazısı */}
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-xl">
-              🎉
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-slate-900">
-                  Özel Gün Maili Ön Yazısı
-                </h3>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-semibold bg-purple-100 text-purple-700 border-purple-200"
-                >
-                  Varsayılan
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Özel gün e-postalarında kullanılan giriş metni
-              </p>
-            </div>
-          </div>
-          <div className="px-6 py-4">
-            {promotionIntro ? (
-              <>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                  {promotionIntro.content.slice(0, 200)}
-                  {promotionIntro.content.length > 200 && "..."}
-                </p>
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl"
-                    onClick={() => openEdit(promotionIntro)}
-                  >
-                    <Pencil size={14} /> Düzenle
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                Henüz bir tanıtım ön yazısı tanımlanmamış.
               </p>
             )}
           </div>
@@ -490,9 +437,6 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       <SelectItem value="offer_intro">
                         Teklif Ön Yazısı
                       </SelectItem>
-                      <SelectItem value="promotion_intro">
-                        Özel Gün Ön Yazısı
-                      </SelectItem>
                       <SelectItem value="special">
                         Özel Gün Şablonu
                       </SelectItem>
@@ -591,8 +535,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                 </div>
 
                 {/* Varsayılan Checkbox */}
-                {(formCategory === "offer_intro" ||
-                  formCategory === "promotion_intro") && (
+                {formCategory === "offer_intro" && (
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="isDefault"
