@@ -623,13 +623,14 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       <strong>{parseTemplate(formSubject)}</strong>
                     </p>
                   )}
-                  <div className="bg-white border rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-[350px] overflow-y-auto">
-                    {previewContent || (
-                      <span className="text-muted-foreground italic">
-                        İçerik yazdıkça önizleme burada görünecek...
-                      </span>
-                    )}
-                  </div>
+                  <div 
+                    className="bg-white border rounded-lg p-4 text-sm leading-relaxed min-h-[200px] max-h-[350px] overflow-y-auto"
+                    dangerouslySetInnerHTML={{
+                      __html: previewContent 
+                        ? previewContent.replace(/\n/g, "<br>")
+                        : '<span class="text-slate-400 italic">İçerik yazdıkça önizleme burada görünecek...</span>'
+                    }}
+                  />
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                       Örnek Veriler (Metne eklemek için tıkla):
