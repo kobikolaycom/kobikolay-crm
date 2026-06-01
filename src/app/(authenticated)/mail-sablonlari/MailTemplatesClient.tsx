@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,6 +89,30 @@ function parseTemplate(content: string): string {
 // ─── Ana Bileşen ───
 export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] }) {
   const [isPending, startTransition] = useTransition();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertPlaceholder = (placeholder: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setFormContent((prev) => prev + placeholder);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+
+    const newContent = before + placeholder + after;
+    setFormContent(newContent);
+
+    // Maintain selection and focus
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+    }, 0);
+  };
 
   // Dialog durumları
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -471,11 +495,69 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
 
                 {/* İçerik */}
                 <div className="space-y-2">
-                  <Label>İçerik *</Label>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label>İçerik *</Label>
+                      <span className="text-[10px] text-slate-400">Metne eklemek istediğiniz değişkene tıklayın:</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 bg-slate-50 border p-2 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("Sayın {{authorizedPerson}},\n\n")}
+                        className="text-[11px] font-semibold bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 transition-all rounded-lg px-2.5 py-1 flex items-center gap-1 cursor-pointer"
+                        title="Sayın Yetkili veya Sayın Ahmet Bey karşılama satırı ekler"
+                      >
+                        👋 Karşılama (Sayın...)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{companyName}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        🏢 Şirket Adı
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{authorizedPerson}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        👤 Yetkili Kişi
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{documentNo}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        📄 TÜRSAB No
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{sectorNames}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        💼 Sektörler
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{currentDate}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        📅 Tarih
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => insertPlaceholder("{{unsubscribeUrl}}")}
+                        className="text-[11px] bg-white hover:bg-primary/10 hover:text-primary border hover:border-primary/30 transition-all rounded-lg px-2 py-1 text-slate-600 font-medium cursor-pointer"
+                      >
+                        🔕 Ayrılma Linki
+                      </button>
+                    </div>
+                  </div>
                   <Textarea
+                    ref={textareaRef}
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
-                    className="rounded-xl min-h-[220px] font-mono text-sm"
+                    className="rounded-xl min-h-[220px] font-mono text-sm leading-relaxed"
                     placeholder="Sayın {{authorizedPerson}},&#10;&#10;Şablon içeriğinizi buraya yazın..."
                   />
                 </div>
@@ -520,17 +602,20 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       </span>
                     )}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
-                      Örnek Veriler:
+                      Örnek Veriler (Metne eklemek için tıkla):
                     </span>
                     {Object.entries(SAMPLE_DATA).map(([key, val]) => (
-                      <span
+                      <button
                         key={key}
-                        className="text-[10px] bg-white border rounded px-1.5 py-0.5 text-slate-500"
+                        type="button"
+                        onClick={() => insertPlaceholder(`{{${key}}}`)}
+                        className="text-[10px] bg-white hover:bg-primary/[0.04] hover:text-primary border hover:border-primary/30 rounded px-1.5 py-0.5 text-slate-500 font-medium cursor-pointer transition-all active:scale-95 flex items-center"
+                        title={`Metne {{${key}}} eklemek için tıklayın`}
                       >
                         {key}: {val}
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </div>
