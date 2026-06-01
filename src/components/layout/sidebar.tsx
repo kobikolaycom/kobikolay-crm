@@ -49,6 +49,17 @@ export function Sidebar() {
         </Button>
       </div>
 
+      {/* Top-right Logout */}
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 backdrop-blur border shadow-sm text-sm font-medium text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">Çıkış</span>
+        </button>
+      </div>
+
       {/* Desktop Sidebar */}
       <aside
         className={cn(
@@ -92,18 +103,6 @@ export function Sidebar() {
             );
           })}
         </nav>
-
-        {/* Footer / Profile & Logout */}
-        <div className="p-4 border-t">
-          <Button
-            variant="ghost"
-            className={cn("w-full justify-start text-muted-foreground hover:text-destructive", isCollapsed ? "px-0 justify-center" : "")}
-            onClick={() => signOut({ callbackUrl: "/" })}
-          >
-            <LogOut className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-2 text-xs font-semibold">Çıkış Yap</span>}
-          </Button>
-        </div>
       </aside>
 
       {/* Mobile Overlay */}
@@ -138,6 +137,15 @@ export function Sidebar() {
                 );
               })}
             </nav>
+            <div className="mt-6 pt-4 border-t">
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center gap-4 rounded-xl p-4 text-lg text-red-500 hover:bg-red-50 transition-all w-full"
+              >
+                <LogOut size={24} />
+                <span>Çıkış Yap</span>
+              </button>
+            </div>
           </aside>
         </>
       )}
