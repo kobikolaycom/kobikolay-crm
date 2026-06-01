@@ -804,8 +804,11 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
             <div className="bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ height: "calc(100vh - 20rem)" }}>
               <div className="flex h-full">
 
-                {/* ─── Left: Conversation List ─── */}
-                <div className="w-96 lg:w-[25rem] border-r flex flex-col bg-slate-50/70 shrink-0">
+                {/* ─── Left: Conversation List (hidden on mobile when a chat is selected) ─── */}
+                <div className={cn(
+                  "w-full md:w-80 lg:w-[25rem] md:border-r flex flex-col bg-slate-50/70 md:shrink-0",
+                  selectedConvoId ? "hidden md:flex" : "flex"
+                )}>
                   {/* Hub Header */}
                   <div className="p-4 pb-3 border-b bg-white">
                     <div className="flex items-center justify-between mb-3">
@@ -937,8 +940,11 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </div>
                 </div>
 
-                {/* ─── Right: Chat Detail ─── */}
-                <div className="flex-1 flex flex-col bg-slate-50/30 min-w-0">
+                {/* ─── Right: Chat Detail (full screen on mobile when selected) ─── */}
+                <div className={cn(
+                  "flex-1 flex flex-col bg-slate-50/30 min-w-0",
+                  selectedConvoId ? "flex" : "hidden md:flex"
+                )}>
                   {!selectedConvo ? (
                     <div className="flex-1 flex items-center justify-center text-center">
                       <div className="max-w-xs">
@@ -955,10 +961,18 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                     <>
                       {/* Chat Header */}
                       <div className={cn(
-                        "px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0",
-                        channelConfig[selectedConvo.channelType]?.bgLight || "bg-white"
-                      )}>
-                        <div className="flex items-center gap-3 min-w-0">
+                          "px-3 md:px-5 py-3 md:py-3.5 border-b flex items-center justify-between gap-2 md:gap-3 shrink-0",
+                          channelConfig[selectedConvo.channelType]?.bgLight || "bg-white"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                          {/* Mobile back button */}
+                          <button
+                            onClick={() => setSelectedConvoId(null)}
+                            className="md:hidden shrink-0 -ml-1 p-1 rounded-lg text-primary hover:bg-primary/10"
+                          >
+                            <ArrowLeft size={20} />
+                          </button>
                           <div className={cn(
                             "w-10 h-10 rounded-full flex items-center justify-center text-base font-bold shadow-sm",
                             channelConfig[selectedConvo.channelType]?.bgDark,
