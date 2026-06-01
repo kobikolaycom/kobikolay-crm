@@ -390,7 +390,7 @@ export function TanitimClient({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     onClick={() => handleDelete(campaign)}
                   >
                     <Trash2 size={14} />

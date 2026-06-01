@@ -148,7 +148,7 @@ export default function CommunicationHub({ initialEntries }: { initialEntries: H
                     {statusBadge(entry.status)}
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <Eye size={14} />
                 </Button>
               </div>

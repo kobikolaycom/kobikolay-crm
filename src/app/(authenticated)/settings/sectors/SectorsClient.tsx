@@ -332,7 +332,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary" onClick={() => openEdit(sector)} title="Düzenle">
                     <Pencil size={14} />
                   </Button>
@@ -397,7 +397,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
                         <a href={ref.domain.startsWith("http") ? ref.domain : `https://${ref.domain}`} target="_blank" rel="noopener noreferrer" className="shrink-0">
                           <ExternalLink size={12} className="text-slate-400 hover:text-primary transition-colors" />
                         </a>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded shrink-0 opacity-0 group-hover/ref:opacity-100 transition-opacity text-slate-400 hover:text-red-600" onClick={() => handleDeleteReference(ref.id, ref.name)} disabled={isPending}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded shrink-0 opacity-100 md:opacity-0 group-hover/ref:opacity-100 transition-opacity text-slate-400 hover:text-red-600" onClick={() => handleDeleteReference(ref.id, ref.name)} disabled={isPending}>
                           <X size={12} />
                         </Button>
                       </div>

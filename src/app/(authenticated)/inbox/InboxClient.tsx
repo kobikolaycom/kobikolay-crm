@@ -648,7 +648,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                               {linkingAgencyId === ag.id ? (
                                 <RefreshCw className="animate-spin text-primary" size={14} />
                               ) : (
-                                <span className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[10px] font-bold text-primary opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                   Bağla →
                                 </span>
                               )}
