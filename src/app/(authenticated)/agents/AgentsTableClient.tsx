@@ -450,8 +450,8 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   return (
     <>
       {/* Search Bar & Actions */}
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <Input
             placeholder="Acente ara (isim, belge no)..."
@@ -460,35 +460,35 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             onClick={() => { resetCreateForm(); setShowCreateDialog(true); }}
-            className="gap-2 rounded-xl"
+            className="gap-1.5 rounded-xl text-xs sm:text-sm"
           >
-            <Plus size={16} /> Yeni Acente
+            <Plus size={16} /> <span className="hidden sm:inline">Yeni Acente</span><span className="sm:hidden">Yeni</span>
           </Button>
           <Button
             variant="outline"
             onClick={() => { resetImport(); setShowImportDialog(true); }}
-            className="gap-2 rounded-xl"
+            className="gap-1.5 rounded-xl text-xs sm:text-sm"
           >
-            <FileSpreadsheet size={16} /> Excel ile Aktar
+            <FileSpreadsheet size={16} /> <span className="hidden sm:inline">Excel ile Aktar</span><span className="sm:hidden">Excel</span>
           </Button>
           <Button
             variant="outline"
             onClick={() => setShowResetConfirmDialog(true)}
-            className="gap-2 rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 font-bold"
+            className="gap-1.5 rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 font-bold text-xs sm:text-sm"
           >
-            <RefreshCw size={16} /> Test Verisini Sıfırla
+            <RefreshCw size={16} /> <span className="hidden sm:inline">Test Verisini Sıfırla</span><span className="sm:hidden">Sıfırla</span>
           </Button>
           {selectedIds.length > 0 && (
             <Button
               onClick={openBulkSendModal}
-              className="gap-2 rounded-xl"
+              className="gap-1.5 rounded-xl text-xs sm:text-sm"
             >
               <Send size={16} />
-              {selectedIds.length} Acenteye Tanıtım Gönder
+              {selectedIds.length} <span className="hidden sm:inline">Acenteye Tanıtım Gönder</span><span className="sm:hidden">Gönder</span>
             </Button>
           )}
         </div>
@@ -537,8 +537,79 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         />
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3 mb-4">
+        {agencies.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border">
+            <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
+            <p className="text-muted-foreground">Acente bulunamadı</p>
+          </div>
+        ) : (
+          agencies.map((agency) => {
+            const lastMail = agency.mailLogs?.[0];
+            const anyClicked = agency.mailLogs?.some((m: any) => m.clickedAt);
+            const anyOpened = agency.mailLogs?.some((m: any) => m.openedAt);
+            return (
+              <div key={agency.id} className="bg-white rounded-2xl border shadow-sm p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Checkbox
+                      checked={selectedIds.includes(agency.id)}
+                      onCheckedChange={() => toggleSelect(agency.id)}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0">
+                      <Link href={`/agents/${agency.id}`} className="font-bold text-sm text-slate-900 hover:text-primary transition-colors block truncate">
+                        {agency.companyName}
+                      </Link>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{agency.documentNo}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {statusBadge(agency.status)}
+                  </div>
+                </div>
+                {agency.authorizedPerson && (
+                  <p className="text-xs text-slate-500 mb-2">👤 {agency.authorizedPerson}</p>
+                )}
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {agency.sectors?.map((s: any) => (
+                    <Badge key={s.id} variant="secondary" className="text-[9px]">{s.name}</Badge>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between border-t pt-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {lastMail?.status === "SENT" && (
+                      <Badge variant="outline" className="text-[9px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
+                        <CheckCircle2 size={9} /> Gönderildi
+                      </Badge>
+                    )}
+                    {anyClicked ? (
+                      <Badge variant="outline" className="text-[9px] font-bold bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                        <ExternalLink size={9} /> 🎯 Tıkladı
+                      </Badge>
+                    ) : anyOpened ? (
+                      <Badge variant="outline" className="text-[9px] font-bold bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                        <Eye size={9} /> 📬 Açtı
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Link href={`/agents/${agency.id}`}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-primary"><Eye size={15} /></Button>
+                    </Link>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600" onClick={() => openEditDialog(agency)}><Pencil size={15} /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-600" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }}><Trash2 size={15} /></Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-2xl border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
