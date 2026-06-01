@@ -70,6 +70,9 @@ export class PitchService {
         return { success: false, error: "Faaliyet alanı seçilmedi" };
       }
 
+      // Fetch default offer template to check for custom subject / content
+      const offerTemplate = await EmailTemplateService.getDefault("offer_intro");
+
       // ─── 3. Kişisel Selamlama ───
       const greeting = authorizedPerson
         ? `Merhaba ${authorizedPerson} Bey / Hanım,`
@@ -80,8 +83,6 @@ export class PitchService {
       if (customIntro) {
         introHtml = customIntro.replace(/\n/g, "<br>");
       } else {
-        // Mail Şablonları sayfasından "Teklif Ön Yazısı" şablonunu al
-        const offerTemplate = await EmailTemplateService.getDefault("offer_intro");
         if (offerTemplate) {
           const parsedIntro = EmailTemplateService.parseTemplate(offerTemplate.content, {
             companyName: agencyName,
@@ -199,7 +200,14 @@ export class PitchService {
       }
 
       // ─── 8. MailLog Kaydını ÖNCE Oluştur (trackingId almak için) ───
-      const emailSubject = `${agencyName} — Dijital Çözüm Önerimiz`;
+      let emailSubject = `${agencyName} — Dijital Çözüm Önerimiz`;
+      if (offerTemplate && offerTemplate.subject) {
+        emailSubject = EmailTemplateService.parseTemplate(offerTemplate.subject, {
+          companyName: agencyName,
+          authorizedPerson,
+          sectors: sectors.map((s) => ({ name: s.name })),
+        });
+      }
       const sectorNames = sectors.map((s) => s.name).join(", ");
 
       const mailLog = await prisma.mailLog.create({

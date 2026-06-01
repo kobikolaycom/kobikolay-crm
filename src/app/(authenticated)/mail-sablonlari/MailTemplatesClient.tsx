@@ -90,28 +90,51 @@ function parseTemplate(content: string): string {
 export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] }) {
   const [isPending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [activeField, setActiveField] = useState<"subject" | "content">("content");
 
   const insertPlaceholder = (placeholder: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setFormContent((prev) => prev + placeholder);
-      return;
+    if (activeField === "subject") {
+      const input = document.getElementById("form-subject") as HTMLInputElement;
+      if (!input) {
+        setFormSubject((prev) => prev + placeholder);
+        return;
+      }
+
+      const start = input.selectionStart ?? 0;
+      const end = input.selectionEnd ?? 0;
+      const text = input.value;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+
+      const newSubject = before + placeholder + after;
+      setFormSubject(newSubject);
+
+      setTimeout(() => {
+        input.focus();
+        input.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
+    } else {
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        setFormContent((prev) => prev + placeholder);
+        return;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+
+      const newContent = before + placeholder + after;
+      setFormContent(newContent);
+
+      // Maintain selection and focus
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
+      }, 0);
     }
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const before = text.substring(0, start);
-    const after = text.substring(end, text.length);
-
-    const newContent = before + placeholder + after;
-    setFormContent(newContent);
-
-    // Maintain selection and focus
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + placeholder.length, start + placeholder.length);
-    }, 0);
   };
 
   // Dialog durumları
@@ -486,9 +509,11 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                 <div className="space-y-2">
                   <Label>Konu (opsiyonel)</Label>
                   <Input
+                    id="form-subject"
                     value={formSubject}
                     onChange={(e) => setFormSubject(e.target.value)}
-                    placeholder="Örn: Mutlu Yıllar! 🎄"
+                    onFocus={() => setActiveField("subject")}
+                    placeholder="Örn: {{companyName}} - Mutlu Yıllar! 🎄"
                     className="rounded-xl"
                   />
                 </div>
@@ -557,6 +582,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     ref={textareaRef}
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
+                    onFocus={() => setActiveField("content")}
                     className="rounded-xl min-h-[220px] font-mono text-sm leading-relaxed"
                     placeholder="Sayın {{authorizedPerson}},&#10;&#10;Şablon içeriğinizi buraya yazın..."
                   />

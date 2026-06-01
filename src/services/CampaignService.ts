@@ -127,7 +127,7 @@ export class CampaignService {
         const html = this.buildCampaignEmail(campaign.content, agency);
         await MailService.sendEmail({
           to: email,
-          subject: campaign.subject ?? "KobiKolay Tanıtım",
+          subject: campaign.subject ? this.templateParser(campaign.subject, agency) : "KobiKolay Tanıtım",
           html,
         });
 
@@ -209,10 +209,12 @@ export class CampaignService {
 
     const _emailHtml = this.buildCampaignEmail(plainTextContent, agency);
     
+    const parsedSubject = this.templateParser(subject, agency);
+    
     // Send real email via SMTP
     await MailService.sendEmail({
       to: toEmail,
-      subject: subject,
+      subject: parsedSubject,
       html: _emailHtml,
     });
 
@@ -220,7 +222,7 @@ export class CampaignService {
     await prisma.mailLog.create({
       data: {
         agencyId: agency.id,
-        subject: subject,
+        subject: parsedSubject,
         content: `Birebir E-Posta (Inbox Hızlı Teklif).\n${attachedSectors.length > 0 ? `Odak Sektör(ler): ${sectorNames}\nEkli Dosya: ${hasPdfs ? 'Var' : 'Yok'}\n` : ''}Ön Yazı:\n${this.templateParser(plainTextContent, agency)}`,
         status: MailStatus.SENT,
         sentAt: new Date(),
