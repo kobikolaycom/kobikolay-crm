@@ -933,9 +933,9 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                       <p className="text-xs text-white/70">Dijital Seyahat Altyapı Çözümleri</p>
                     </div>
                     <div className="space-y-2 mt-3">
-                      <p className="font-semibold text-slate-700">Merhaba <span className="text-primary">[Kişi Adı]</span> Bey / Hanım,</p>
-                      <p className="text-slate-500 text-xs leading-relaxed">
-                        <span className="text-primary font-semibold">[Acente Adı]</span>&apos;nın dijital altyapısını güçlendirecek çözümlerimizi paylaşmak adına sizinle iletişime geçmek istedik...
+                      <p className="font-semibold text-slate-700">Sayın <span className="text-primary">[Yetkili Kişi]</span>,</p>
+                      <p className="text-slate-400 italic text-xs leading-relaxed">
+                        [Varsayılan Teklif Ön Yazısı şablonunuz buraya otomatik olarak yerleştirilecektir.]
                       </p>
                     </div>
                     <hr className="border-slate-200" />

@@ -23,11 +23,7 @@ import { EmailTemplateService } from "./EmailTemplateService";
 
 // ─── Varsayılan Giriş Metni (EmailTemplate bulunamazsa fallback) ───
 const FALLBACK_INTRO = (agencyName: string) =>
-  `<strong>${agencyName}</strong>'nın dijital altyapısını güçlendirecek çözümlerimizi ve güncel teknolojilerimizi paylaşmak adına sizinle iletişime geçmek istedik.
-
-Büyük platformların kullandığı küresel tedarikçi entegrasyonlarını ya da hâlihazırda anlaşmalı olduğunuz tedarikçileri kendi markanız ve alan adınız altında toplayarak, dijital dünyada çok daha güçlü rekabet edebilmeniz için tüm bu imkanları doğrudan sistemimiz üzerinden sağlıyoruz.
-
-<strong><a href="https://acenteyazilim.com" style="color: inherit; text-decoration: none;">acenteyazilim.com</a></strong> altyapısına geçtiğinizde sahip olacağınız çözümleri ve bu çözümlerin acentenize sağlayacağı doğrudan faydaları aşağıda inceleyebilirsiniz:`;
+  `<strong>${agencyName}</strong> için hazırladığımız dijital çözüm önerilerimizi aşağıda inceleyebilirsiniz:`;
 
 export class PitchService {
   /**
