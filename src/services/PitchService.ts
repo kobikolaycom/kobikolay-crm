@@ -128,6 +128,13 @@ export class PitchService {
         })
         .join("");
 
+      // ─── 5.5. Base URL and Unsubscribe URL ───
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+        || "https://kobikolay-crm.vercel.app";
+
+      const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${agency.unsubscribeToken}`;
+
       // ─── 6. Tam HTML E-posta Gövdesi ───
       const fullHtml = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 640px; margin: 0 auto; background: #ffffff; border: 1px solid #e8ecf1; border-radius: 16px; overflow: hidden;">
@@ -172,8 +179,9 @@ export class PitchService {
               Barbaros Mah. Şebboy Sokak No:4/1 İç Kapı No:1 Ataşehir/İstanbul (Dijitalpark Teknokent)
             </p>
             <hr style="border: none; border-top: 1px solid #e8ecf1; margin: 16px 0;">
-            <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-              Bu e-posta KobiKolay B2B CRM sistemi üzerinden gönderilmiştir.
+            <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+              Bu e-posta KobiKolay B2B CRM sistemi üzerinden gönderilmiştir.<br>
+              E-posta listesinden çıkmak için <a href="${unsubscribeUrl}" style="color: #4f46e5; text-decoration: underline;">buraya tıklayabilirsiniz</a>.
             </p>
           </div>
         </div>
@@ -216,10 +224,6 @@ export class PitchService {
       });
 
       // ─── 9. Tracking Pixel + Link Wrapping ───
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-        || "https://kobikolay-crm.vercel.app";
-
       const tid = mailLog.trackingId;
 
       // Tracking pixel — e-posta açıldığında tetiklenir
