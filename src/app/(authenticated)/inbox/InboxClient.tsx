@@ -12,7 +12,7 @@ import {
   Search, Inbox, MessageCircle, CheckCircle2, Send, Paperclip, Zap,
   UserPlus, MoreVertical, ChevronDown, Save, Clock,
   StickyNote, ExternalLink, RefreshCw, Users, Mail,
-  X, Building2, UserCheck, Plus, Trash2, Settings
+  X, Building2, UserCheck, Plus, Trash2, Settings, ArrowLeft
 } from "lucide-react";
 import {
   getConversationsAction, getConversationByIdAction, addMessageAction,
@@ -351,10 +351,19 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     return d.toLocaleDateString("tr-TR");
   };
 
+  // Mobile back handler
+  const handleMobileBack = () => {
+    setSelectedId(null);
+    setSelectedConvo(null);
+  };
+
   return (
-    <div className="flex h-[calc(100vh-6rem)] bg-white rounded-[2rem] border shadow-sm overflow-hidden">
-      {/* Left Sidebar - Conversation List */}
-      <div className="w-80 lg:w-[400px] border-r flex flex-col shrink-0 bg-slate-50/50">
+    <div className="flex h-[calc(100vh-6rem)] md:h-[calc(100vh-6rem)] h-[calc(100dvh-3.5rem)] bg-white md:rounded-[2rem] md:border md:shadow-sm overflow-hidden">
+      {/* Left Sidebar - Conversation List (hidden on mobile when chat is open) */}
+      <div className={cn(
+        "w-full md:w-80 lg:w-[400px] md:border-r flex flex-col shrink-0 bg-slate-50/50",
+        selectedId ? "hidden md:flex" : "flex"
+      )}>
         
         {/* Apple-style Top Header */}
         <div className="p-5 pb-3">
@@ -500,8 +509,11 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
         </div>
       </div>
 
-      {/* Right - Chat Detail */}
-      <div className="flex-1 flex flex-col bg-slate-50 relative">
+      {/* Right - Chat Detail (full screen on mobile when selected) */}
+      <div className={cn(
+        "flex-1 flex flex-col bg-slate-50 relative",
+        selectedId ? "flex" : "hidden md:flex"
+      )}>
         {!selectedConvo ? (
           <div className="flex-1 flex items-center justify-center text-center">
             <div className="max-w-xs">
@@ -515,49 +527,60 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
         ) : (
           <>
             {/* Apple/Google Style Header */}
-            <div className="px-6 py-4 bg-white border-b sticky top-0 z-10 flex flex-col gap-3 shadow-sm">
+            <div className="px-3 md:px-6 py-3 md:py-4 bg-white border-b sticky top-0 z-10 flex flex-col gap-2 md:gap-3 shadow-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
+                <div className="flex items-center gap-2 md:gap-4 min-w-0">
+                  {/* Mobile back button */}
+                  <button
+                    onClick={handleMobileBack}
+                    className="md:hidden shrink-0 -ml-1 p-1.5 rounded-xl text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    <ArrowLeft size={22} />
+                  </button>
+                  <div className="relative shrink-0">
                     <div className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold shadow-inner",
+                      "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-base md:text-lg font-bold shadow-inner",
                       channelConfig[selectedConvo.channelType]?.color || "bg-slate-100 text-slate-600"
                     )}>
                       {(selectedConvo.contactName || selectedConvo.agency?.companyName || "?").charAt(0).toUpperCase()}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 text-sm bg-white rounded-full p-0.5 shadow-sm">
+                    <div className="absolute -bottom-1 -right-1 text-xs md:text-sm bg-white rounded-full p-0.5 shadow-sm">
                       {channelConfig[selectedConvo.channelType]?.icon}
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                  <div className="min-w-0">
+                    <h3 className="text-sm md:text-lg font-bold text-slate-900 leading-tight truncate">
                       {selectedConvo.contactName || selectedConvo.agency?.companyName || "Bilinmeyen"}
                     </h3>
-                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                    <p className="text-[10px] md:text-xs font-medium text-slate-500 mt-0.5 truncate">
                       {selectedConvo.contactPhone || "Telefon bilgisi yok"} • {channelConfig[selectedConvo.channelType]?.label}
                     </p>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                   {selectedConvo.status !== "RESOLVED" && (
-                    <Button size="sm" className="rounded-xl gap-1.5 text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800" onClick={handleResolve}>
-                      <CheckCircle2 size={14} /> Mesajlaşmayı Sonlandır
+                    <Button size="sm" className="rounded-xl gap-1 md:gap-1.5 text-[10px] md:text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 px-2 md:px-3 h-8" onClick={handleResolve}>
+                      <CheckCircle2 size={14} />
+                      <span className="hidden sm:inline">Mesajlaşmayı Sonlandır</span>
+                      <span className="sm:hidden">Bitir</span>
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant={isManual ? "default" : "secondary"}
-                    className="rounded-xl gap-1.5 text-xs font-semibold"
+                    className="rounded-xl gap-1 md:gap-1.5 text-[10px] md:text-xs font-semibold px-2 md:px-3 h-8"
                     onClick={() => setIsManual(!isManual)}
                   >
-                    <StickyNote size={14} /> {isManual ? "Not Modu Aktif" : "Not Moduna Geç"}
+                    <StickyNote size={14} />
+                    <span className="hidden sm:inline">{isManual ? "Not Modu Aktif" : "Not Moduna Geç"}</span>
+                    <span className="sm:hidden">{isManual ? "Not" : "Not"}</span>
                   </Button>
                 </div>
               </div>
 
               {/* ─── Agency Link & User Assign Bar ─── */}
-              <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-2 md:gap-3 pt-2 md:pt-3 border-t border-slate-100 flex-wrap">
                 {/* Agency Link Section */}
                 <div className="relative" ref={linkPanelRef}>
                   {selectedConvo.agency ? (
@@ -713,7 +736,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-6">
               {loading ? (
                 <div className="text-center py-20">
                   <RefreshCw className="animate-spin mx-auto text-slate-400" size={32} />
@@ -821,12 +844,12 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                   </div>
                 )}
 
-                <div className="flex items-end gap-3 max-w-5xl mx-auto">
+                <div className="flex items-end gap-2 md:gap-3 max-w-5xl mx-auto">
                   {!isManual && (
                     <Button
                       variant={showQuickReplies ? "default" : "secondary"}
                       size="icon"
-                      className="shrink-0 h-12 w-12 rounded-2xl shadow-sm transition-colors"
+                      className="shrink-0 h-10 w-10 md:h-12 md:w-12 rounded-2xl shadow-sm transition-colors"
                       onClick={() => { setShowQuickReplies(!showQuickReplies); setManageQuickReplies(false); }}
                     >
                       <Zap size={20} className={showQuickReplies ? "text-white" : "text-amber-500"} />
@@ -857,7 +880,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
 
                   <Button
                     className={cn(
-                      "shrink-0 h-12 px-6 rounded-2xl gap-2 font-bold shadow-md transition-all",
+                      "shrink-0 h-10 md:h-12 px-4 md:px-6 rounded-2xl gap-1.5 md:gap-2 font-bold shadow-md transition-all text-sm md:text-base",
                       isManual ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-primary text-white"
                     )}
                     disabled={!messageText.trim() || sending}
@@ -867,7 +890,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                   </Button>
                 </div>
                 
-                <p className="text-[10px] font-medium text-slate-400 mt-2 px-1 text-center flex items-center justify-center gap-1.5">
+                <p className="hidden md:flex text-[10px] font-medium text-slate-400 mt-2 px-1 text-center items-center justify-center gap-1.5">
                   <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">Enter</span> ile {isManual ? "kaydet" : "gönder"}, 
                   <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">Shift + Enter</span> ile alt satıra geç
                 </p>
