@@ -20,8 +20,10 @@ export class AgencyService {
     dateFrom?: string;
     dateTo?: string;
     mailInteraction?: string;
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction } = params || {};
+    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, sortBy, sortOrder } = params || {};
     
     let where: Prisma.AgencyWhereInput = {};
 
@@ -131,12 +133,19 @@ export class AgencyService {
       }
     }
 
+    // Build orderBy clause
+    let orderBy: Prisma.AgencyOrderByWithRelationInput = { createdAt: "desc" };
+    if (sortBy === "documentNo" && sortOrder) {
+      orderBy = { documentNo: sortOrder };
+    }
+
     try {
       const [data, total] = await prisma.$transaction([
         prisma.agency.findMany({
           where,
           skip,
           take,
+          orderBy,
           include: {
             sectors: true,
             contacts: true,

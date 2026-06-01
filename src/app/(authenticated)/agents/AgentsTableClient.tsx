@@ -29,7 +29,7 @@ import {
   Search, ChevronLeft, ChevronRight, Users, Mail,
   Upload, FileSpreadsheet, CheckCircle2, FileText,
   ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone,
-  Pencil, Eye
+  Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown
 } from "lucide-react";
 import {
   Dialog,
@@ -54,6 +54,8 @@ interface AgentsTableClientProps {
   initialDateFrom?: string;
   initialDateTo?: string;
   initialMailInteraction?: string;
+  initialSortBy?: string;
+  initialSortOrder?: string;
 }
 
 function statusBadge(status: string) {
@@ -68,7 +70,7 @@ function statusBadge(status: string) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -255,6 +257,23 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(page));
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  // Sort by column
+  const toggleSort = (column: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (initialSortBy === column && initialSortOrder === "asc") {
+      params.set("sortBy", column);
+      params.set("sortOrder", "desc");
+    } else if (initialSortBy === column && initialSortOrder === "desc") {
+      params.delete("sortBy");
+      params.delete("sortOrder");
+    } else {
+      params.set("sortBy", column);
+      params.set("sortOrder", "asc");
+    }
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -636,7 +655,24 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                   />
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Şirket Adı</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Belge No</th>
+                <th
+                  className="text-left px-4 py-3 font-semibold text-slate-600 cursor-pointer select-none hover:text-primary transition-colors group"
+                  onClick={() => toggleSort("documentNo")}
+                  title="Belge No'ya göre sırala"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    Belge No
+                    {initialSortBy === "documentNo" ? (
+                      initialSortOrder === "asc" ? (
+                        <ArrowUp size={14} className="text-primary" />
+                      ) : (
+                        <ArrowDown size={14} className="text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    )}
+                  </span>
+                </th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>

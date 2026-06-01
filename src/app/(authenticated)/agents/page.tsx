@@ -20,6 +20,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const dateFrom = (params.dateFrom as string) || "";
   const dateTo = (params.dateTo as string) || "";
   const mailInteraction = (params.mailInteraction as string) || "all";
+  const sortBy = (params.sortBy as string) || "";
+  const sortOrder = (params.sortOrder as string) || "";
 
   const { data: agencies, total } = await AgencyService.list({
     skip: (page - 1) * pageSize,
@@ -31,6 +33,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     mailInteraction: mailInteraction !== "all" ? mailInteraction : undefined,
+    sortBy: sortBy || undefined,
+    sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
 
   const sectors = await SectorService.list();
@@ -51,6 +55,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialDateFrom={dateFrom}
         initialDateTo={dateTo}
         initialMailInteraction={mailInteraction}
+        initialSortBy={sortBy}
+        initialSortOrder={sortOrder}
       />
     </div>
   );
