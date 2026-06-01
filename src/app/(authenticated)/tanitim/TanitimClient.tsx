@@ -348,8 +348,8 @@ export function TanitimClient({
     });
   };
 
-  // Promotıon vs special templates
-  const promotionTemplates = initialTemplates.filter(t => t.category === "promotion_intro" || t.category === "special");
+  // Tüm kullanılabilir şablonlar (Teklif, Özel Gün ve Diğer Şablonlar)
+  const promotionTemplates = initialTemplates.filter(t => t.category === "offer_intro" || t.category === "promotion_intro" || t.category === "special");
 
   const canProceedStep1 = campaignName.trim() && subject.trim() && content.trim();
   const canProceedStep2 = selectedIds.length > 0;
@@ -512,7 +512,7 @@ export function TanitimClient({
                         <SelectItem value="custom">✏️ Serbest Yaz</SelectItem>
                         {promotionTemplates.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.category === "special" ? "🎉" : "🎁"} {t.name}
+                            {t.category === "special" ? "🎉" : t.category === "offer_intro" ? "📋" : "🎁"} {t.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

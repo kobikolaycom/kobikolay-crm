@@ -15,6 +15,7 @@ export async function createTemplateAction(formData: FormData) {
   
   await EmailTemplateService.create({ name, category, subject, content, isDefault });
   revalidatePath("/mail-sablonlari");
+  revalidatePath("/tanitim");
   return { success: true };
 }
 
@@ -31,6 +32,7 @@ export async function updateTemplateAction(formData: FormData) {
   
   await EmailTemplateService.update(id, { name, category, subject, content, isDefault });
   revalidatePath("/mail-sablonlari");
+  revalidatePath("/tanitim");
   return { success: true };
 }
 
@@ -40,6 +42,7 @@ export async function deleteTemplateAction(id: string) {
 
   await EmailTemplateService.delete(id);
   revalidatePath("/mail-sablonlari");
+  revalidatePath("/tanitim");
   return { success: true };
 }
 
