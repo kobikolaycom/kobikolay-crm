@@ -5,12 +5,12 @@ import { ReportService } from "@/services/ReportService";
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
-  // Security: Verify cron secret or allow test mode
+  // Security: Verify cron secret
   const authHeader = request.headers.get("authorization");
   const isTest = request.nextUrl.searchParams.get("test") === "true";
   const testEmail = request.nextUrl.searchParams.get("email");
 
-  if (!isTest && CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
