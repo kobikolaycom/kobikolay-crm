@@ -1769,10 +1769,6 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
             </Button>
             <Button
               onClick={async () => {
-                if (pitchSelectedSectorIds.length === 0) {
-                  toast.error("En az bir faaliyet alanı seçmelisiniz");
-                  return;
-                }
                 if (!contact?.email) {
                   toast.error("Bu acentenin e-posta adresi tanımlı değil");
                   return;
@@ -1791,7 +1787,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 }
                 setPitchSending(false);
               }}
-              disabled={pitchSending || pitchSelectedSectorIds.length === 0 || !contact?.email}
+              disabled={pitchSending || !contact?.email}
               className="gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md"
             >
               {pitchSending ? (

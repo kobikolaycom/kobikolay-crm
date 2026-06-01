@@ -62,16 +62,12 @@ export class PitchService {
         orderBy: { name: "asc" },
       });
 
-      if (sectors.length === 0) {
-        return { success: false, error: "Faaliyet alanı seçilmedi" };
-      }
-
       // Fetch default offer template to check for custom subject / content
       const offerTemplate = await EmailTemplateService.getDefault("offer_intro");
 
       // ─── 3. Kişisel Selamlama ───
       const greeting = authorizedPerson
-        ? `Merhaba ${authorizedPerson} Bey / Hanım,`
+        ? `Sayın ${authorizedPerson},`
         : "Sayın Yetkili,";
 
       // ─── 4. Giriş Metni (Mail Şablonlarından çek, yoksa fallback) ───
@@ -204,7 +200,7 @@ export class PitchService {
           sectors: sectors.map((s) => ({ name: s.name })),
         });
       }
-      const sectorNames = sectors.map((s) => s.name).join(", ");
+      const sectorNames = sectors.map((s) => s.name).join(", ") || "Belirtilmedi";
 
       const mailLog = await prisma.mailLog.create({
         data: {

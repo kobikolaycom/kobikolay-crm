@@ -260,7 +260,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
 
   // Bulk Send
   const handleBulkSend = async () => {
-    if (selectedSectorIds.length === 0 || selectedIds.length === 0) return;
+    if (selectedIds.length === 0) return;
     setIsSending(true);
     setProgress(0);
 
@@ -941,7 +941,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               </div>
 
               {/* Email Preview */}
-              {selectedSectorIds.length > 0 && (
+              {true && (
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Mail size={14} />
@@ -1005,7 +1005,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
               <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSending} className="rounded-xl">
                 İptal
               </Button>
-              <Button onClick={handleBulkSend} disabled={isSending || selectedSectorIds.length === 0} className="gap-2 rounded-xl">
+              <Button onClick={handleBulkSend} disabled={isSending} className="gap-2 rounded-xl">
                 {isSending ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
                 {isSending ? "İşleniyor..." : `${selectedIds.length} Acenteye Gönder`}
               </Button>
