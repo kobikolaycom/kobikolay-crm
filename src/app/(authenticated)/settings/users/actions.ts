@@ -132,6 +132,8 @@ export async function deleteUserAction(userId: string) {
 }
 
 export async function getRolesAction() {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
   return prisma.role.findMany({ orderBy: { name: "asc" } });
 }
 

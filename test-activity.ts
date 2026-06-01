@@ -1,1 +1,0 @@
-import { ActivityService } from "./src/services/ActivityService"; async function test() { try { const act = await ActivityService.createActivity("cm1f8553m0005z0tzp5t1p9r1", "CALL_LOG", "Test notu"); console.log("Success:", act); } catch(e) { console.error("Error:", e); } } test();

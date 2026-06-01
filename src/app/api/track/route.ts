@@ -76,9 +76,15 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Redirect to original URL
+      // Redirect to original URL (validate to prevent open redirect)
       if (redirectUrl) {
-        return NextResponse.redirect(redirectUrl, 302);
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+            return NextResponse.redirect(redirectUrl, 302);
+          }
+        } catch {}
+        return new NextResponse("Invalid redirect URL", { status: 400 });
       }
 
       return new NextResponse("Link tracked", { status: 200 });
@@ -95,7 +101,12 @@ export async function GET(request: NextRequest) {
       });
     }
     if (redirectUrl) {
-      return NextResponse.redirect(redirectUrl, 302);
+      try {
+        const parsed = new URL(redirectUrl);
+        if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          return NextResponse.redirect(redirectUrl, 302);
+        }
+      } catch {}
     }
     return new NextResponse("Error", { status: 500 });
   }

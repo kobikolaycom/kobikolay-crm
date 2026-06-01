@@ -12,9 +12,8 @@ export async function GET(req: NextRequest) {
 
   if (mode === "subscribe" && token && challenge) {
     const envToken = process.env.META_WEBHOOK_VERIFY_TOKEN;
-    const FALLBACK_TOKEN = "acenteyazilim_crm_2026";
     
-    if ((envToken && token === envToken) || token === FALLBACK_TOKEN) {
+    if (envToken && token === envToken) {
       return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
     }
     

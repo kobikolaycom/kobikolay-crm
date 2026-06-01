@@ -13,7 +13,8 @@ export async function dispatchBulkPitchChunkAction(
   chunkSize: number
 ) {
   const session = await auth();
-  const userId = session?.user?.id;
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+  const userId = session.user.id;
 
   const start = chunkIndex * chunkSize;
   const chunk = agencyIds.slice(start, start + chunkSize);
