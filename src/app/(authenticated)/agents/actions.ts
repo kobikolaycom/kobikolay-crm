@@ -86,6 +86,7 @@ export async function createAgencyAction(data: {
   district?: string;
   authorizedPerson?: string;
   website?: string;
+  btkZone?: string;
   sectorIds?: string[];
 }) {
   const session = await auth();
@@ -110,6 +111,7 @@ export async function createAgencyAction(data: {
       documentNo: data.documentNo || `MANUAL-${Date.now()}`,
       authorizedPerson: data.authorizedPerson || null,
       website: data.website || null,
+      btkZone: data.btkZone || null,
       status: "ACTIVE",
       sectors: data.sectorIds && data.sectorIds.length > 0 
         ? { connect: data.sectorIds.map(id => ({ id })) } 
@@ -118,7 +120,7 @@ export async function createAgencyAction(data: {
   });
 
   // Create contact if any contact info provided
-  if (data.phone || data.email || data.address) {
+  if (data.phone || data.email || data.address || data.province || data.district) {
     await prisma.contact.create({
       data: {
         agencyId: agency.id,
@@ -200,6 +202,7 @@ export async function updateAgencyAction(
     district?: string;
     authorizedPerson?: string;
     website?: string;
+    btkZone?: string;
     sectorIds?: string[];
   }
 ) {
@@ -230,6 +233,7 @@ export async function updateAgencyAction(
       documentNo: data.documentNo,
       authorizedPerson: data.authorizedPerson || null,
       website: data.website || null,
+      btkZone: data.btkZone || null,
       sectors: data.sectorIds ? { set: data.sectorIds.map(id => ({ id })) } : { set: [] },
     },
   });

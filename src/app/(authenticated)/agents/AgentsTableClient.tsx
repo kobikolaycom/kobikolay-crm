@@ -111,6 +111,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [newDistrict, setNewDistrict] = useState("");
   const [newAuthorized, setNewAuthorized] = useState("");
   const [newWebsite, setNewWebsite] = useState("");
+  const [newBtkZone, setNewBtkZone] = useState("");
   const [newSectorIds, setNewSectorIds] = useState<string[]>([]);
 
   // Edit Agency State
@@ -126,6 +127,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const [editDistrict, setEditDistrict] = useState("");
   const [editAuthorized, setEditAuthorized] = useState("");
   const [editWebsite, setEditWebsite] = useState("");
+  const [editBtkZone, setEditBtkZone] = useState("");
   const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
 
   const openEditDialog = (agency: any) => {
@@ -134,6 +136,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
     setEditDocumentNo(agency.documentNo || "");
     setEditAuthorized(agency.authorizedPerson || "");
     setEditWebsite(agency.website || "");
+    setEditBtkZone(agency.btkZone || "");
     
     const contact = agency.contacts?.[0];
     setEditPhone(contact?.phone || "");
@@ -166,6 +169,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         district: editDistrict.trim() || undefined,
         authorizedPerson: editAuthorized.trim() || undefined,
         website: editWebsite.trim() || undefined,
+        btkZone: editBtkZone.trim() || undefined,
         sectorIds: editSectorIds,
       });
       toast.success(`"${editCompanyName.trim()}" başarıyla güncellendi`);
@@ -428,6 +432,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
         district: newDistrict.trim() || undefined,
         authorizedPerson: newAuthorized.trim() || undefined,
         website: newWebsite.trim() || undefined,
+        btkZone: newBtkZone.trim() || undefined,
         sectorIds: newSectorIds,
       });
       toast.success(`"${newCompanyName.trim()}" başarıyla eklendi`);
@@ -444,7 +449,7 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
   const resetCreateForm = () => {
     setNewCompanyName(""); setNewDocumentNo(""); setNewPhone(""); setNewEmail("");
     setNewAddress(""); setNewProvince(""); setNewDistrict("");
-    setNewAuthorized(""); setNewWebsite(""); setNewSectorIds([]);
+    setNewAuthorized(""); setNewWebsite(""); setNewBtkZone(""); setNewSectorIds([]);
   };
 
   return (
@@ -1277,6 +1282,15 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                   className="rounded-xl"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>BTK Bölgesi</Label>
+                <Input
+                  value={newBtkZone}
+                  onChange={(e) => setNewBtkZone(e.target.value)}
+                  placeholder="BTK bölge kodu"
+                  className="rounded-xl"
+                />
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
@@ -1416,6 +1430,15 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
                   value={editWebsite}
                   onChange={(e) => setEditWebsite(e.target.value)}
                   placeholder="https://www.firma.com"
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>BTK Bölgesi</Label>
+                <Input
+                  value={editBtkZone}
+                  onChange={(e) => setEditBtkZone(e.target.value)}
+                  placeholder="BTK bölge kodu"
                   className="rounded-xl"
                 />
               </div>

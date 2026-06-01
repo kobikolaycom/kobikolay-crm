@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
             const province = provinceCol ? String(row[provinceCol] || "").trim() : "";
             const district = districtCol ? String(row[districtCol] || "").trim() : "";
 
-            if (phone || email || address) {
+            if (phone || email || address || province || district) {
               contactsToCreate.push({
                 agencyId,
                 phone: phone || null,
