@@ -177,9 +177,16 @@ export default async function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0 ml-4">
-                    <Clock size={12} />
-                    {formatTimeAgo(convo.updatedAt)}
+                  <div className="flex items-center gap-1.5 shrink-0 ml-4">
+                    {convo.status === "OPEN" ? (
+                      <Badge variant="outline" className="text-[9px] font-bold bg-green-50 text-green-700 border-green-200 px-1.5 py-0">Aktif</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[9px] font-bold bg-slate-50 text-slate-500 border-slate-200 px-1.5 py-0">Kapandı</Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock size={12} />
+                      {formatTimeAgo(convo.updatedAt)}
+                    </span>
                   </div>
                 </Link>
               ))

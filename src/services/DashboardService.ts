@@ -18,6 +18,7 @@ export interface RecentCampaign {
 export interface RecentConversation {
   id: string;
   channelType: string;
+  status: string;
   contactName: string | null;
   agencyName: string | null;
   lastMessage: string | null;
@@ -97,6 +98,7 @@ export class DashboardService {
       return convos.map(c => ({
         id: c.id,
         channelType: c.channelType,
+        status: c.status,
         contactName: c.contactName,
         agencyName: c.agency?.companyName ?? null,
         lastMessage: c.messages[0]?.content ?? null,
