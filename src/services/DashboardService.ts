@@ -112,17 +112,27 @@ export class DashboardService {
 
   /**
    * Geçmiş (overdue) görevler - tarihi geçmiş ama hâlâ PENDING.
+   * userId verilirse sadece o kullanıcıya atanmış veya oluşturduğu görevleri getirir.
    */
-  static async getOverdueTasks() {
+  static async getOverdueTasks(userId?: string) {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      const where: any = {
+        status: "PENDING",
+        dueDate: { lt: today },
+      };
+
+      if (userId) {
+        where.OR = [
+          { assignedToId: userId },
+          { creatorId: userId },
+        ];
+      }
+
       const tasks = await prisma.activity.findMany({
-        where: {
-          status: "PENDING",
-          dueDate: { lt: today },
-        },
+        where,
         orderBy: { dueDate: "asc" },
         take: 30,
         include: {
@@ -141,22 +151,36 @@ export class DashboardService {
 
   /**
    * Bugünkü görevler (tarihi bugün veya tarihsiz).
+   * userId verilirse sadece o kullanıcıya atanmış veya oluşturduğu görevleri getirir.
    */
-  static async getTodayTasks() {
+  static async getTodayTasks(userId?: string) {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
+      const where: any = {
+        status: "PENDING",
+        OR: [
+          { dueDate: null },
+          { dueDate: { gte: today, lt: tomorrow } },
+        ],
+      };
+
+      if (userId) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: [
+            { assignedToId: userId },
+            { creatorId: userId },
+          ]},
+        ];
+        delete where.OR;
+      }
+
       const tasks = await prisma.activity.findMany({
-        where: {
-          status: "PENDING",
-          OR: [
-            { dueDate: null },
-            { dueDate: { gte: today, lt: tomorrow } },
-          ],
-        },
+        where,
         orderBy: { createdAt: "desc" },
         take: 20,
         include: {
@@ -175,18 +199,28 @@ export class DashboardService {
 
   /**
    * Yaklaşan görevler (tarihi yarın ve sonrası).
+   * userId verilirse sadece o kullanıcıya atanmış veya oluşturduğu görevleri getirir.
    */
-  static async getUpcomingTasks() {
+  static async getUpcomingTasks(userId?: string) {
     try {
       const tomorrow = new Date();
       tomorrow.setHours(0, 0, 0, 0);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
+      const where: any = {
+        status: "PENDING",
+        dueDate: { gte: tomorrow },
+      };
+
+      if (userId) {
+        where.OR = [
+          { assignedToId: userId },
+          { creatorId: userId },
+        ];
+      }
+
       const tasks = await prisma.activity.findMany({
-        where: {
-          status: "PENDING",
-          dueDate: { gte: tomorrow },
-        },
+        where,
         orderBy: { dueDate: "asc" },
         take: 20,
         include: {

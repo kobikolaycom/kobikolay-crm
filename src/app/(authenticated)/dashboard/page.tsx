@@ -54,12 +54,14 @@ export default async function DashboardPage() {
     logoUrl = logoSetting?.value || null;
   } catch {}
 
+  const userId = session?.user?.id;
+
   const [stats, recentConversations, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
     DashboardService.getStats(),
     DashboardService.getRecentConversations(),
-    DashboardService.getOverdueTasks(),
-    DashboardService.getTodayTasks(),
-    DashboardService.getUpcomingTasks(),
+    DashboardService.getOverdueTasks(userId),
+    DashboardService.getTodayTasks(userId),
+    DashboardService.getUpcomingTasks(userId),
   ]);
 
   // Serialize dates for client
