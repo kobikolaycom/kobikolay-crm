@@ -86,7 +86,113 @@ export class ActivityService {
       await AgencyService.updateLastInteraction(agencyId);
     }
 
+    // Send notification email to info@kobikolay.com for REACHED calls & task assignments
+    if (
+      (type === "CALL_LOG" && callStatus === "REACHED") ||
+      type === "TASK_ASSIGNMENT"
+    ) {
+      // Fire-and-forget: don't block the response
+      ActivityService.sendNotificationEmail(agencyId, type, content, finalCreatorId!, finalAssignedToId!, callStatus).catch((err) => {
+        console.error("[ActivityService] Bildirim maili gönderilemedi:", err?.message || err);
+      });
+    }
+
     return result;
+  }
+
+  /**
+   * Ulaşılan çağrı veya görev ataması olduğunda info@kobikolay.com'a bildirim maili gönderir.
+   */
+  private static async sendNotificationEmail(
+    agencyId: string,
+    type: ActivityType,
+    content: string,
+    creatorId: string,
+    assignedToId: string,
+    callStatus?: CallStatus | null
+  ) {
+    const { MailService } = await import("@/services/MailService");
+
+    // Fetch agency name
+    const agency = await prisma.agency.findUnique({
+      where: { id: agencyId },
+      select: { companyName: true, documentNo: true },
+    });
+    const agencyName = agency?.companyName || "Bilinmeyen Acente";
+    const docNo = agency?.documentNo || "-";
+
+    // Fetch user names
+    const [creator, assignee] = await Promise.all([
+      prisma.user.findUnique({ where: { id: creatorId }, select: { name: true } }),
+      prisma.user.findUnique({ where: { id: assignedToId }, select: { name: true } }),
+    ]);
+    const creatorName = creator?.name || "Bilinmeyen Kullanıcı";
+    const assigneeName = assignee?.name || "Bilinmeyen Kullanıcı";
+
+    const now = new Date().toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" });
+
+    let subject = "";
+    let htmlBody = "";
+
+    if (type === "CALL_LOG") {
+      subject = `📞 Acente Ulaşım Bildirimi: ${agencyName}`;
+      htmlBody = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 24px 32px;">
+            <h2 style="margin: 0; color: #ffffff; font-size: 18px;">📞 Acenteye Ulaşım Sağlandı</h2>
+          </div>
+          <div style="padding: 32px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 140px;">Acente:</td><td style="padding: 8px 0; font-weight: 600; color: #0f172a; font-size: 14px;">${agencyName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Belge No:</td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${docNo}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Temsilci:</td><td style="padding: 8px 0; font-weight: 600; color: #0f172a; font-size: 14px;">${creatorName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Tarih:</td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${now}</td></tr>
+            </table>
+            <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin-top: 12px;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Ulaşım Notu</p>
+              <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${content}</p>
+            </div>
+          </div>
+          <div style="background: #f1f5f9; padding: 16px 32px; text-align: center; font-size: 11px; color: #94a3b8;">
+            KobiKolay CRM • Otomatik Bildirim
+          </div>
+        </div>
+      `;
+    } else if (type === "TASK_ASSIGNMENT") {
+      subject = `📋 Görev Atama Bildirimi: ${agencyName}`;
+      htmlBody = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <div style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 24px 32px;">
+            <h2 style="margin: 0; color: #ffffff; font-size: 18px;">📋 Görev Ataması Yapıldı</h2>
+          </div>
+          <div style="padding: 32px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px; width: 140px;">Acente:</td><td style="padding: 8px 0; font-weight: 600; color: #0f172a; font-size: 14px;">${agencyName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Belge No:</td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${docNo}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Atayan:</td><td style="padding: 8px 0; font-weight: 600; color: #0f172a; font-size: 14px;">${creatorName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Atanan Kişi:</td><td style="padding: 8px 0; font-weight: 600; color: #7c3aed; font-size: 14px;">${assigneeName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #64748b; font-size: 13px;">Tarih:</td><td style="padding: 8px 0; color: #0f172a; font-size: 14px;">${now}</td></tr>
+            </table>
+            <div style="background: #f5f3ff; border-left: 4px solid #8b5cf6; padding: 16px; border-radius: 8px; margin-top: 12px;">
+              <p style="margin: 0 0 4px 0; font-size: 11px; color: #7c3aed; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Görev Notu</p>
+              <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${content}</p>
+            </div>
+          </div>
+          <div style="background: #f1f5f9; padding: 16px 32px; text-align: center; font-size: 11px; color: #94a3b8;">
+            KobiKolay CRM • Otomatik Bildirim
+          </div>
+        </div>
+      `;
+    }
+
+    if (subject && htmlBody) {
+      await MailService.sendEmail({
+        to: "info@kobikolay.com",
+        subject,
+        html: htmlBody,
+      });
+      console.log(`[ActivityService] Bildirim maili gönderildi: ${subject}`);
+    }
   }
 
   static async getUpcomingTasks(agencyId: string) {
