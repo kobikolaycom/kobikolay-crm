@@ -558,7 +558,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 md:gap-2 shrink-0 mr-16 md:mr-20">
                   {selectedConvo.status !== "RESOLVED" && (
                     <Button size="sm" className="rounded-xl gap-1 md:gap-1.5 text-[10px] md:text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 px-2 md:px-3 h-8" onClick={handleResolve}>
                       <CheckCircle2 size={14} />
@@ -566,16 +566,6 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                       <span className="sm:hidden">Bitir</span>
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant={isManual ? "default" : "secondary"}
-                    className="rounded-xl gap-1 md:gap-1.5 text-[10px] md:text-xs font-semibold px-2 md:px-3 h-8"
-                    onClick={() => setIsManual(!isManual)}
-                  >
-                    <StickyNote size={14} />
-                    <span className="hidden sm:inline">{isManual ? "Not Modu Aktif" : "Not Moduna Geç"}</span>
-                    <span className="sm:hidden">{isManual ? "Not" : "Not"}</span>
-                  </Button>
                 </div>
               </div>
 
