@@ -29,9 +29,14 @@ export class AgencyService {
     let where: Prisma.AgencyWhereInput = {};
 
     if (search) {
+      // Telefon araması: sadece rakamları al (son 7 hane ile eşleştir)
+      const digitsOnly = search.replace(/\D/g, "");
+      const phoneSearch = digitsOnly.length >= 4 ? digitsOnly.slice(-7) : "";
+      
       where.OR = [
         { companyName: { contains: search, mode: "insensitive" } },
         { documentNo: { contains: search } },
+        ...(phoneSearch ? [{ contacts: { some: { phone: { contains: phoneSearch } } } }] : []),
       ];
     }
 
@@ -312,9 +317,12 @@ export class AgencyService {
       };
 
       if (search) {
+        const digitsOnly = search.replace(/\D/g, "");
+        const phoneSearch = digitsOnly.length >= 4 ? digitsOnly.slice(-7) : "";
         where.OR = [
           { companyName: { contains: search, mode: "insensitive" } },
           { documentNo: { contains: search } },
+          ...(phoneSearch ? [{ contacts: { some: { phone: { contains: phoneSearch } } } }] : []),
         ];
       }
 
@@ -408,7 +416,10 @@ export class AgencyService {
     try {
       await prisma.agency.update({
         where: { id: agencyId },
-        data: { lastInteractionAt: new Date() },
+        data: {
+          lastInteractionAt: new Date(),
+          status: "ACTIVE",
+        },
       });
     } catch (error) {
       console.warn(`[AgencyService] Failed to update lastInteractionAt for agency ${agencyId}:`, error);
@@ -426,6 +437,7 @@ export class AgencyService {
         data: {
           lastCallAt: now,
           lastInteractionAt: now,
+          status: "ACTIVE",
         },
       });
     } catch (error) {

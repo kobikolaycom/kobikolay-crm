@@ -699,7 +699,12 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                       <Link href={`/agents/${agency.id}`} className="font-bold text-sm text-slate-900 hover:text-primary transition-colors block truncate">
                         {agency.companyName}
                       </Link>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">{agency.documentNo}</p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        {agency.documentNo}
+                        {agency.contacts?.[0]?.province && (
+                          <span className="ml-1.5 font-sans text-slate-500">📍 {agency.contacts[0].province}</span>
+                        )}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
@@ -792,6 +797,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Temsilci</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son İşlem</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Arama</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Şehir</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
               </tr>
@@ -946,6 +952,14 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                           <Phone size={11} />
                           {new Date(agency.lastCallAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
                         </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    {/* Şehir */}
+                    <td className="px-4 py-3">
+                      {agency.contacts?.[0]?.province ? (
+                        <span className="text-xs text-slate-600">{agency.contacts[0].province}</span>
                       ) : (
                         <span className="text-[10px] text-slate-300">—</span>
                       )}
