@@ -281,7 +281,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       params.set("sortBy", column);
       params.set("sortOrder", "asc");
     }
-    params.delete("page");
+
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -600,6 +600,79 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
         </Select>
       </div>
 
+      {/* Mobile Pagination & Sort Bar */}
+      <div className="md:hidden mb-3">
+        {totalPages > 1 && (() => {
+          const pages: (number | "...")[] = [];
+          const showAround = 1;
+          for (let i = 1; i <= totalPages; i++) {
+            if (i <= 2 || i > totalPages - 2 || (i >= currentPage - showAround && i <= currentPage + showAround)) {
+              pages.push(i);
+            } else if (pages[pages.length - 1] !== "...") {
+              pages.push("...");
+            }
+          }
+          const buildPageUrl = (page: number) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("page", String(page));
+            return `${pathname}?${params.toString()}`;
+          };
+          return (
+            <div className="bg-white rounded-2xl border shadow-sm p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground">
+                  <strong>{total.toLocaleString()}</strong> acente · Sayfa {currentPage}/{totalPages}
+                </span>
+                <button
+                  onClick={() => toggleSort("documentNo")}
+                  className="flex items-center gap-1 text-xs font-medium text-slate-600 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  {initialSortBy === "documentNo" ? (
+                    initialSortOrder === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                  ) : <ArrowUpDown size={12} />}
+                  Belge No
+                </button>
+              </div>
+              <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <Link
+                  href={currentPage > 1 ? buildPageUrl(currentPage - 1) : "#"}
+                  className={`inline-flex items-center justify-center rounded-lg h-9 w-9 border text-sm transition-colors shrink-0 ${
+                    currentPage <= 1 ? "pointer-events-none opacity-40 border-slate-200" : "hover:bg-primary hover:text-white hover:border-primary border-slate-200 active:scale-95"
+                  }`}
+                >
+                  <ChevronLeft size={16} />
+                </Link>
+                {pages.map((p, i) =>
+                  p === "..." ? (
+                    <span key={`dots-${i}`} className="px-1 text-muted-foreground select-none text-xs">…</span>
+                  ) : (
+                    <Link
+                      key={p}
+                      href={buildPageUrl(p)}
+                      className={`inline-flex items-center justify-center rounded-lg h-9 min-w-[36px] px-2 text-xs font-medium border transition-all active:scale-95 shrink-0 ${
+                        p === currentPage
+                          ? "bg-primary text-white border-primary pointer-events-none shadow-sm"
+                          : "border-slate-200 text-slate-700 hover:bg-primary hover:text-white hover:border-primary"
+                      }`}
+                    >
+                      {p}
+                    </Link>
+                  )
+                )}
+                <Link
+                  href={currentPage < totalPages ? buildPageUrl(currentPage + 1) : "#"}
+                  className={`inline-flex items-center justify-center rounded-lg h-9 w-9 border text-sm transition-colors shrink-0 ${
+                    currentPage >= totalPages ? "pointer-events-none opacity-40 border-slate-200" : "hover:bg-primary hover:text-white hover:border-primary border-slate-200 active:scale-95"
+                  }`}
+                >
+                  <ChevronRight size={16} />
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3 mb-4">
         {agencies.length === 0 ? (
@@ -665,10 +738,10 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                   </div>
                   <div className="flex items-center gap-1">
                     <Link href={`/agents/${agency.id}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-primary"><Eye size={15} /></Button>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-lg text-slate-500 hover:text-primary"><Eye size={16} /></Button>
                     </Link>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600" onClick={() => openEditDialog(agency)}><Pencil size={15} /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-600" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }}><Trash2 size={15} /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-lg text-slate-500 hover:text-amber-600" onClick={() => openEditDialog(agency)}><Pencil size={16} /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-lg text-slate-500 hover:text-red-600" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }}><Trash2 size={16} /></Button>
                   </div>
                 </div>
               </div>

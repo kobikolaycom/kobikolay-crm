@@ -123,7 +123,9 @@ export function CustomDateRangePicker({
       </Button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-slate-100 w-[580px] overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-left">
+        <>
+        <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => { setIsOpen(false); setActiveCalendar(null); }} />
+        <div className="fixed inset-x-4 top-[20%] md:absolute md:inset-x-auto md:top-full md:left-0 md:mt-2 z-50 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-slate-100 md:w-[580px] overflow-hidden animate-in fade-in zoom-in-95 duration-200 md:origin-top-left max-h-[70vh] md:max-h-none overflow-y-auto">
           
           {/* Header */}
           <div className="px-6 pt-5 pb-3">
@@ -139,15 +141,15 @@ export function CustomDateRangePicker({
           </div>
 
           {/* Body */}
-          <div className="flex bg-white">
+          <div className="flex flex-col md:flex-row bg-white">
             {/* Left sidebar with radio buttons */}
-            <div className="w-[200px] border-r border-slate-100 py-4 px-2">
-              <div className="space-y-1">
+            <div className="md:w-[200px] md:border-r border-b md:border-b-0 border-slate-100 py-3 md:py-4 px-2">
+              <div className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-1 md:pb-0">
                 {filterOptions.map((opt) => (
                   <label
                     key={opt.id}
                     onClick={() => setSelectedFilter(opt.id)}
-                    className="flex items-center gap-3 px-4 py-2 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors group"
+                    className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 cursor-pointer rounded-lg hover:bg-slate-50 transition-colors group whitespace-nowrap shrink-0 md:shrink"
                   >
                     <div className={`w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center flex-shrink-0 transition-colors ${selectedFilter === opt.id ? 'border-[#1a73e8]' : 'border-slate-400 group-hover:border-slate-500'}`}>
                       {selectedFilter === opt.id && (
@@ -165,7 +167,7 @@ export function CustomDateRangePicker({
             {/* Right content area */}
             <div className="flex-1 p-6 flex flex-col justify-between">
               
-              <div className="flex gap-4 items-center mb-8 relative">
+              <div className="flex gap-2 md:gap-4 items-center mb-4 md:mb-8 relative">
                 {/* Start Date */}
                 <div className="relative flex-1">
                   <label className="absolute -top-2 left-2 bg-white px-1 text-[11px] text-slate-500 font-medium">
@@ -266,6 +268,7 @@ export function CustomDateRangePicker({
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );

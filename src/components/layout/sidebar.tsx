@@ -45,14 +45,28 @@ export function Sidebar({ logoUrl }: { logoUrl?: string | null }) {
   return (
     <>
       {/* Mobile Hamburger */}
-      <div className="fixed top-4 left-4 z-50 md:hidden">
-        <Button variant="outline" size="icon" onClick={toggleMobile}>
-          {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </Button>
+      <div className="fixed top-0 left-0 right-0 z-40 md:hidden bg-white/90 backdrop-blur-md border-b shadow-sm px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={toggleMobile} className="h-9 w-9 rounded-xl">
+            {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </Button>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="h-6 max-w-[120px] object-contain" />
+          ) : (
+            <span className="text-base font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">KobiKolay</span>
+          )}
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Çıkış</span>
+        </button>
       </div>
 
       {/* Top-right Logout */}
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 hidden md:flex">
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 backdrop-blur border shadow-sm text-sm font-medium text-slate-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all"
