@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { CampaignStatus, MailStatus, Agency } from "@prisma/client";
 import { MailService } from "./MailService";
 import { AgencyService } from "@/services/AgencyService";
-import { escapeHtml } from "@/lib/utils";
+import { escapeHtml, getBaseUrl } from "@/lib/utils";
 
 export interface CampaignFilter {
   sectorId?: string;
@@ -70,7 +70,7 @@ export class CampaignService {
     parsed = parsed.replace(/{{sectorNames}}/g, escapeHtml(agency.sectors?.map((s: any) => s.name).join(", ") || ""));
     parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
-    parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}`);
+    parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${getBaseUrl()}/unsubscribe?token=${agency.unsubscribeToken}`);
     return parsed;
   }
 
@@ -91,7 +91,7 @@ export class CampaignService {
         </p>
         <p style="font-size: 11px; color: #999; margin: 0;">
           Bu e-posta KobiKolay CRM üzerinden gönderilmiştir.<br>
-          E-posta listesinden çıkmak için <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}">buraya tıklayabilirsiniz</a>.
+          E-posta listesinden çıkmak için <a href="${getBaseUrl()}/unsubscribe?token=${agency.unsubscribeToken}">buraya tıklayabilirsiniz</a>.
         </p>
       </div>
     `;

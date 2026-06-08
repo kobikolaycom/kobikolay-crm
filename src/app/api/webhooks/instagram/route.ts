@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyWebhookSignature } from "@/lib/webhook-verify";
 
 /**
  * GET: Meta Webhook Doğrulama (Verification Challenge)
@@ -55,9 +56,16 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    const signature = req.headers.get("x-hub-signature-256");
 
-    console.log("[Instagram Webhook] Incoming event:", JSON.stringify(body).substring(0, 1000));
+    if (!verifyWebhookSignature(rawBody, signature)) {
+      console.warn("[Instagram Webhook] Invalid signature - rejecting request");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+    }
+
+    const body = JSON.parse(rawBody);
+    console.log("[Instagram Webhook] Incoming event:", body.object, "entries:", body.entry?.length || 0);
 
     // Meta webhook format:
     // { object: "instagram", entry: [{ id, time, messaging: [{ sender, recipient, timestamp, message }] }] }
@@ -71,7 +79,7 @@ export async function POST(req: NextRequest) {
         for (const event of messagingEvents) {
           // Echo mesajlarını (kendi gönderdiğimiz mesajları) atla
           if (event.message && event.message.is_echo) {
-            console.log("[Instagram Webhook] Echo mesajı algılandı, atlanıyor:", event.message.text || "(medya)");
+            console.log("[Instagram Webhook] Echo mesajı algılandı, atlanıyor");
             continue;
           }
 
@@ -101,7 +109,7 @@ export async function POST(req: NextRequest) {
             );
 
             const displayName = InstagramService.formatDisplayName(profile);
-            console.log(`[Instagram Webhook] Mesaj kaydedildi: ${displayName || senderId}: "${messageText}"`);
+            console.log(`[Instagram Webhook] Mesaj kaydedildi: ${displayName || senderId}`);
           }
 
           // Resim / medya mesajları

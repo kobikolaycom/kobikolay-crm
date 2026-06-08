@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyWebhookSignature } from "@/lib/webhook-verify";
 import prisma from "@/lib/prisma";
 import { ConversationService } from "@/services/ConversationService";
 
@@ -35,8 +36,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    console.log("[Messenger Webhook] Incoming event:", JSON.stringify(body).substring(0, 1000));
+    const rawBody = await req.text();
+    const signature = req.headers.get("x-hub-signature-256");
+
+    if (!verifyWebhookSignature(rawBody, signature)) {
+      console.warn("[Messenger Webhook] Invalid signature - rejecting request");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 403 });
+    }
+
+    const body = JSON.parse(rawBody);
+    console.log("[Messenger Webhook] Incoming event:", body.object, "entries:", body.entry?.length || 0);
 
     if (body.object === "page") {
       const entries = body.entry || [];
@@ -64,8 +73,8 @@ export async function POST(req: NextRequest) {
               const { InstagramService } = await import("@/services/InstagramService");
               const creds = await InstagramService.getCredentials();
               if (creds.pageToken) {
-                const fbUrl = `https://graph.facebook.com/v21.0/${senderId}?fields=name&access_token=${creds.pageToken}`;
-                const res = await fetch(fbUrl);
+                const fbUrl = `https://graph.facebook.com/v21.0/${senderId}?fields=name`;
+                const res = await fetch(fbUrl, { headers: { Authorization: `Bearer ${creds.pageToken}` } });
                 const data = await res.json();
                 if (res.ok && data.name) {
                   contactName = data.name;
@@ -108,7 +117,7 @@ export async function POST(req: NextRequest) {
               isInternalNote: false,
             });
 
-            console.log(`[Messenger Webhook] Mesaj kaydedildi: ${contactName} (${senderId}): "${messageText}"`);
+            console.log(`[Messenger Webhook] Mesaj kaydedildi: ${contactName} (${senderId})`);
           }
           
           // Medya vs. desteklenebilir

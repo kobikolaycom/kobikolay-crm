@@ -27,7 +27,9 @@ export class AgencyService {
     const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, sortBy, sortOrder } = params || {};
     const take = Math.min(rawTake, 200); // Pagination upper bound
     
-    let where: Prisma.AgencyWhereInput = {};
+    let where: Prisma.AgencyWhereInput = {
+      status: { not: "DELETED" },  // Exclude soft-deleted agencies
+    };
 
     if (search) {
       // Telefon araması: sadece rakamları al (son 7 hane ile eşleştir)
@@ -274,9 +276,24 @@ export class AgencyService {
   }
 
   /**
-   * Deletes an agency. Cascades to contacts and tax info.
+   * Soft-deletes an agency by marking it as DELETED.
+   * Data is preserved for audit/recovery purposes.
    */
   static async delete(id: string): Promise<void> {
+    await prisma.agency.update({
+      where: { id },
+      data: {
+        status: "DELETED",
+        isUnsubscribed: true,
+      },
+    });
+  }
+
+  /**
+   * Permanently deletes an agency. Use with extreme caution.
+   * Only for admin cleanup operations.
+   */
+  static async hardDelete(id: string): Promise<void> {
     await prisma.agency.delete({
       where: { id },
     });
@@ -334,6 +351,7 @@ export class AgencyService {
       const { search, province, district, status, sectorId, mailHistory, contactHistory } = params;
       const where: any = {
         isUnsubscribed: false,
+        status: { not: "DELETED" },  // Exclude soft-deleted agencies
         contacts: { some: { email: { not: null } } }, // Email'i olanlar
       };
 

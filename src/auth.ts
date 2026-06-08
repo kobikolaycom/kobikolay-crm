@@ -21,7 +21,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
-          console.log("[AUTH] Login attempt");
+          console.log("[AUTH] Login attempt", process.env.NODE_ENV === "development" ? email : "");
           
           try {
             const user = await prisma.user.findUnique({
@@ -30,11 +30,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             });
 
             if (!user) {
-              console.log("[AUTH] User not found");
+              console.log("[AUTH] Login failed");
               return null;
             }
 
-            console.log("[AUTH] User found, comparing passwords...");
             const passwordsMatch = await bcrypt.compare(password, user.password);
 
             if (passwordsMatch) {
@@ -52,7 +51,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                 permissions: user.role.permissions,
               };
             } else {
-              console.log("[AUTH] Password mismatch");
+              console.log("[AUTH] Login failed");
             }
           } catch (error) {
             console.error("[AUTH] Database error during login:", error);

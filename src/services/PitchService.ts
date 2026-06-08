@@ -4,6 +4,7 @@ import { MailService } from "./MailService";
 import type { MailAttachment } from "./MailService";
 import { EmailTemplateService } from "./EmailTemplateService";
 import { AgencyService } from "@/services/AgencyService";
+import { getBaseUrl } from "@/lib/utils";
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -131,9 +132,7 @@ export class PitchService {
         .join("");
 
       // ─── 5.5. Base URL and Unsubscribe URL ───
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-        || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-        || "https://kobikolay-crm.vercel.app";
+      const baseUrl = getBaseUrl();
 
       const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${agency.unsubscribeToken}`;
 

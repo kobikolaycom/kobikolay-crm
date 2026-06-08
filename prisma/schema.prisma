@@ -255,6 +255,7 @@ enum AgencyStatus {
   LEAD
   BLOCKED
   REJECTED
+  DELETED
 }
 
 enum OfferStatus {

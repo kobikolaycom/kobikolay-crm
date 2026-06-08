@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { escapeHtml } from "@/lib/utils";
+import { escapeHtml, getBaseUrl } from "@/lib/utils";
 
 // E-posta şablonları servisi
 // NOT: emailTemplate modeli migration uygulanmadan önce undefined olabilir.
@@ -92,22 +92,28 @@ export class EmailTemplateService {
       const model = getModel();
       if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil. Veritabanı migration'ını çalıştırın.");
 
-      // Varsayılan olarak işaretleniyorsa, aynı kategorideki diğerlerini güncelle
-      if (data.isDefault) {
-        await model.updateMany({
-          where: { category: data.category, isDefault: true },
-          data: { isDefault: false },
-        });
-      }
+      // Use transaction to prevent race condition with default flag
+      const template = await prisma.$transaction(async (tx: any) => {
+        const txModel = tx.emailTemplate;
+        if (!txModel) throw new Error("EmailTemplate modeli henüz mevcut değil.");
 
-      const template = await model.create({
-        data: {
-          name: data.name,
-          category: data.category,
-          subject: data.subject,
-          content: data.content,
-          isDefault: data.isDefault ?? false,
-        },
+        // Varsayılan olarak işaretleniyorsa, aynı kategorideki diğerlerini güncelle
+        if (data.isDefault) {
+          await txModel.updateMany({
+            where: { category: data.category, isDefault: true },
+            data: { isDefault: false },
+          });
+        }
+
+        return txModel.create({
+          data: {
+            name: data.name,
+            category: data.category,
+            subject: data.subject,
+            content: data.content,
+            isDefault: data.isDefault ?? false,
+          },
+        });
       });
 
       return template;
@@ -198,7 +204,7 @@ export class EmailTemplateService {
       unsubscribeToken?: string | null;
     }
   ): string {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = getBaseUrl();
 
     const unsubscribeUrl = agency.unsubscribeToken
       ? `${baseUrl}/unsubscribe?token=${agency.unsubscribeToken}`

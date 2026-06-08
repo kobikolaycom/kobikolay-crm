@@ -57,8 +57,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[upload-pdf] Error:", error);
     
-    let message = error.message || "Dosya yüklenemedi";
-    if (message.toLowerCase().includes("no token found") || message.toLowerCase().includes("token")) {
+    let message = "Dosya yüklenemedi";
+    const errMsg = (error.message || "").toLowerCase();
+    if (errMsg.includes("no token found") || errMsg.includes("token")) {
       message = "Vercel Blob token geçersiz veya bulunamadı! Lütfen Vercel Dashboard -> Settings -> Environment Variables sayfasından BLOB_READ_WRITE_TOKEN değişkeninin doğru şekilde tanımlandığından emin olun.";
     }
     
