@@ -1,14 +1,14 @@
 import prisma from "@/lib/prisma";
 
 export const PERMISSIONS_LIST = [
-  { key: "agents:view", label: "Acenteleri Görüntüleyebilir", group: "Acente" },
-  { key: "agents:edit", label: "Acenteleri Düzenleyebilir", group: "Acente" },
-  { key: "agents:export", label: "Acenteleri Excel'e Aktarabilir", group: "Acente" },
-  { key: "offers:create", label: "Teklif Oluşturabilir", group: "Teklif" },
-  { key: "offers:manage", label: "Tüm Teklifleri Yönetebilir", group: "Teklif" },
-  { key: "campaigns:manage", label: "Kampanyaları Yönetebilir", group: "Pazarlama" },
-  { key: "users:manage", label: "Personel ve Rol Yönetimi", group: "Sistem" },
-  { key: "*", label: "Tam Yetki (Super Admin)", group: "Sistem" },
+  { key: "agents:view", label: "Acenteleri Görüntüleyebilir", group: "Acente", description: "Acente listesini ve detaylarını görüntüleme yetkisi" },
+  { key: "agents:edit", label: "Acenteleri Düzenleyebilir", group: "Acente", description: "Acente bilgilerini ekleme, düzenleme ve silme yetkisi" },
+  { key: "agents:export", label: "Acenteleri Excel'e Aktarabilir", group: "Acente", description: "Acente verilerini Excel dosyasına dışa aktarma yetkisi" },
+  { key: "offers:create", label: "Teklif Oluşturabilir", group: "Teklif", description: "Yeni teklif oluşturma yetkisi" },
+  { key: "offers:manage", label: "Tüm Teklifleri Yönetebilir", group: "Teklif", description: "Tüm teklifleri görüntüleme, düzenleme ve silme yetkisi" },
+  { key: "campaigns:manage", label: "Kampanyaları Yönetebilir", group: "Pazarlama", description: "Kampanya oluşturma, düzenleme ve gönderme yetkisi" },
+  { key: "users:manage", label: "Personel ve Rol Yönetimi", group: "Sistem", description: "Kullanıcı hesaplarını ve rolleri yönetme yetkisi" },
+  { key: "*", label: "Tam Yetki (Super Admin)", group: "Sistem", description: "Sistemdeki tüm modül ve işlemlere tam erişim" },
 ];
 
 export class RoleService {

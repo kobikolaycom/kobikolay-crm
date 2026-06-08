@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   MoreHorizontal, Send, X, RefreshCw, AlertCircle,
-  Search, ChevronLeft, ChevronRight, Users, Mail,
+  Search, ChevronLeft, ChevronRight, Users, Mail, MailX,
   Upload, FileSpreadsheet, CheckCircle2, FileText,
   ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone,
   Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown

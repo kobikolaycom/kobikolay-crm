@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     } else if (errCode === "ETIMEDOUT" || errStr.includes("timedout")) {
       userFriendlyError = "Bağlantı Zaman Aşımı (ETIMEDOUT): SMTP sunucusuna bağlanılamadı. Port numarasını, şifreleme türünü kontrol edin veya sunucu güvenlik duvarının bu porta izin verdiğinden emin olun. (Örn: Port 587 ve TLS/NONE veya Port 465 ve SSL).";
     } else if (errCode === "ECONNREFUSED" || errStr.includes("connrefused")) {
-      userFriendlyError = `Bağlantı Reddedildi (ECONNREFUSED): ${cleanHost}:${cleanPort} bağlantısı reddedildi. Port numarasını ve şifreleme seçeneğini doğru eşleştirdiğinizden emin olun. (SSL için Port: 465, TLS/STARTTLS için Port: 587).`;
+      userFriendlyError = `Bağlantı Reddedildi (ECONNREFUSED): ${body?.host || ""}:${body?.port || ""} bağlantısı reddedildi. Port numarasını ve şifreleme seçeneğini doğru eşleştirdiğinizden emin olun. (SSL için Port: 465, TLS/STARTTLS için Port: 587).`;
     } else if (errStr.includes("unexpected socket close")) {
       userFriendlyError = "Soket Beklenmedik Şekilde Kapandı (Protocol Mismatch): Port 465 kullanıyorsanız 'Bağlantı' türünü kesinlikle 'SSL' seçmelisiniz. Eğer 'TLS' seçtiyseniz Port'u 587 yapmalısınız. Lütfen Port ve Bağlantı türünün eşleştiğinden emin olun.";
     }

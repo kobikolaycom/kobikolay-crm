@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,7 @@ function formatTimeAgo(date: Date): string {
 }
 
 function channelIcon(channelType: string) {
-  const map: Record<string, JSX.Element> = {
+  const map: Record<string, React.ReactNode> = {
     WHATSAPP: <MessageCircle className="text-emerald-500 w-4 h-4" />,
     INSTAGRAM: <Send className="text-pink-500 w-4 h-4" />,
     MESSENGER: <MessageSquare className="text-blue-500 w-4 h-4" />,

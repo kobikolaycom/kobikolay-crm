@@ -28,7 +28,7 @@ import {
   CalendarPlus, PhoneCall, UserPlus, RefreshCw, ExternalLink,
   Briefcase, MoreHorizontal, MessageCircle, MessageSquare,
   RotateCcw, Info, Save, X, Hash, ChevronRight, Search,
-  User, Tag, Calendar, Inbox, Archive, Eye, Star
+  User, Tag, Calendar, Inbox, Archive, Eye, Star, MailX
 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";

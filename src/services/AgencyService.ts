@@ -191,7 +191,7 @@ export class AgencyService {
         prisma.agency.count({ where }),
       ]);
 
-      return { data: data as AgencyWithRelations[], total };
+      return { data: data as any, total };
     } catch (error) {
       console.warn("Database connection failed, returning empty list.");
       return { data: [], total: 0 };
@@ -229,7 +229,7 @@ export class AgencyService {
   /**
    * Creates a new agency. Validates data using Zod schema.
    */
-  static async create(data: unknown): Promise<AgencyWithRelations> {
+  static async create(data: unknown): Promise<any> {
     const validData = AgencyCreateSchema.parse(data);
     
     return await prisma.agency.create({
@@ -241,7 +241,7 @@ export class AgencyService {
   /**
    * Updates an existing agency.
    */
-  static async update(id: string, data: unknown): Promise<AgencyWithRelations> {
+  static async update(id: string, data: unknown): Promise<any> {
     const validData = AgencyUpdateSchema.parse({ ...data as any, id });
     const { id: _, ...updateData } = validData;
 
