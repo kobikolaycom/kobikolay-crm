@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { AutoLogout } from "@/components/layout/AutoLogout";
 import prisma from "@/lib/prisma";
 
 export default async function AuthenticatedLayout({
@@ -23,6 +24,7 @@ export default async function AuthenticatedLayout({
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar logoUrl={logoUrl} />
+      <AutoLogout />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
