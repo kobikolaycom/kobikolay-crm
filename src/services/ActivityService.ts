@@ -79,6 +79,13 @@ export class ActivityService {
       await AgencyService.assignRepresentativeIfEmpty(agencyId, finalCreatorId);
     }
 
+    // Update last interaction timestamps
+    if (type === "CALL_LOG") {
+      await AgencyService.updateLastCall(agencyId);
+    } else {
+      await AgencyService.updateLastInteraction(agencyId);
+    }
+
     return result;
   }
 

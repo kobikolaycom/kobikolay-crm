@@ -53,6 +53,8 @@ model Agency {
   unsubscribeToken String?        @unique @default(uuid()) @map("unsubscribe_token")
   createdAt        DateTime       @default(now()) @map("created_at")
   updatedAt        DateTime       @updatedAt @map("updated_at")
+  lastInteractionAt DateTime?     @map("last_interaction_at")
+  lastCallAt       DateTime?      @map("last_call_at")
   representativeId String?        @map("representative_id")
   representative   User?          @relation("RepresentativeAgencies", fields: [representativeId], references: [id])
   activities       Activity[]

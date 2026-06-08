@@ -29,7 +29,7 @@ import {
   Search, ChevronLeft, ChevronRight, Users, Mail, MailX,
   Upload, FileSpreadsheet, CheckCircle2, FileText,
   ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone,
-  Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown
+  Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown, Clock
 } from "lucide-react";
 import {
   Dialog,
@@ -717,6 +717,8 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Etkileşim</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Temsilci</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son İşlem</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Arama</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
               </tr>
@@ -724,7 +726,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
             <tbody className="divide-y">
               {agencies.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="text-center py-20">
+                  <td colSpan={13} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
                     <p className="text-muted-foreground">Acente bulunamadı</p>
                   </td>
@@ -848,6 +850,28 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                       {agency.representative?.name ? (
                         <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
                           👤 {agency.representative.name}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    {/* Son İşlem */}
+                    <td className="px-4 py-3">
+                      {agency.lastInteractionAt ? (
+                        <span className="text-[10px] text-slate-600 flex items-center gap-1">
+                          <Clock size={11} />
+                          {new Date(agency.lastInteractionAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300">—</span>
+                      )}
+                    </td>
+                    {/* Son Arama */}
+                    <td className="px-4 py-3">
+                      {agency.lastCallAt ? (
+                        <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                          <Phone size={11} />
+                          {new Date(agency.lastCallAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-300">—</span>

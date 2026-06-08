@@ -396,4 +396,35 @@ export class AgencyService {
       console.warn(`[AgencyService] Failed to auto-assign representative for agency ${agencyId}:`, error);
     }
   }
+
+  /**
+   * Son etkileşim tarihini güncelle (her türlü işlem: not, çağrı, mail, görev).
+   */
+  static async updateLastInteraction(agencyId: string): Promise<void> {
+    try {
+      await prisma.agency.update({
+        where: { id: agencyId },
+        data: { lastInteractionAt: new Date() },
+      });
+    } catch (error) {
+      console.warn(`[AgencyService] Failed to update lastInteractionAt for agency ${agencyId}:`, error);
+    }
+  }
+
+  /**
+   * Son arama tarihini güncelle (sadece CALL_LOG aktivitelerinde).
+   */
+  static async updateLastCall(agencyId: string): Promise<void> {
+    try {
+      await prisma.agency.update({
+        where: { id: agencyId },
+        data: {
+          lastCallAt: new Date(),
+          lastInteractionAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.warn(`[AgencyService] Failed to update lastCallAt for agency ${agencyId}:`, error);
+    }
+  }
 }

@@ -273,6 +273,9 @@ export class PitchService {
         await AgencyService.assignRepresentativeIfEmpty(agencyId, sentById);
       }
 
+      // Update last interaction timestamp
+      await AgencyService.updateLastInteraction(agencyId);
+
       return { success: true };
     } catch (error: any) {
       console.error(`[PitchService] sendPitch failed for agency ${agencyId}:`, error);

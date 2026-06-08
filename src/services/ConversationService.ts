@@ -105,6 +105,11 @@ export class ConversationService {
       await AgencyService.assignRepresentativeIfEmpty(data.agencyId, data.createdByUserId);
     }
 
+    // Update last interaction timestamp
+    if (data.agencyId) {
+      await AgencyService.updateLastInteraction(data.agencyId);
+    }
+
     return conversation;
   }
 
