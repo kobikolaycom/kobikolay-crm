@@ -25,6 +25,19 @@ export interface RecentConversation {
   updatedAt: Date;
 }
 
+export interface RecentNote {
+  id: string;
+  agencyId: string | null;
+  agencyName: string | null;
+  agencyProvince: string | null;
+  agencySector: string | null;
+  agencyStatus: string | null;
+  representativeName: string | null;
+  createdByName: string | null;
+  lastMessage: string | null;
+  updatedAt: Date;
+}
+
 export class DashboardService {
   // Turkey timezone helper (UTC+3)
   private static getTurkeyToday(): Date {
@@ -125,16 +138,32 @@ export class DashboardService {
   /**
    * Son acente notları (MANUAL_NOTE).
    */
-  static async getRecentNotes(limit = 6): Promise<RecentConversation[]> {
+  static async getRecentNotes(limit = 8): Promise<RecentNote[]> {
     try {
       const notes = await prisma.conversation.findMany({
         where: {
           channelType: "MANUAL_NOTE",
+          agencyId: { not: null },
         },
         orderBy: { updatedAt: "desc" },
         take: limit,
         include: {
-          agency: { select: { companyName: true } },
+          agency: {
+            select: {
+              id: true,
+              companyName: true,
+              status: true,
+              representative: { select: { name: true } },
+              contacts: {
+                take: 1,
+                select: { province: true },
+              },
+              sectors: {
+                take: 1,
+                select: { name: true },
+              },
+            },
+          },
           createdByUser: { select: { name: true } },
           messages: {
             orderBy: { createdAt: "desc" },
@@ -146,15 +175,46 @@ export class DashboardService {
 
       return notes.map(n => ({
         id: n.id,
-        channelType: n.channelType,
-        status: n.status,
-        contactName: n.createdByUser?.name ?? null,
+        agencyId: n.agencyId,
         agencyName: n.agency?.companyName ?? null,
+        agencyProvince: n.agency?.contacts?.[0]?.province ?? null,
+        agencySector: n.agency?.sectors?.[0]?.name ?? null,
+        agencyStatus: n.agency?.status ?? null,
+        representativeName: n.agency?.representative?.name ?? null,
+        createdByName: n.createdByUser?.name ?? null,
         lastMessage: n.messages[0]?.content ?? null,
         updatedAt: n.updatedAt,
       }));
     } catch (error) {
       console.warn("Database connection failed in DashboardService.getRecentNotes");
+      return [];
+    }
+  }
+
+  /**
+   * Son aktiviteler (tüm tipler: not, çağrı, görev, hatırlatıcı).
+   */
+  static async getRecentActivities(limit = 50): Promise<any[]> {
+    try {
+      const activities = await prisma.activity.findMany({
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        include: {
+          agency: {
+            select: {
+              id: true,
+              companyName: true,
+              status: true,
+              contacts: { take: 1, select: { province: true } },
+            },
+          },
+          creator: { select: { id: true, name: true } },
+          assignedTo: { select: { id: true, name: true } },
+        },
+      });
+      return activities;
+    } catch (error) {
+      console.warn("Database connection failed in DashboardService.getRecentActivities");
       return [];
     }
   }

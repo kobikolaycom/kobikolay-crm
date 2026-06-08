@@ -15,7 +15,8 @@ import {
   X,
   MessageSquare,
   LogOut,
-  FileText
+  FileText,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const navItems = [
   { name: "Tanıtım", href: "/tanitim", icon: Mail },
   { name: "Mail Şablonları", href: "/mail-sablonlari", icon: FileText },
   { name: "Faaliyet Alanları", href: "/settings/sectors", icon: Briefcase },
+  { name: "Faaliyet Geçmişi", href: "/activities", icon: ClipboardList },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];
 
