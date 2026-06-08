@@ -188,6 +188,12 @@ export class AgencyService {
             contacts: true,
             representative: { select: { id: true, name: true } },
             offers: { orderBy: { createdAt: "desc" } },
+            activities: {
+              where: { type: "CALL_LOG" },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { callStatus: true },
+            },
             mailLogs: {
               orderBy: { createdAt: "desc" },
               take: 10,

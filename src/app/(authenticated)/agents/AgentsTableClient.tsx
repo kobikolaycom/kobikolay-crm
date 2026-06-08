@@ -72,6 +72,21 @@ function statusBadge(status: string) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
+function callStatusBadge(status: string | null | undefined) {
+  if (!status) return <span className="text-[10px] text-slate-300">—</span>;
+  const map: Record<string, { label: string; cls: string }> = {
+    REACHED:      { label: "Ulaşıldı", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    NO_ANSWER:    { label: "Cevap Yok", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+    BUSY:         { label: "Meşgul", cls: "bg-orange-100 text-orange-700 border-orange-200" },
+    WRONG_NUMBER: { label: "Yanlış No", cls: "bg-red-100 text-red-700 border-red-200" },
+    GOOD:         { label: "Olumlu", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    NORMAL:       { label: "Normal", cls: "bg-blue-100 text-blue-700 border-blue-200" },
+    BAD:          { label: "Olumsuz", cls: "bg-red-100 text-red-700 border-red-200" },
+  };
+  const v = map[status] || { label: status, cls: "bg-muted text-muted-foreground" };
+  return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
+}
+
 export function AgentsTableClient({ agencies, sectors, users, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -724,6 +739,18 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                     <Badge key={s.id} variant="secondary" className="text-[9px]">{s.name}</Badge>
                   ))}
                 </div>
+                <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px] text-slate-500">
+                  {agency.lastCallAt && (
+                    <span className="flex items-center gap-1">
+                      <Phone size={10} className="text-blue-500" />
+                      {new Date(agency.lastCallAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+                    </span>
+                  )}
+                  {agency.activities?.[0]?.callStatus && callStatusBadge(agency.activities[0].callStatus)}
+                  {agency.representative && (
+                    <span className="flex items-center gap-1">👤 {agency.representative.name}</span>
+                  )}
+                </div>
                 <div className="flex items-center justify-between border-t pt-3">
                   <div className="flex flex-wrap gap-1.5">
                     {lastMail?.status === "SENT" && (
@@ -797,6 +824,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Temsilci</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son İşlem</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Arama</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Arama Detayı</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Şehir</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">İletişim</th>
                 <th className="text-right px-4 py-3 w-10"></th>
@@ -805,7 +833,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
             <tbody className="divide-y">
               {agencies.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="text-center py-20">
+                  <td colSpan={15} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
                     <p className="text-muted-foreground">Acente bulunamadı</p>
                   </td>
@@ -955,6 +983,10 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                       ) : (
                         <span className="text-[10px] text-slate-300">—</span>
                       )}
+                    </td>
+                    {/* Arama Detayı */}
+                    <td className="px-4 py-3">
+                      {callStatusBadge(agency.activities?.[0]?.callStatus)}
                     </td>
                     {/* Şehir */}
                     <td className="px-4 py-3">
