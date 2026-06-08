@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { ActivityType, ActivityStatus, CallStatus } from "@prisma/client";
+import { AgencyService } from "@/services/AgencyService";
 
 export class ActivityService {
   /**
@@ -40,7 +41,7 @@ export class ActivityService {
     }
 
     // 2. Transaction to ensure Atomicity
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Create new activity
       const activity = await tx.activity.create({
         data: {
@@ -72,6 +73,13 @@ export class ActivityService {
 
       return activity;
     });
+
+    // Auto-assign representative if first interaction
+    if (finalCreatorId) {
+      await AgencyService.assignRepresentativeIfEmpty(agencyId, finalCreatorId);
+    }
+
+    return result;
   }
 
   static async getUpcomingTasks(agencyId: string) {

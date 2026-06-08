@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { ChannelType, ConversationStatus } from "@prisma/client";
+import { AgencyService } from "@/services/AgencyService";
 
 export interface ConversationFilter {
   channelType?: ChannelType;
@@ -87,7 +88,7 @@ export class ConversationService {
     assignedUserId?: string;
     createdByUserId?: string;
   }) {
-    return prisma.conversation.create({
+    const conversation = await prisma.conversation.create({
       data: {
         channelType: data.channelType,
         contactName: data.contactName,
@@ -98,6 +99,13 @@ export class ConversationService {
         status: "OPEN",
       },
     });
+
+    // Auto-assign representative if first interaction
+    if (data.agencyId && data.createdByUserId) {
+      await AgencyService.assignRepresentativeIfEmpty(data.agencyId, data.createdByUserId);
+    }
+
+    return conversation;
   }
 
   /**

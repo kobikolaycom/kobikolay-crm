@@ -3,6 +3,7 @@ import { MailStatus } from "@prisma/client";
 import { MailService } from "./MailService";
 import type { MailAttachment } from "./MailService";
 import { EmailTemplateService } from "./EmailTemplateService";
+import { AgencyService } from "@/services/AgencyService";
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -266,6 +267,11 @@ export class PitchService {
           sentAt: new Date(),
         },
       });
+
+      // Auto-assign representative if first interaction
+      if (sentById) {
+        await AgencyService.assignRepresentativeIfEmpty(agencyId, sentById);
+      }
 
       return { success: true };
     } catch (error: any) {

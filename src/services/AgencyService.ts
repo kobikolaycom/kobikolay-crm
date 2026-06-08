@@ -142,19 +142,9 @@ export class AgencyService {
       }
     }
 
-    // Representative filter — show only agencies this user interacted with
+    // Representative filter
     if (representativeId) {
-      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
-      where.AND = [
-        ...existingAnd,
-        {
-          OR: [
-            { mailLogs: { some: { sentById: representativeId } } },
-            { activities: { some: { creatorId: representativeId } } },
-            { activities: { some: { assignedToId: representativeId } } },
-          ],
-        },
-      ];
+      where.representativeId = representativeId;
     }
 
     // Build orderBy clause
@@ -173,6 +163,7 @@ export class AgencyService {
           include: {
             sectors: true,
             contacts: true,
+            representative: { select: { id: true, name: true } },
             offers: { orderBy: { createdAt: "desc" } },
             mailLogs: {
               orderBy: { createdAt: "desc" },
@@ -383,6 +374,26 @@ export class AgencyService {
     } catch (error) {
       console.warn("Database connection failed in AgencyService.getFilteredForPromotion");
       return { data: [], total: 0 };
+    }
+  }
+
+  /**
+   * Acente temsilcisini otomatik ata (sadece henüz atanmamışsa).
+   * İlk etkileşimi gerçekleştiren kişi temsilci olur.
+   */
+  static async assignRepresentativeIfEmpty(agencyId: string, userId: string): Promise<void> {
+    try {
+      await prisma.agency.updateMany({
+        where: {
+          id: agencyId,
+          representativeId: null,
+        },
+        data: {
+          representativeId: userId,
+        },
+      });
+    } catch (error) {
+      console.warn(`[AgencyService] Failed to auto-assign representative for agency ${agencyId}:`, error);
     }
   }
 }

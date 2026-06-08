@@ -845,9 +845,9 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                     </td>
                     {/* Temsilci */}
                     <td className="px-4 py-3">
-                      {lastMail?.sentBy?.name ? (
+                      {agency.representative?.name ? (
                         <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
-                          👤 {lastMail.sentBy.name}
+                          👤 {agency.representative.name}
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-300">—</span>
