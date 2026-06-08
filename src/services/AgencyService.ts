@@ -33,10 +33,24 @@ export class AgencyService {
       const digitsOnly = search.replace(/\D/g, "");
       const phoneSearch = digitsOnly.length >= 4 ? digitsOnly.slice(-7) : "";
       
+      // Telefon numarası varsa, raw SQL ile boşluk/tire'li numaralarda da ara
+      let phoneAgencyIds: string[] = [];
+      if (phoneSearch) {
+        try {
+          const phoneResults = await prisma.$queryRawUnsafe<{ agency_id: string }[]>(
+            `SELECT DISTINCT agency_id FROM contacts WHERE regexp_replace(phone, '[^0-9]', '', 'g') LIKE $1`,
+            `%${phoneSearch}%`
+          );
+          phoneAgencyIds = phoneResults.map(r => r.agency_id);
+        } catch (e) {
+          console.warn("[AgencyService] Phone raw search failed:", e);
+        }
+      }
+      
       where.OR = [
         { companyName: { contains: search, mode: "insensitive" } },
         { documentNo: { contains: search } },
-        ...(phoneSearch ? [{ contacts: { some: { phone: { contains: phoneSearch } } } }] : []),
+        ...(phoneAgencyIds.length > 0 ? [{ id: { in: phoneAgencyIds } }] : []),
       ];
     }
 
@@ -319,10 +333,24 @@ export class AgencyService {
       if (search) {
         const digitsOnly = search.replace(/\D/g, "");
         const phoneSearch = digitsOnly.length >= 4 ? digitsOnly.slice(-7) : "";
+        
+        let phoneAgencyIds: string[] = [];
+        if (phoneSearch) {
+          try {
+            const phoneResults = await prisma.$queryRawUnsafe<{ agency_id: string }[]>(
+              `SELECT DISTINCT agency_id FROM contacts WHERE regexp_replace(phone, '[^0-9]', '', 'g') LIKE $1`,
+              `%${phoneSearch}%`
+            );
+            phoneAgencyIds = phoneResults.map(r => r.agency_id);
+          } catch (e) {
+            console.warn("[AgencyService] Phone raw search failed:", e);
+          }
+        }
+        
         where.OR = [
           { companyName: { contains: search, mode: "insensitive" } },
           { documentNo: { contains: search } },
-          ...(phoneSearch ? [{ contacts: { some: { phone: { contains: phoneSearch } } } }] : []),
+          ...(phoneAgencyIds.length > 0 ? [{ id: { in: phoneAgencyIds } }] : []),
         ];
       }
 
