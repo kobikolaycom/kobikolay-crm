@@ -1,6 +1,7 @@
 import { SystemSettingService } from "./SystemSettingService";
 import { ConversationService } from "./ConversationService";
 import prisma from "@/lib/prisma";
+import crypto from "crypto";
 
 export interface InstagramProfile {
   name?: string;
@@ -49,7 +50,7 @@ export class InstagramService {
 
     const isInstagramToken = creds.pageToken.startsWith("IG");
 
-    console.log(`[InstagramService] Mesaj gönderiliyor (isInstagramToken=${isInstagramToken}): recipientId=${recipientId}, text="${messageText.substring(0, 50)}..."`);
+    console.log(`[InstagramService] Mesaj gönderiliyor: recipientId=${recipientId}`);
 
     // 1. Instagram Graph API (Instagram DM'ler için doğru endpoint)
     try {
@@ -111,9 +112,9 @@ export class InstagramService {
     // Instagram token ise direkt graph.instagram.com'a özel sorgula (invalid field'lar olmadan)
     if (isInstagramToken) {
       try {
-        const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=name,username&access_token=${creds.pageToken}`;
+        const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=name,username`;
         console.log(`[InstagramService] Profil çekiliyor (IG Graph - Instagram Token): userId=${userId}`);
-        const igResponse = await fetch(igUrl);
+        const igResponse = await fetch(igUrl, { headers: { Authorization: `Bearer ${creds.pageToken}` } });
         const igData = await igResponse.json();
 
         if (igResponse.ok && (igData.name || igData.username)) {
@@ -136,9 +137,9 @@ export class InstagramService {
 
     // 1. Önce Facebook Graph API ile dene (Instagram IGSID için standart endpoint)
     try {
-      const fbUrl = `https://graph.facebook.com/v21.0/${userId}?fields=${fields}&access_token=${creds.pageToken}`;
+      const fbUrl = `https://graph.facebook.com/v21.0/${userId}?fields=${fields}`;
       console.log(`[InstagramService] Profil çekiliyor (FB Graph): userId=${userId}`);
-      const fbResponse = await fetch(fbUrl);
+      const fbResponse = await fetch(fbUrl, { headers: { Authorization: `Bearer ${creds.pageToken}` } });
       const fbData = await fbResponse.json();
 
       if (fbResponse.ok && (fbData.name || fbData.username)) {
@@ -155,9 +156,9 @@ export class InstagramService {
 
     // 2. Instagram Graph API ile dene (alternatif endpoint)
     try {
-      const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=${fields}&access_token=${creds.pageToken}`;
+      const igUrl = `https://graph.instagram.com/v21.0/${userId}?fields=${fields}`;
       console.log(`[InstagramService] Profil çekiliyor (IG Graph): userId=${userId}`);
-      const igResponse = await fetch(igUrl);
+      const igResponse = await fetch(igUrl, { headers: { Authorization: `Bearer ${creds.pageToken}` } });
       const igData = await igResponse.json();
 
       if (igResponse.ok && (igData.name || igData.username)) {
@@ -174,9 +175,9 @@ export class InstagramService {
 
     // 3. Sadece temel alanlarla tekrar dene (bazı alanlar izin gerektirebilir)
     try {
-      const basicUrl = `https://graph.facebook.com/v21.0/${userId}?fields=name,profile_pic&access_token=${creds.pageToken}`;
+      const basicUrl = `https://graph.facebook.com/v21.0/${userId}?fields=name,profile_pic`;
       console.log(`[InstagramService] Profil çekiliyor (sadece temel alanlar): userId=${userId}`);
-      const basicResponse = await fetch(basicUrl);
+      const basicResponse = await fetch(basicUrl, { headers: { Authorization: `Bearer ${creds.pageToken}` } });
       const basicData = await basicResponse.json();
 
       if (basicResponse.ok && basicData.name) {
@@ -276,12 +277,18 @@ export class InstagramService {
    */
   static async verifyWebhook(verifyToken: string): Promise<boolean> {
     const creds = await this.getCredentials();
+    // Timing-safe comparison to prevent timing attacks
+    const timingSafeCompare = (a: string, b: string): boolean => {
+      try {
+        return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+      } catch { return false; }
+    };
     // Webhook verify token'ı meta ayarlarından kontrol et
     const savedToken = await SystemSettingService.get("meta", "webhookVerifyToken");
     if (savedToken) {
-      return verifyToken === savedToken;
+      return timingSafeCompare(verifyToken, savedToken);
     }
     // Fallback: appSecret ile karşılaştır
-    return verifyToken === creds.appSecret;
+    return timingSafeCompare(verifyToken, creds.appSecret);
   }
 }

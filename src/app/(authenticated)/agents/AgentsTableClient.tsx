@@ -1385,7 +1385,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
               </Button>
             )}
             {importResult && (
-              <Button onClick={() => window.location.reload()} className="gap-2 rounded-xl">
+              <Button onClick={() => router.refresh()} className="gap-2 rounded-xl">
                 <RefreshCw size={16} /> Sayfayı Yenile
               </Button>
             )}

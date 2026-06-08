@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,7 @@ interface Sector {
 
 export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }) {
   const [sectors] = useState(initialSectors);
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Dialog states
@@ -145,7 +147,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         toast.success(`"${formName}" faaliyet alanı eklendi`);
         setShowAddDialog(false);
         resetForm();
-        window.location.reload();
+        router.refresh();
       } catch (err: any) { toast.error(err.message || "Ekleme başarısız"); }
     });
   };
@@ -176,7 +178,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         setShowEditDialog(false);
         setEditingSector(null);
         resetForm();
-        window.location.reload();
+        router.refresh();
       } catch (err: any) { toast.error(err.message || "Güncelleme başarısız"); }
     });
   };
@@ -190,7 +192,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         toast.success(`"${deletingSector.name}" silindi`);
         setShowDeleteDialog(false);
         setDeletingSector(null);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) { toast.error(err.message || "Silme başarısız"); }
     });
   };
@@ -204,7 +206,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
         toast.success(`"${refName}" referansı eklendi`);
         setShowRefDialog(false);
         setRefName(""); setRefDomain("");
-        window.location.reload();
+        router.refresh();
       } catch (err: any) { toast.error(err.message || "Referans eklenemedi"); }
     });
   };
@@ -215,7 +217,7 @@ export function SectorsClient({ sectors: initialSectors }: { sectors: Sector[] }
       try {
         await deleteReferenceAction(refId);
         toast.success(`"${name}" referansı silindi`);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) { toast.error(err.message || "Referans silinemedi"); }
     });
   };

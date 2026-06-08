@@ -153,6 +153,7 @@ export class AgencyService {
         ] }];
       } else if (campaignFilter.startsWith("last_")) {
         const months = parseInt(campaignFilter.split("_")[1]);
+        if (isNaN(months) || months <= 0) return { data: [], total: 0 };
         const start = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth() - months, nowTR.getUTCDate()));
         start.setTime(start.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: start }, status: "SENT" as const };

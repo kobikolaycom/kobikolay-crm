@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,6 +88,7 @@ function parseTemplate(content: string): string {
 
 // ─── Ana Bileşen ───
 export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [activeField, setActiveField] = useState<"subject" | "content">("content");
@@ -202,7 +204,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
           toast.success("Şablon oluşturuldu");
         }
         setShowEditDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message || "İşlem başarısız");
       }
@@ -221,7 +223,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
         await deleteTemplateAction(editingTemplate.id);
         toast.success("Şablon silindi");
         setShowDeleteDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message || "Silme başarısız");
       }
@@ -567,13 +569,10 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                     </p>
                   )}
                   <div 
-                    className="bg-white border rounded-lg p-4 text-sm leading-relaxed min-h-[200px] max-h-[350px] overflow-y-auto"
-                    dangerouslySetInnerHTML={{
-                      __html: previewContent 
-                        ? previewContent.replace(/\n/g, "<br>")
-                        : '<span class="text-slate-400 italic">İçerik yazdıkça önizleme burada görünecek...</span>'
-                    }}
-                  />
+                    className="bg-white border rounded-lg p-4 text-sm leading-relaxed min-h-[200px] max-h-[350px] overflow-y-auto whitespace-pre-wrap"
+                  >
+                    {previewContent || <span className="text-slate-400 italic">İçerik yazdıkça önizleme burada görünecek...</span>}
+                  </div>
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                       Örnek Veriler (Metne eklemek için tıkla):

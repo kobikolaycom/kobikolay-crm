@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ interface UsersClientProps {
 }
 
 export function UsersClient({ users, roles }: UsersClientProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // New/Edit user dialog
@@ -113,7 +115,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
           toast.success("Personel başarıyla oluşturuldu");
         }
         setShowNewDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (error: any) {
         toast.error(error.message || "İşlem başarısız");
       }
@@ -125,7 +127,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
       try {
         await toggleUserStatusAction(userId);
         toast.success("Durum güncellendi");
-        window.location.reload();
+        router.refresh();
       } catch (error: any) {
         toast.error(error.message || "Durum güncellenemedi");
       }
@@ -138,7 +140,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
         await deleteUserAction(deleteUserId);
         toast.success("Personel silindi");
         setShowDeleteDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (error: any) {
         toast.error(error.message || "Personel silinemedi");
       }
@@ -219,7 +221,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                       try {
                         await toggleReportRecipientAction(user.id);
                         toast.success(user.receivesReports ? "Rapor gönderimi kapatıldı" : "Rapor gönderimi açıldı");
-                        window.location.reload();
+                        router.refresh();
                       } catch (e: any) { toast.error(e?.message || "İşlem başarısız"); }
                     });
                   }}
@@ -245,7 +247,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-500 hover:text-red-600" title="Sil"
                   onClick={() => {
                     startTransition(async () => {
-                      try { await deleteUserAction(user.id); toast.success("Personel silindi"); window.location.reload(); }
+                      try { await deleteUserAction(user.id); toast.success("Personel silindi"); router.refresh(); }
                       catch (e: any) { toast.error(e?.message || "Silme başarısız"); }
                     });
                   }}>
@@ -327,7 +329,7 @@ export function UsersClient({ users, roles }: UsersClientProps) {
                             try {
                               await toggleReportRecipientAction(user.id);
                               toast.success(user.receivesReports ? "Rapor gönderimi kapatıldı" : "Rapor gönderimi açıldı");
-                              window.location.reload();
+                              router.refresh();
                             } catch (e: any) { toast.error(e?.message || "İşlem başarısız"); }
                           });
                         }}

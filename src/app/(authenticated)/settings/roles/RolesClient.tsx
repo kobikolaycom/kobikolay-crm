@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ interface RolesClientProps {
 }
 
 export function RolesClient({ roles, permissions }: RolesClientProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Group permissions for rendering
@@ -89,7 +91,7 @@ export function RolesClient({ roles, permissions }: RolesClientProps) {
           toast.success("Rol oluşturuldu");
         }
         setShowDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (error: any) {
         toast.error(error.message || "İşlem başarısız");
       }
@@ -102,7 +104,7 @@ export function RolesClient({ roles, permissions }: RolesClientProps) {
         await deleteRoleAction(deleteId);
         toast.success("Rol silindi");
         setShowDeleteDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (error: any) {
         toast.error(error.message || "Silme başarısız");
       }
