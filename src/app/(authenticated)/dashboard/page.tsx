@@ -15,7 +15,10 @@ import {
   FileText,
   MapPin,
   Building2,
-  UserCircle
+  UserCircle,
+  Phone,
+  ClipboardList,
+  Bell
 } from "lucide-react";
 import { DashboardService } from "@/services/DashboardService";
 import { DashboardTasksClient } from "./DashboardTasksClient";
@@ -53,10 +56,10 @@ export default async function DashboardPage() {
   
   const userId = session?.user?.id;
 
-  const [stats, recentConversations, recentNotes, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
+  const [stats, recentConversations, recentActivities, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
     DashboardService.getStats(),
     DashboardService.getRecentConversations(),
-    DashboardService.getRecentNotes(),
+    DashboardService.getRecentActivities(10),
     DashboardService.getOverdueTasks(userId),
     DashboardService.getTodayTasks(userId),
     DashboardService.getUpcomingTasks(userId),
@@ -69,6 +72,13 @@ export default async function DashboardPage() {
     createdAt: undefined,
     updatedAt: undefined,
   }));
+
+  const typeConfig: Record<string, { label: string; icon: React.ReactNode; cls: string }> = {
+    CALL_LOG: { label: "Çağrı", icon: <Phone size={13} />, cls: "bg-blue-50 text-blue-700 border-blue-200" },
+    TASK_ASSIGNMENT: { label: "Görev", icon: <ClipboardList size={13} />, cls: "bg-purple-50 text-purple-700 border-purple-200" },
+    SELF_REMINDER: { label: "Hatırlatıcı", icon: <Bell size={13} />, cls: "bg-amber-50 text-amber-700 border-amber-200" },
+    MANUAL_NOTE: { label: "Not", icon: <FileText size={13} />, cls: "bg-teal-50 text-teal-700 border-teal-200" },
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 p-6 lg:p-8">
@@ -194,90 +204,84 @@ export default async function DashboardPage() {
           upcomingTasks={serializeTasks(upcomingTasks)}
         />
 
-        {/* Recent Notes — Rich Table */}
+        {/* Son Aktiviteler */}
         <div className="lg:col-span-3 glass-card rounded-3xl border shadow-sm overflow-hidden flex flex-col">
           <div className="px-6 py-5 border-b flex items-center justify-between">
             <h3 className="font-bold text-slate-900 flex items-center gap-2">
-              <FileText size={18} className="text-amber-500" /> Son Acente Notları
+              <ClipboardList size={18} className="text-primary" /> Son Aktiviteler
             </h3>
             <Button variant="ghost" size="sm" asChild className="gap-1 text-xs">
               <Link href="/activities">Tümünü Gör <ArrowUpRight size={14} /></Link>
             </Button>
           </div>
-          {recentNotes.length === 0 ? (
+          {recentActivities.length === 0 ? (
             <div className="text-center py-16">
-              <FileText size={32} className="mx-auto text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">Henüz acente notu bulunmuyor.</p>
+              <ClipboardList size={32} className="mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">Henüz aktivite bulunmuyor.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50/80 border-b text-xs text-muted-foreground">
-                    <th className="text-left px-5 py-3 font-medium">Acente</th>
-                    <th className="text-left px-4 py-3 font-medium">Not İçeriği</th>
+                    <th className="text-left px-5 py-3 font-medium">Tür</th>
+                    <th className="text-left px-4 py-3 font-medium">Acente</th>
+                    <th className="text-left px-4 py-3 font-medium">İçerik</th>
                     <th className="text-left px-4 py-3 font-medium">Şehir</th>
                     <th className="text-left px-4 py-3 font-medium">Sektör</th>
                     <th className="text-left px-4 py-3 font-medium">Temsilci</th>
-                    <th className="text-left px-4 py-3 font-medium">Yazan</th>
+                    <th className="text-left px-4 py-3 font-medium">İşlem Yapan</th>
                     <th className="text-right px-5 py-3 font-medium">Tarih</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {recentNotes.map((note: any) => (
-                    <tr key={note.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="px-5 py-3">
-                        <Link href={`/agents/${note.agencyId}`} className="hover:text-primary transition-colors">
-                          <p className="font-medium text-slate-800 truncate max-w-[180px]">{note.agencyName || "—"}</p>
-                          {note.agencyStatus && (
-                            <Badge variant="outline" className={`text-[9px] mt-0.5 ${
-                              note.agencyStatus === "ACTIVE" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              note.agencyStatus === "LEAD" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                              "bg-slate-50 text-slate-500 border-slate-200"
-                            }`}>
-                              {note.agencyStatus === "ACTIVE" ? "Aktif" : note.agencyStatus === "LEAD" ? "Lead" : note.agencyStatus === "PASSIVE" ? "Pasif" : note.agencyStatus}
-                            </Badge>
-                          )}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="text-xs text-muted-foreground truncate max-w-[220px]">{note.lastMessage || "—"}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          {note.agencyProvince ? (<><MapPin size={11} /> {note.agencyProvince}</>) : "—"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          {note.agencySector ? (<><Building2 size={11} /> {note.agencySector}</>) : "—"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {note.representativeName ? (
-                          <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
-                            👤 {note.representativeName}
+                  {recentActivities.map((act: any) => {
+                    const tc = typeConfig[act.type] || { label: act.type, icon: <FileText size={13} />, cls: "bg-slate-50 text-slate-600 border-slate-200" };
+                    return (
+                      <tr key={act.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-5 py-3">
+                          <Badge variant="outline" className={`text-[10px] font-semibold gap-1 ${tc.cls}`}>
+                            {tc.icon} {tc.label}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/agents/${act.agency?.id}`} className="hover:text-primary transition-colors">
+                            <p className="font-medium text-slate-800 truncate max-w-[160px]">{act.agency?.companyName || "—"}</p>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">{act.content || "—"}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            {act.agency?.contacts?.[0]?.province ? (<><MapPin size={11} /> {act.agency.contacts[0].province}</>) : "—"}
                           </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {note.createdByName ? (
-                          <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
-                            <UserCircle size={12} /> {note.createdByName}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            {act.agency?.sectors?.[0]?.name ? (<><Building2 size={11} /> {act.agency.sectors[0].name}</>) : "—"}
                           </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-300">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                          <Clock size={11} /> {formatTimeAgo(note.updatedAt)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3">
+                          {act.agency?.representative?.name ? (
+                            <span className="text-[10px] text-indigo-600 font-semibold">👤 {act.agency.representative.name}</span>
+                          ) : <span className="text-[10px] text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {act.creator?.name ? (
+                            <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+                              <UserCircle size={12} /> {act.creator.name}
+                            </span>
+                          ) : <span className="text-[10px] text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
+                            <Clock size={11} /> {formatTimeAgo(act.createdAt)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

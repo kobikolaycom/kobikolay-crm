@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   FileText, Phone, ClipboardList, Bell, Clock,
-  Building2, MapPin, ArrowUpRight, UserCircle
+  Building2, MapPin, UserCircle
 } from "lucide-react";
 import { DashboardService } from "@/services/DashboardService";
 
@@ -28,6 +28,7 @@ const typeConfig: Record<string, { label: string; icon: React.ReactNode; cls: st
   CALL_LOG: { label: "Çağrı", icon: <Phone size={14} />, cls: "bg-blue-50 text-blue-700 border-blue-200" },
   TASK_ASSIGNMENT: { label: "Görev", icon: <ClipboardList size={14} />, cls: "bg-purple-50 text-purple-700 border-purple-200" },
   SELF_REMINDER: { label: "Hatırlatıcı", icon: <Bell size={14} />, cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  MANUAL_NOTE: { label: "Not", icon: <FileText size={14} />, cls: "bg-teal-50 text-teal-700 border-teal-200" },
 };
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -46,8 +47,24 @@ const callStatusLabels: Record<string, string> = {
   BAD: "Kötü",
 };
 
-export default async function ActivitiesPage() {
-  const activities = await DashboardService.getRecentActivities(100);
+const filterTabs = [
+  { key: "all", label: "Tümü" },
+  { key: "today", label: "Bugün" },
+  { key: "week", label: "Bu Hafta" },
+  { key: "month", label: "Bu Ay" },
+];
+
+export default async function ActivitiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
+  const params = await searchParams;
+  const currentFilter = params.filter || "all";
+  const activities = await DashboardService.getRecentActivities(
+    200,
+    currentFilter === "all" ? undefined : currentFilter
+  );
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -56,11 +73,29 @@ export default async function ActivitiesPage() {
         description="Tüm acente aktiviteleri: notlar, çağrılar, görevler ve hatırlatıcılar."
       />
 
+      {/* Date Filter Tabs */}
+      <div className="flex items-center gap-2">
+        {filterTabs.map(tab => (
+          <Link key={tab.key} href={`/activities${tab.key === "all" ? "" : `?filter=${tab.key}`}`}>
+            <Button
+              variant={currentFilter === tab.key ? "default" : "outline"}
+              size="sm"
+              className="text-xs"
+            >
+              {tab.label}
+            </Button>
+          </Link>
+        ))}
+        <span className="text-xs text-muted-foreground ml-2">
+          {activities.length} aktivite
+        </span>
+      </div>
+
       <div className="glass-card rounded-2xl border shadow-sm overflow-hidden">
         {activities.length === 0 ? (
           <div className="text-center py-20">
             <ClipboardList size={40} className="mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground">Henüz aktivite bulunmuyor.</p>
+            <p className="text-muted-foreground">Bu dönemde aktivite bulunmuyor.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -71,9 +106,10 @@ export default async function ActivitiesPage() {
                   <th className="text-left px-4 py-3.5 font-medium">Acente</th>
                   <th className="text-left px-4 py-3.5 font-medium">İçerik</th>
                   <th className="text-left px-4 py-3.5 font-medium">Şehir</th>
+                  <th className="text-left px-4 py-3.5 font-medium">Sektör</th>
                   <th className="text-left px-4 py-3.5 font-medium">Durum</th>
-                  <th className="text-left px-4 py-3.5 font-medium">Oluşturan</th>
-                  <th className="text-left px-4 py-3.5 font-medium">Atanan</th>
+                  <th className="text-left px-4 py-3.5 font-medium">İşlem Yapan</th>
+                  <th className="text-left px-4 py-3.5 font-medium">Temsilci</th>
                   <th className="text-right px-5 py-3.5 font-medium">Tarih</th>
                 </tr>
               </thead>
@@ -110,22 +146,25 @@ export default async function ActivitiesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          {act.agency?.sectors?.[0]?.name ? (<><Building2 size={11} /> {act.agency.sectors[0].name}</>) : "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
                         <Badge variant="outline" className={`text-[10px] font-semibold ${sc.cls}`}>
                           {sc.label}
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
                         {act.creator?.name ? (
-                          <span className="text-[10px] text-indigo-600 font-semibold flex items-center gap-1">
+                          <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
                             <UserCircle size={12} /> {act.creator.name}
                           </span>
                         ) : <span className="text-[10px] text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3">
-                        {act.assignedTo?.name && act.assignedTo.name !== act.creator?.name ? (
-                          <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
-                            <UserCircle size={12} /> {act.assignedTo.name}
-                          </span>
+                        {act.agency?.representative?.name ? (
+                          <span className="text-[10px] text-indigo-600 font-semibold">👤 {act.agency.representative.name}</span>
                         ) : <span className="text-[10px] text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">

@@ -192,27 +192,97 @@ export class DashboardService {
   }
 
   /**
-   * Son aktiviteler (tüm tipler: not, çağrı, görev, hatırlatıcı).
+   * Son aktiviteler (tüm tipler) + MANUAL_NOTE notları birleşik.
    */
-  static async getRecentActivities(limit = 50): Promise<any[]> {
+  static async getRecentActivities(limit = 50, dateFilter?: string): Promise<any[]> {
     try {
-      const activities = await prisma.activity.findMany({
-        orderBy: { createdAt: "desc" },
-        take: limit,
-        include: {
-          agency: {
-            select: {
-              id: true,
-              companyName: true,
-              status: true,
-              contacts: { take: 1, select: { province: true } },
+      const TR_OFFSET = 3 * 60 * 60 * 1000;
+      const nowTR = new Date(Date.now() + TR_OFFSET);
+      const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
+      todayStart.setTime(todayStart.getTime() - TR_OFFSET);
+
+      let dateWhere: any = {};
+      if (dateFilter === "today") {
+        dateWhere = { createdAt: { gte: todayStart } };
+      } else if (dateFilter === "week") {
+        const weekAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+        dateWhere = { createdAt: { gte: weekAgo } };
+      } else if (dateFilter === "month") {
+        const monthAgo = new Date(todayStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+        dateWhere = { createdAt: { gte: monthAgo } };
+      }
+
+      // Fetch activities
+      const [activities, notes] = await Promise.all([
+        prisma.activity.findMany({
+          where: dateWhere,
+          orderBy: { createdAt: "desc" },
+          take: limit,
+          include: {
+            agency: {
+              select: {
+                id: true,
+                companyName: true,
+                status: true,
+                representative: { select: { name: true } },
+                contacts: { take: 1, select: { province: true } },
+                sectors: { take: 1, select: { name: true } },
+              },
+            },
+            creator: { select: { id: true, name: true } },
+            assignedTo: { select: { id: true, name: true } },
+          },
+        }),
+        // Fetch MANUAL_NOTE conversations
+        prisma.conversation.findMany({
+          where: {
+            channelType: "MANUAL_NOTE",
+            agencyId: { not: null },
+            ...(dateWhere.createdAt ? { createdAt: dateWhere.createdAt } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+          include: {
+            agency: {
+              select: {
+                id: true,
+                companyName: true,
+                status: true,
+                representative: { select: { name: true } },
+                contacts: { take: 1, select: { province: true } },
+                sectors: { take: 1, select: { name: true } },
+              },
+            },
+            createdByUser: { select: { id: true, name: true } },
+            messages: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: { content: true },
             },
           },
-          creator: { select: { id: true, name: true } },
-          assignedTo: { select: { id: true, name: true } },
-        },
-      });
-      return activities;
+        }),
+      ]);
+
+      // Normalize notes to activity-like shape
+      const normalizedNotes = notes.map((n: any) => ({
+        id: n.id,
+        type: "MANUAL_NOTE",
+        content: n.messages[0]?.content || "Not eklendi",
+        status: "COMPLETED",
+        callStatus: null,
+        completionNote: null,
+        createdAt: n.createdAt,
+        agency: n.agency,
+        creator: n.createdByUser ? { id: n.createdByUser.id, name: n.createdByUser.name } : null,
+        assignedTo: null,
+      }));
+
+      // Merge and sort by createdAt desc
+      const combined = [...activities, ...normalizedNotes]
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, limit);
+
+      return combined;
     } catch (error) {
       console.warn("Database connection failed in DashboardService.getRecentActivities");
       return [];
