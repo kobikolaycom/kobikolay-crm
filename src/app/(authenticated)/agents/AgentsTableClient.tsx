@@ -194,7 +194,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       toast.success(`"${editCompanyName.trim()}" başarıyla güncellendi`);
       setShowEditDialog(false);
       setEditingAgency(null);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Acente güncellenemedi");
     } finally {
@@ -325,7 +325,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       setSelectedIds([]);
       setProgress(0);
       // Refresh page to show updated mail status
-      window.location.reload();
+      router.refresh();
     } catch (error) {
       toast.error("Gönderim sırasında hata oluştu");
     } finally {
@@ -432,7 +432,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       const res = await resetBatchImportedAgenciesAction();
       toast.success(`${res.count} adet işlem görmemiş pasif acente sıfırlandı.`);
       setShowResetConfirmDialog(false);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Sıfırlama başarısız");
     } finally {
@@ -449,7 +449,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       toast.success(`"${deletingAgency.companyName}" silindi`);
       setShowDeleteAgencyDialog(false);
       setDeletingAgency(null);
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Silme başarısız");
     } finally {
@@ -481,7 +481,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
       toast.success(`"${newCompanyName.trim()}" başarıyla eklendi`);
       setShowCreateDialog(false);
       resetCreateForm();
-      window.location.reload();
+      router.refresh();
     } catch (err: any) {
       toast.error(err.message || "Acente eklenemedi");
     } finally {
@@ -1157,9 +1157,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                 </div>
               </div>
 
-              {/* Email Preview */}
-              {true && (
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Mail size={14} />
                     E-posta Önizleme
@@ -1200,7 +1198,6 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                     ℹ️ Her acente için kişi adı ve acente adı otomatik olarak doldurulacaktır. Yetkili kişi tanımlı değilse &quot;Sayın Yetkili&quot; yazılacaktır.
                   </p>
                 </div>
-              )}
 
               {isSending && (
                 <div className="space-y-2">

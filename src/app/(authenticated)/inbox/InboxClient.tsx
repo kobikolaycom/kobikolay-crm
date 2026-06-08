@@ -863,7 +863,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                         }
                       }}
                     />
-                    <Button variant="ghost" size="icon" className="absolute right-2 top-2 h-8 w-8 text-slate-400 rounded-xl hover:bg-slate-100">
+                    <Button variant="ghost" size="icon" className="absolute right-2 top-2 h-8 w-8 text-slate-400 rounded-xl hover:bg-slate-100" disabled title="Yakında">
                       <Paperclip size={18} />
                     </Button>
                   </div>

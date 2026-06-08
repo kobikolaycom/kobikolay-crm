@@ -71,8 +71,8 @@ export class MailService {
         pass: cleanPass,
       },
       tls: {
-        // Do not fail on invalid certs (common with local/private SMTP relays)
-        rejectUnauthorized: false,
+        // Enable certificate verification in production, allow bypass in development
+        rejectUnauthorized: process.env.NODE_ENV === "production",
       },
     });
 

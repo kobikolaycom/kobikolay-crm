@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { escapeHtml } from "@/lib/utils";
 
 // E-posta şablonları servisi
 // NOT: emailTemplate modeli migration uygulanmadan önce undefined olabilir.
@@ -210,16 +211,16 @@ export class EmailTemplateService {
 
     let parsed = content;
 
-    parsed = parsed.replace(/\{\{companyName\}\}/g, agency.companyName);
+    parsed = parsed.replace(/\{\{companyName\}\}/g, escapeHtml(agency.companyName));
     parsed = parsed.replace(
       /\{\{authorizedPerson\}\}/g,
-      agency.authorizedPerson || "Yetkili"
+      escapeHtml(agency.authorizedPerson || "Yetkili")
     );
     parsed = parsed.replace(
       /\{\{documentNo\}\}/g,
-      agency.documentNo || ""
+      escapeHtml(agency.documentNo || "")
     );
-    parsed = parsed.replace(/\{\{sectorNames\}\}/g, sectorNames);
+    parsed = parsed.replace(/\{\{sectorNames\}\}/g, escapeHtml(sectorNames));
     parsed = parsed.replace(/\{\{currentDate\}\}/g, currentDate);
     parsed = parsed.replace(/\{\{unsubscribeUrl\}\}/g, unsubscribeUrl);
 

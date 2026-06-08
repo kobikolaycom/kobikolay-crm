@@ -6,6 +6,13 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Only admins can test SMTP settings
+  const role = session.user.role;
+  const permissions = (session.user as any).permissions;
+  if (role !== "Super Admin" && !(Array.isArray(permissions) && permissions.includes("*"))) {
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 403 });
+  }
+
   let body: any = {};
   try {
     body = await req.json();

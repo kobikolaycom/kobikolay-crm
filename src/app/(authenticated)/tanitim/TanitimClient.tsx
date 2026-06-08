@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState, useEffect, useTransition, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +120,7 @@ export function TanitimClient({
   provinces: string[];
   sectors: Sector[];
 }) {
+  const router = useRouter();
   const [campaigns] = useState(initialCampaigns);
   const [isPending, startTransition] = useTransition();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -321,7 +324,7 @@ export function TanitimClient({
         });
         toast.success(`${result.sent} acenteye mail gönderildi!${result.failed > 0 ? ` (${result.failed} başarısız)` : ""}`);
         setShowCreateDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message || "Gönderim başarısız");
       }
@@ -341,7 +344,7 @@ export function TanitimClient({
         await deleteCampaignAction(deletingCampaign.id);
         toast.success("Kampanya silindi");
         setShowDeleteDialog(false);
-        window.location.reload();
+        router.refresh();
       } catch (err: any) {
         toast.error(err.message || "Silme başarısız");
       }
@@ -560,12 +563,10 @@ export function TanitimClient({
                     <Label className="flex items-center gap-1.5"><Eye size={14} /> Canlı Önizleme</Label>
                     <div 
                       className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed min-h-[220px] max-h-[280px] overflow-y-auto"
-                      dangerouslySetInnerHTML={{
-                        __html: previewContent 
-                          ? previewContent.replace(/\n/g, "<br>")
-                          : '<span class="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>'
-                      }}
-                    />
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
+                      {previewContent || <span className="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>}
+                    </div>
                   </div>
                 </div>
               </>
@@ -814,10 +815,10 @@ export function TanitimClient({
                     <p className="text-xs text-muted-foreground mb-2">Konu: <strong>{subject}</strong></p>
                     <div 
                       className="bg-white border rounded-xl p-4 text-sm leading-relaxed max-h-[200px] overflow-y-auto"
-                      dangerouslySetInnerHTML={{
-                        __html: previewContent ? previewContent.replace(/\n/g, "<br>") : ""
-                      }}
-                    />
+                      style={{ whiteSpace: 'pre-wrap' }}
+                    >
+                      {previewContent || ''}
+                    </div>
                   </div>
                 </div>
 

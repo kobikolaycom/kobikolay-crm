@@ -89,12 +89,15 @@ export class MetaConversionsService {
       (eventPayload as any).test_event_code = testEventCode;
     }
 
-    const url = `https://graph.facebook.com/${this.API_VERSION}/${datasetId}/events?access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/${this.API_VERSION}/${encodeURIComponent(datasetId)}/events`;
 
     try {
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(eventPayload),
       });
 

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("[Instagram Send] Error:", error);
     return NextResponse.json(
-      { error: error.message || "Mesaj gönderilemedi" },
+      { error: "Mesaj gönderilemedi" },
       { status: 500 }
     );
   }

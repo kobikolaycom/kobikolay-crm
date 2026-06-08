@@ -33,6 +33,7 @@ import {
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   createActivityAction,
@@ -144,6 +145,7 @@ interface AgencyDetailClientProps {
 // ─── MAIN COMPONENT ───
 // ══════════════════════════════════════════════════════════
 export function AgencyDetailClient({ agency, notes, conversations: initialConversations, activeIntegrations = { whatsapp: true, instagram: true, messenger: true } }: AgencyDetailClientProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [users, setUsers] = useState<{ id: string; name: string | null }[]>([]);
 
@@ -212,10 +214,12 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   // Auto-refresh conversations every 15 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
-      try {
-        const fresh = await getAgencyConversationsAction(agency.id);
-        setConversations(fresh);
-      } catch {}
+      if (document.visibilityState === 'visible') {
+        try {
+          const fresh = await getAgencyConversationsAction(agency.id);
+          setConversations(fresh);
+        } catch {}
+      }
     }, 15000);
     return () => clearInterval(interval);
   }, [agency.id]);
@@ -257,7 +261,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
         toast.success("Not eklendi");
         setShowNoteDialog(false);
         setNoteContent("");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Not eklenemedi"); }
     });
   };
@@ -275,7 +279,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
         toast.success("Çağrı notu eklendi");
         setShowCallDialog(false);
         setCallContent("");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Çağrı notu eklenemedi"); }
     });
   };
@@ -296,7 +300,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
         setTaskContent("");
         setTaskAssignee("");
         setTaskDueDate("");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Görev atanamadı"); }
     });
   };
@@ -315,7 +319,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
         setShowReminderDialog(false);
         setReminderContent("");
         setReminderDate("");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Hatırlatıcı oluşturulamadı"); }
     });
   };
@@ -329,7 +333,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
         setShowCompleteDialog(false);
         setCompletingTask(null);
         setCompletionNote("");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Görev tamamlanamadı"); }
     });
   };
@@ -339,7 +343,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
       try {
         await updateAgencyStatusAction(agency.id, newStatus);
         toast.success("Durum güncellendi");
-        window.location.reload();
+        router.refresh();
       } catch (e: any) { toast.error(e?.message || "Durum güncellenemedi"); }
     });
   };
@@ -1781,7 +1785,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   });
                   toast.success("Tanıtım e-postası başarıyla gönderildi! 🚀");
                   setShowPitchDialog(false);
-                  window.location.reload();
+                  router.refresh();
                 } catch (err: any) {
                   toast.error(err.message || "E-posta gönderilemedi");
                 }

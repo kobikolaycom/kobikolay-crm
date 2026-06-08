@@ -5,29 +5,32 @@ import { ReportService } from "@/services/ReportService";
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
-  // Security: Verify cron secret
+  // Security: Verify cron secret (fail-closed: deny if secret not configured)
   const authHeader = request.headers.get("authorization");
-  const isTest = request.nextUrl.searchParams.get("test") === "true";
-  const testEmail = request.nextUrl.searchParams.get("email");
 
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const isTest = request.nextUrl.searchParams.get("test") === "true";
+  const testEmail = request.nextUrl.searchParams.get("email");
   const type = request.nextUrl.searchParams.get("type") as "daily" | "weekly" | "monthly";
 
   if (!type || !["daily", "weekly", "monthly"].includes(type)) {
     return NextResponse.json({ error: "Invalid type. Use: daily, weekly, monthly" }, { status: 400 });
   }
 
+  // Validate test email format if provided
+  if (isTest && testEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail)) {
+    return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+  }
+
   try {
     let result;
 
     if (isTest && testEmail) {
-      // Demo mode: send test report with fake data
       result = await ReportService.sendDemoReport(type, testEmail);
     } else if (type === "monthly") {
-      // Monthly: check if today is the last day of the month
       const now = new Date();
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -44,10 +47,10 @@ export async function GET(request: NextRequest) {
     if (result.success) {
       return NextResponse.json({ success: true, message: `${type} report sent successfully` });
     } else {
-      return NextResponse.json({ success: false, error: result.error }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Report sending failed" }, { status: 500 });
     }
   } catch (error: any) {
     console.error("Report cron error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

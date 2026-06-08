@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   }
 
+  // Only admins can test Meta CAPI
+  const role = session.user.role;
+  const permissions = (session.user as any).permissions;
+  if (role !== "Super Admin" && !(Array.isArray(permissions) && permissions.includes("*"))) {
+    return NextResponse.json({ error: "Yetkisiz" }, { status: 403 });
+  }
+
   try {
     const { accessToken, datasetId, testEventCode } = await req.json();
 
@@ -47,11 +54,14 @@ export async function POST(req: NextRequest) {
       payload.test_event_code = testEventCode;
     }
 
-    const url = `https://graph.facebook.com/v25.0/${datasetId}/events?access_token=${accessToken}`;
+    const url = `https://graph.facebook.com/v25.0/${encodeURIComponent(datasetId)}/events`;
 
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`,
+      },
       body: JSON.stringify(payload),
     });
 

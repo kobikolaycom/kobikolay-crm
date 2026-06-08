@@ -4,12 +4,19 @@ import prisma from "@/lib/prisma";
 
 /**
  * Tek seferlik migration: Etkileşimi olan (çağrı, mail, not, görev) tüm PASSIVE acenteleri AKTİF yapar.
- * GET /api/migrate/activate-agencies
+ * POST /api/migrate/activate-agencies (Super Admin only)
  */
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {
     return Response.json({ error: "Yetkisiz" }, { status: 401 });
+  }
+
+  // Only Super Admin can run migrations
+  const role = session.user.role;
+  const permissions = (session.user as any).permissions;
+  if (role !== "Super Admin" && !(Array.isArray(permissions) && permissions.includes("*"))) {
+    return Response.json({ error: "Bu işlem için Super Admin yetkisi gereklidir" }, { status: 403 });
   }
 
   try {
@@ -80,6 +87,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("[Migration] Activate agencies error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: "Migration işlemi başarısız oldu" }, { status: 500 });
   }
 }

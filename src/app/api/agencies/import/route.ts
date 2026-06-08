@@ -14,6 +14,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Role check: only admins can import
+  const role = session.user.role;
+  const permissions = (session.user as any).permissions;
+  if (role !== "Super Admin" && !(Array.isArray(permissions) && permissions.includes("*"))) {
+    return new Response(JSON.stringify({ error: "Import için yetkiniz yok" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -21,6 +31,23 @@ export async function POST(req: NextRequest) {
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Dosya yüklenmedi" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // File validation: size (max 10MB) and type
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
+      return new Response(JSON.stringify({ error: "Dosya boyutu 10MB'ı aşamaz" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const allowedExtensions = [".xlsx", ".xls"];
+    const fileName = file.name?.toLowerCase() || "";
+    if (!allowedExtensions.some(ext => fileName.endsWith(ext))) {
+      return new Response(JSON.stringify({ error: "Sadece .xlsx ve .xls dosyaları kabul edilir" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -244,7 +271,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Excel import error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Import hatası" }),
+      JSON.stringify({ error: "Import işlemi başarısız oldu" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

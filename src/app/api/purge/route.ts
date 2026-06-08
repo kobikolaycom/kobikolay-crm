@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     if (target === "sectors" || target === "all") {
       // Disconnect agency-sector relations
-      await prisma.$executeRawUnsafe(`DELETE FROM "_AgencySectors"`);
+      await prisma.$executeRaw`DELETE FROM "_AgencySectors"`;
       
       // Delete sector references
       try { await prisma.sectorReference.deleteMany({}); } catch {}
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Purge error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Silme işlemi başarısız" }),
+      JSON.stringify({ error: "Silme işlemi başarısız" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

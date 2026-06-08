@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { CampaignStatus, MailStatus, Agency } from "@prisma/client";
 import { MailService } from "./MailService";
 import { AgencyService } from "@/services/AgencyService";
+import { escapeHtml } from "@/lib/utils";
 
 export interface CampaignFilter {
   sectorId?: string;
@@ -63,10 +64,10 @@ export class CampaignService {
   static templateParser(template: string, agency: any): string {
     if (!template) return "";
     let parsed = template;
-    parsed = parsed.replace(/{{companyName}}/g, agency.companyName || "");
-    parsed = parsed.replace(/{{authorizedPerson}}/g, agency.authorizedPerson || "Yetkili");
-    parsed = parsed.replace(/{{documentNo}}/g, agency.documentNo || "");
-    parsed = parsed.replace(/{{sectorNames}}/g, agency.sectors?.map((s: any) => s.name).join(", ") || "");
+    parsed = parsed.replace(/{{companyName}}/g, escapeHtml(agency.companyName || ""));
+    parsed = parsed.replace(/{{authorizedPerson}}/g, escapeHtml(agency.authorizedPerson || "Yetkili"));
+    parsed = parsed.replace(/{{documentNo}}/g, escapeHtml(agency.documentNo || ""));
+    parsed = parsed.replace(/{{sectorNames}}/g, escapeHtml(agency.sectors?.map((s: any) => s.name).join(", ") || ""));
     parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
     parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/unsubscribe?token=${agency.unsubscribeToken}`);

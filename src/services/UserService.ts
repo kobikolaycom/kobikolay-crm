@@ -33,7 +33,14 @@ export class UserService {
   static async getAllUsers() {
     try {
       return await prisma.user.findMany({
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true,
+          roleId: true,
           role: true,
         },
         orderBy: {
@@ -62,9 +69,14 @@ export class UserService {
             }
           }
         },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          isActive: true,
+          roleId: true,
           role: true,
-        }
+        },
       });
     } catch (error) {
       // Fallback to all active users if permissions filter isn't supported or fails

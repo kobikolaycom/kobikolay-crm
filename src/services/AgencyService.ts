@@ -24,7 +24,8 @@ export class AgencyService {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, sortBy, sortOrder } = params || {};
+    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, sortBy, sortOrder } = params || {};
+    const take = Math.min(rawTake, 200); // Pagination upper bound
     
     let where: Prisma.AgencyWhereInput = {};
 
@@ -448,12 +449,18 @@ export class AgencyService {
    */
   static async updateLastInteraction(agencyId: string): Promise<void> {
     try {
+      // Update interaction timestamp
       await prisma.agency.update({
         where: { id: agencyId },
-        data: {
-          lastInteractionAt: new Date(),
-          status: "ACTIVE",
+        data: { lastInteractionAt: new Date() },
+      });
+      // Only activate if currently PASSIVE or LEAD (don't touch BLOCKED/REJECTED)
+      await prisma.agency.updateMany({
+        where: {
+          id: agencyId,
+          status: { in: ["PASSIVE", "LEAD"] },
         },
+        data: { status: "ACTIVE" },
       });
     } catch (error) {
       console.warn(`[AgencyService] Failed to update lastInteractionAt for agency ${agencyId}:`, error);
@@ -466,13 +473,21 @@ export class AgencyService {
   static async updateLastCall(agencyId: string): Promise<void> {
     try {
       const now = new Date();
+      // Update call and interaction timestamps
       await prisma.agency.update({
         where: { id: agencyId },
         data: {
           lastCallAt: now,
           lastInteractionAt: now,
-          status: "ACTIVE",
         },
+      });
+      // Only activate if currently PASSIVE or LEAD (don't touch BLOCKED/REJECTED)
+      await prisma.agency.updateMany({
+        where: {
+          id: agencyId,
+          status: { in: ["PASSIVE", "LEAD"] },
+        },
+        data: { status: "ACTIVE" },
       });
     } catch (error) {
       console.warn(`[AgencyService] Failed to update lastCallAt for agency ${agencyId}:`, error);

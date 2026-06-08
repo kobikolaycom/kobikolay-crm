@@ -56,17 +56,19 @@ export class ActivityService {
         }
       });
 
-      // 2. Auto-Resolution logic
-      if (type === "CALL_LOG") {
+      // 2. Auto-Resolution logic: Only auto-close other calls/reminders when call is REACHED
+      // TASK_ASSIGNMENT should never be auto-closed (they require manual completion)
+      if (type === "CALL_LOG" && callStatus === "REACHED") {
         await tx.activity.updateMany({
           where: {
             agencyId,
             status: ActivityStatus.PENDING,
             id: { not: activity.id },
+            type: { in: ["CALL_LOG", "SELF_REMINDER"] },  // Don't touch TASK_ASSIGNMENT
           },
           data: {
             status: ActivityStatus.COMPLETED,
-            completionNote: "Otomatik Kapatıldı: Yeni Çağrı gerçekleştirildi."
+            completionNote: "Otomatik Kapatıldı: Yeni Çağrı (Ulaşıldı) gerçekleştirildi."
           }
         });
       }

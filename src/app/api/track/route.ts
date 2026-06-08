@@ -89,7 +89,12 @@ export async function GET(request: NextRequest) {
       if (redirectUrl) {
         try {
           const parsed = new URL(redirectUrl);
-          if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+          const appDomain = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : "localhost";
+          const allowedDomains = [appDomain, "kobikolay.com", "www.kobikolay.com", "acenteyazilim.com", "www.acenteyazilim.com"];
+          if (
+            (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+            allowedDomains.some(d => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`))
+          ) {
             return NextResponse.redirect(redirectUrl, 302);
           }
         } catch {}

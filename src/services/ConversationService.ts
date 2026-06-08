@@ -68,6 +68,7 @@ export class ConversationService {
           createdByUser: { select: { id: true, name: true } },
           messages: {
             orderBy: { createdAt: "asc" },
+            take: 200,
           },
         },
       });
