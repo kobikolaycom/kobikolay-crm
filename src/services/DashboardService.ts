@@ -5,6 +5,7 @@ export interface DashboardStats {
   activeConversations: number;
   sentCampaigns: number;
   totalCampaigns: number;
+  totalCalls: number;
 }
 
 export interface RecentCampaign {
@@ -53,12 +54,13 @@ export class DashboardService {
    */
   static async getStats(): Promise<DashboardStats> {
     try {
-      const [totalAgencies, activeConversations, sentCampaigns, totalCampaigns, sentMailLogs] = await Promise.all([
+      const [totalAgencies, activeConversations, sentCampaigns, totalCampaigns, sentMailLogs, totalCalls] = await Promise.all([
         prisma.agency.count(),
         prisma.conversation.count({ where: { status: "OPEN", channelType: { not: "MANUAL_NOTE" }, messages: { some: {} } } }),
         prisma.campaign.count({ where: { status: "COMPLETED" } }),
         prisma.campaign.count(),
         prisma.mailLog.count({ where: { status: "SENT" } }),
+        prisma.activity.count({ where: { type: "CALL_LOG" } }),
       ]);
 
       return {
@@ -66,10 +68,11 @@ export class DashboardService {
         activeConversations,
         sentCampaigns: sentCampaigns + sentMailLogs,
         totalCampaigns,
+        totalCalls,
       };
     } catch (error) {
       console.warn("Database connection failed in DashboardService.getStats");
-      return { totalAgencies: 0, activeConversations: 0, sentCampaigns: 0, totalCampaigns: 0 };
+      return { totalAgencies: 0, activeConversations: 0, sentCampaigns: 0, totalCampaigns: 0, totalCalls: 0 };
     }
   }
 
@@ -194,7 +197,7 @@ export class DashboardService {
   /**
    * Son aktiviteler (tüm tipler) + MANUAL_NOTE notları birleşik.
    */
-  static async getRecentActivities(limit = 50, dateFilter?: string): Promise<any[]> {
+  static async getRecentActivities(limit = 50, dateFilter?: string, typeFilter?: string): Promise<any[]> {
     try {
       const TR_OFFSET = 3 * 60 * 60 * 1000;
       const nowTR = new Date(Date.now() + TR_OFFSET);
@@ -212,8 +215,16 @@ export class DashboardService {
         dateWhere = { createdAt: { gte: monthAgo } };
       }
 
+      // Type filter
+      if (typeFilter && typeFilter !== "MANUAL_NOTE") {
+        dateWhere.type = typeFilter;
+      }
+      const skipActivities = typeFilter === "MANUAL_NOTE";
+      const skipNotes = typeFilter && typeFilter !== "MANUAL_NOTE";
+
       // Fetch activities
       const [activities, notes] = await Promise.all([
+        skipActivities ? [] :
         prisma.activity.findMany({
           where: dateWhere,
           orderBy: { createdAt: "desc" },
@@ -234,7 +245,7 @@ export class DashboardService {
           },
         }),
         // Fetch MANUAL_NOTE conversations
-        prisma.conversation.findMany({
+        skipNotes ? [] : prisma.conversation.findMany({
           where: {
             channelType: "MANUAL_NOTE",
             agencyId: { not: null },

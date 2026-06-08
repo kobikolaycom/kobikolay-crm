@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       })()}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <Link href="/agents" className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Toplam Acente</span>
@@ -140,6 +140,16 @@ export default async function DashboardPage() {
           </div>
           <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-600">
             <Send size={22} />
+          </div>
+        </Link>
+
+        <Link href="/activities?type=CALL_LOG" className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
+          <div>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Yapılan Arama</span>
+            <h3 className="text-3xl font-extrabold text-slate-900 mt-2 group-hover:text-blue-600 transition-colors">{stats.totalCalls}</h3>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+            <Phone size={22} />
           </div>
         </Link>
       </div>

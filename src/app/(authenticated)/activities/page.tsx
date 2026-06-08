@@ -47,6 +47,14 @@ const callStatusLabels: Record<string, string> = {
   BAD: "Kötü",
 };
 
+const typeTabs = [
+  { key: "all", label: "Tümü" },
+  { key: "CALL_LOG", label: "Çağrı" },
+  { key: "MANUAL_NOTE", label: "Not" },
+  { key: "TASK_ASSIGNMENT", label: "Görev" },
+  { key: "SELF_REMINDER", label: "Hatırlatıcı" },
+];
+
 const filterTabs = [
   { key: "all", label: "Tümü" },
   { key: "today", label: "Bugün" },
@@ -57,13 +65,15 @@ const filterTabs = [
 export default async function ActivitiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; type?: string }>;
 }) {
   const params = await searchParams;
   const currentFilter = params.filter || "all";
+  const currentType = params.type || "all";
   const activities = await DashboardService.getRecentActivities(
     200,
-    currentFilter === "all" ? undefined : currentFilter
+    currentFilter === "all" ? undefined : currentFilter,
+    currentType === "all" ? undefined : currentType
   );
 
   return (
@@ -75,20 +85,48 @@ export default async function ActivitiesPage({
 
       {/* Date Filter Tabs */}
       <div className="flex items-center gap-2">
-        {filterTabs.map(tab => (
-          <Link key={tab.key} href={`/activities${tab.key === "all" ? "" : `?filter=${tab.key}`}`}>
-            <Button
-              variant={currentFilter === tab.key ? "default" : "outline"}
-              size="sm"
-              className="text-xs"
-            >
-              {tab.label}
-            </Button>
-          </Link>
-        ))}
+        {filterTabs.map(tab => {
+          const filterParam = tab.key !== "all" ? `filter=${tab.key}` : "";
+          const typeParam = currentType !== "all" ? `type=${currentType}` : "";
+          const queryParts = [filterParam, typeParam].filter(Boolean);
+          const href = `/activities${queryParts.length ? `?${queryParts.join("&")}` : ""}`;
+          return (
+            <Link key={tab.key} href={href}>
+              <Button
+                variant={currentFilter === tab.key ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                {tab.label}
+              </Button>
+            </Link>
+          );
+        })}
         <span className="text-xs text-muted-foreground ml-2">
           {activities.length} aktivite
         </span>
+      </div>
+
+      {/* Type Filter Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground font-medium mr-1">İşlem:</span>
+        {typeTabs.map(tab => {
+          const filterParam = currentFilter !== "all" ? `filter=${currentFilter}` : "";
+          const typeParam = tab.key !== "all" ? `type=${tab.key}` : "";
+          const queryParts = [filterParam, typeParam].filter(Boolean);
+          const href = `/activities${queryParts.length ? `?${queryParts.join("&")}` : ""}`;
+          return (
+            <Link key={tab.key} href={href}>
+              <Button
+                variant={currentType === tab.key ? "default" : "outline"}
+                size="sm"
+                className="text-xs"
+              >
+                {tab.label}
+              </Button>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="glass-card rounded-2xl border shadow-sm overflow-hidden">
