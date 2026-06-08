@@ -291,7 +291,7 @@ export class PitchService {
             },
           });
         }
-      } catch () {}
+      } catch {}
 
       return { success: false, error: error.message || "Gönderim başarısız" };
     }
