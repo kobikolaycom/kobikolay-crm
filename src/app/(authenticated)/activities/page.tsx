@@ -98,7 +98,55 @@ export default async function ActivitiesPage({
             <p className="text-muted-foreground">Bu dönemde aktivite bulunmuyor.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile/Tablet card view */}
+          <div className="lg:hidden divide-y">
+            {activities.map((act: any) => {
+              const tc = typeConfig[act.type] || { label: act.type, icon: <FileText size={14} />, cls: "bg-slate-50 text-slate-600 border-slate-200" };
+              const sc = statusConfig[act.status] || { label: act.status, cls: "bg-slate-50 text-slate-600 border-slate-200" };
+              return (
+                <Link key={act.id} href={`/agents/${act.agency?.id}`} className="block px-5 py-4 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={`text-[10px] font-semibold gap-1 ${tc.cls}`}>
+                        {tc.icon} {tc.label}
+                      </Badge>
+                      <Badge variant="outline" className={`text-[10px] font-semibold ${sc.cls}`}>
+                        {sc.label}
+                      </Badge>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <Clock size={10} /> {formatTimeAgo(act.createdAt)}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-800 truncate">{act.agency?.companyName || "—"}</p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">{act.content}</p>
+                  {act.completionNote && (
+                    <p className="text-[10px] text-emerald-600 truncate mt-0.5">✓ {act.completionNote}</p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
+                    {act.agency?.contacts?.[0]?.province && (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><MapPin size={10} /> {act.agency.contacts[0].province}</span>
+                    )}
+                    {act.agency?.sectors?.[0]?.name && (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Building2 size={10} /> {act.agency.sectors[0].name}</span>
+                    )}
+                    {act.creator?.name && (
+                      <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-0.5"><UserCircle size={10} /> {act.creator.name}</span>
+                    )}
+                    {act.agency?.representative?.name && (
+                      <span className="text-[10px] text-indigo-600 font-semibold">👤 {act.agency.representative.name}</span>
+                    )}
+                    {act.callStatus && (
+                      <span className="text-[10px] text-muted-foreground">{callStatusLabels[act.callStatus] || act.callStatus}</span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-50/80 border-b text-xs text-muted-foreground">
@@ -178,6 +226,7 @@ export default async function ActivitiesPage({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

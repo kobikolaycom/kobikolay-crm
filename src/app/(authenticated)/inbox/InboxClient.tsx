@@ -358,7 +358,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
   };
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] md:h-[calc(100vh-6rem)] h-[calc(100dvh-3.5rem)] bg-white md:rounded-[2rem] md:border md:shadow-sm overflow-hidden">
+    <div className="flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-6rem)] bg-white md:rounded-[2rem] md:border md:shadow-sm overflow-hidden">
       {/* Left Sidebar - Conversation List (hidden on mobile when chat is open) */}
       <div className={cn(
         "w-full md:w-80 lg:w-[400px] md:border-r flex flex-col shrink-0 bg-slate-50/50",

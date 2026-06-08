@@ -88,29 +88,34 @@ export class ConversationService {
     assignedUserId?: string;
     createdByUserId?: string;
   }) {
-    const conversation = await prisma.conversation.create({
-      data: {
-        channelType: data.channelType,
-        contactName: data.contactName,
-        contactPhone: data.contactPhone,
-        agencyId: data.agencyId,
-        assignedUserId: data.assignedUserId,
-        createdByUserId: data.createdByUserId,
-        status: "OPEN",
-      },
-    });
+    try {
+      const conversation = await prisma.conversation.create({
+        data: {
+          channelType: data.channelType,
+          contactName: data.contactName,
+          contactPhone: data.contactPhone,
+          agencyId: data.agencyId,
+          assignedUserId: data.assignedUserId,
+          createdByUserId: data.createdByUserId,
+          status: "OPEN",
+        },
+      });
 
-    // Auto-assign representative if first interaction
-    if (data.agencyId && data.createdByUserId) {
-      await AgencyService.assignRepresentativeIfEmpty(data.agencyId, data.createdByUserId);
+      // Auto-assign representative if first interaction
+      if (data.agencyId && data.createdByUserId) {
+        await AgencyService.assignRepresentativeIfEmpty(data.agencyId, data.createdByUserId);
+      }
+
+      // Update last interaction timestamp
+      if (data.agencyId) {
+        await AgencyService.updateLastInteraction(data.agencyId);
+      }
+
+      return conversation;
+    } catch (error) {
+      console.error("[ConversationService] createConversation failed:", error);
+      throw error;
     }
-
-    // Update last interaction timestamp
-    if (data.agencyId) {
-      await AgencyService.updateLastInteraction(data.agencyId);
-    }
-
-    return conversation;
   }
 
   /**

@@ -220,7 +220,37 @@ export default async function DashboardPage() {
               <p className="text-sm text-muted-foreground">Henüz aktivite bulunmuyor.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile/Tablet card view */}
+            <div className="lg:hidden divide-y">
+              {recentActivities.map((act: any) => {
+                const tc = typeConfig[act.type] || { label: act.type, icon: <FileText size={13} />, cls: "bg-slate-50 text-slate-600 border-slate-200" };
+                return (
+                  <Link key={act.id} href={`/agents/${act.agency?.id}`} className="block px-4 py-3 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center justify-between mb-1">
+                      <Badge variant="outline" className={`text-[10px] font-semibold gap-1 ${tc.cls}`}>
+                        {tc.icon} {tc.label}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock size={10} /> {formatTimeAgo(act.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 truncate">{act.agency?.companyName || "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{act.content || "—"}</p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      {act.agency?.contacts?.[0]?.province && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><MapPin size={10} /> {act.agency.contacts[0].province}</span>
+                      )}
+                      {act.creator?.name && (
+                        <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-0.5"><UserCircle size={10} /> {act.creator.name}</span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50/80 border-b text-xs text-muted-foreground">
@@ -285,6 +315,7 @@ export default async function DashboardPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { CampaignStatus, MailStatus, Agency } from "@prisma/client";
 import { MailService } from "./MailService";
+import { AgencyService } from "@/services/AgencyService";
 
 export interface CampaignFilter {
   sectorId?: string;
@@ -142,6 +143,8 @@ export class CampaignService {
             sentAt: new Date()
           }
         });
+
+        await AgencyService.updateLastInteraction(agency.id);
       } catch (error: any) {
         await prisma.campaignLog.create({
           data: {
@@ -154,13 +157,17 @@ export class CampaignService {
       }
     }
 
-    await prisma.campaign.update({
-      where: { id: campaignId },
-      data: { 
-        status: CampaignStatus.COMPLETED,
-        targetCount: targets.length
-      }
-    });
+    try {
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { 
+          status: CampaignStatus.COMPLETED,
+          targetCount: targets.length
+        }
+      });
+    } catch (statusError) {
+      console.error(`[CampaignService] Failed to update campaign ${campaignId} status to COMPLETED:`, statusError);
+    }
 
     return { success: true, count: targets.length };
   }
@@ -231,6 +238,8 @@ export class CampaignService {
         sentAt: new Date(),
       }
     });
+
+    await AgencyService.updateLastInteraction(agencyId);
 
     if (agency.status === 'PASSIVE') {
       await prisma.agency.update({
@@ -340,7 +349,8 @@ export class CampaignService {
         LIMIT 10
       `;
       sectorStats = rawStats.map(s => ({ name: s.name, count: Number(s.count) }));
-    } catch {
+    } catch (statsError) {
+      console.error("[CampaignService] Failed to fetch sector stats:", statsError);
       sectorStats = [];
     }
 

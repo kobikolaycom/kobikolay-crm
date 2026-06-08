@@ -103,10 +103,11 @@ export class AgencyService {
         const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
         todayStart.setTime(todayStart.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: todayStart }, status: "SENT" as const };
-        where.OR = [
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [...existingAnd, { OR: [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
-        ];
+        ] }];
       } else if (campaignFilter === "week") {
         const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
         todayStart.setTime(todayStart.getTime() - TR_OFFSET);
@@ -114,27 +115,30 @@ export class AgencyService {
         const daysToMonday = (dayOfWeek + 6) % 7;
         const weekStart = new Date(todayStart.getTime() - daysToMonday * 24 * 60 * 60 * 1000);
         const filter = { sentAt: { gte: weekStart }, status: "SENT" as const };
-        where.OR = [
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [...existingAnd, { OR: [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
-        ];
+        ] }];
       } else if (campaignFilter === "month") {
         const monthStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), 1));
         monthStart.setTime(monthStart.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: monthStart }, status: "SENT" as const };
-        where.OR = [
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [...existingAnd, { OR: [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
-        ];
+        ] }];
       } else if (campaignFilter.startsWith("last_")) {
         const months = parseInt(campaignFilter.split("_")[1]);
         const start = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth() - months, nowTR.getUTCDate()));
         start.setTime(start.getTime() - TR_OFFSET);
         const filter = { sentAt: { gte: start }, status: "SENT" as const };
-        where.OR = [
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [...existingAnd, { OR: [
           { campaignLogs: { some: filter } },
           { mailLogs: { some: filter } },
-        ];
+        ] }];
       } else if (campaignFilter === "never") {
         where.campaignLogs = { none: {} };
         where.mailLogs = { none: {} };
@@ -416,11 +420,12 @@ export class AgencyService {
    */
   static async updateLastCall(agencyId: string): Promise<void> {
     try {
+      const now = new Date();
       await prisma.agency.update({
         where: { id: agencyId },
         data: {
-          lastCallAt: new Date(),
-          lastInteractionAt: new Date(),
+          lastCallAt: now,
+          lastInteractionAt: now,
         },
       });
     } catch (error) {

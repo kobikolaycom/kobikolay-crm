@@ -819,7 +819,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
           {/* ─── TAB 2: İLETİŞİM (Omnichannel Hub) ─── */}
           {/* ══════════════════════════════════════════ */}
           {activeTab === "communication" && (
-            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ height: "calc(100vh - 20rem)" }}>
+            <div className="bg-white rounded-2xl border shadow-sm overflow-hidden min-h-[400px]" style={{ height: "calc(100dvh - 16rem)" }}>
               <div className="flex h-full">
 
                 {/* ─── Left: Conversation List (hidden on mobile when a chat is selected) ─── */}

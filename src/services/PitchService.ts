@@ -300,7 +300,9 @@ export class PitchService {
             },
           });
         }
-      } catch {}
+      } catch (logError) {
+        console.error("[PitchService] Failed to log error to DB:", logError);
+      }
 
       return { success: false, error: error.message || "Gönderim başarısız" };
     }
