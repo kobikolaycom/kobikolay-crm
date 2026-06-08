@@ -38,6 +38,10 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
             const passwordsMatch = await bcrypt.compare(password, user.password);
 
             if (passwordsMatch) {
+              if (!user.isActive) {
+                console.log("[AUTH] User is deactivated");
+                return null;
+              }
               console.log("[AUTH] Login successful");
               return {
                 id: user.id,

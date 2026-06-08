@@ -204,7 +204,7 @@ export class CampaignService {
     const contact = await prisma.contact.findFirst({
       where: { agencyId: agency.id, email: { not: null } }
     });
-    const toEmail = contact?.email || agency.contacts[0]?.email || "";
+    const toEmail = contact?.email || "";
 
     if (!toEmail) {
       throw new Error("Acenteye ait e-posta adresi bulunamadı.");

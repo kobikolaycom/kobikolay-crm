@@ -42,12 +42,10 @@ export class MailService {
     // 2. Validate SMTP credentials
     if (!cleanHost || !cleanUser || !cleanPass) {
       console.warn(
-        `[MailService] Warning: SMTP settings (host, user, or pass) are not yet configured in settings. ` +
-        `Simulating mail dispatch for: To=${to}, Subject="${subject}"`
+        `[MailService] SMTP settings (host, user, or pass) are not configured. ` +
+        `Cannot send email to: ${to}, Subject="${subject}"`
       );
-      // Wait for a simulated network delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      return true; // Graceful simulation fallback
+      throw new Error("SMTP ayarları yapılandırılmamış. Lütfen Ayarlar > Entegrasyonlar sayfasından SMTP bilgilerini girin.");
     }
 
     // Gmail için 16 haneli Uygulama Şifresi girildiyse tüm boşlukları temizle

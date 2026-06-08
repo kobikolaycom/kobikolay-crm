@@ -119,7 +119,7 @@ export function RolesClient({ roles, permissions }: RolesClientProps) {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {roles.map((role: any) => {
-          const isSuperAdmin = role.name === "SuperAdmin";
+          const isSuperAdmin = role.name === "Super Admin";
           
           return (
             <div key={role.id} className="bg-white rounded-2xl border shadow-sm flex flex-col overflow-hidden">
@@ -215,7 +215,7 @@ export function RolesClient({ roles, permissions }: RolesClientProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="rounded-xl"
-                  disabled={isEditing && name === "SuperAdmin"}
+                  disabled={isEditing && name === "Super Admin"}
                 />
               </div>
               <div className="space-y-1.5">
@@ -233,21 +233,21 @@ export function RolesClient({ roles, permissions }: RolesClientProps) {
               <div className="flex items-center justify-between mb-4">
                 <Label className="text-sm font-bold text-slate-800">Yetkiler *</Label>
                 
-                {name === "SuperAdmin" && (
+                {name === "Super Admin" && (
                   <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">SuperAdmin rolü tüm yetkilere sahiptir</Badge>
                 )}
                 
                 <div className="flex gap-2">
-                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedPerms(permissions.map(p => p.key))} disabled={name === "SuperAdmin"}>
+                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedPerms(permissions.map(p => p.key))} disabled={name === "Super Admin"}>
                      Tümünü Seç
                    </Button>
-                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedPerms([])} disabled={name === "SuperAdmin"}>
+                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedPerms([])} disabled={name === "Super Admin"}>
                      Temizle
                    </Button>
                 </div>
               </div>
 
-              {name === "SuperAdmin" ? (
+              {name === "Super Admin" ? (
                  <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
                     <ShieldAlert size={48} className="mx-auto text-amber-500 mb-3 opacity-50" />
                     <p className="font-medium text-slate-700">Bu rol sistemdeki tüm işlemleri yapabilir.</p>

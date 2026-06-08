@@ -237,9 +237,12 @@ export class EmailTemplateService {
         return;
       }
 
-      // Ayrıca eski seeded promotion_intro kayıtlarını temizle (Migration)
+      // Eski seeded promotion_intro kayıtlarını temizle (sadece sistem tarafından oluşturulanları)
       await model.deleteMany({
-        where: { category: "promotion_intro" }
+        where: { 
+          category: "promotion_intro",
+          name: { in: ["Tanıtım Giriş Metni", "Promotion Intro"] } // Sadece bilinen seed isimleri
+        }
       });
 
       // Ayrıca eski seeded offer_intro ismini güncelle (Migration)

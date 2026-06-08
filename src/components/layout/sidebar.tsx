@@ -87,7 +87,9 @@ export function Sidebar() {
         {/* Navigation Items */}
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive = item.href === "/settings"
+              ? pathname === "/settings"
+              : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link key={item.name} href={item.href} prefetch={false}>
                 <div
@@ -121,7 +123,9 @@ export function Sidebar() {
             </div>
             <nav className="space-y-4">
               {navItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = item.href === "/settings"
+                  ? pathname === "/settings"
+                  : pathname === item.href || pathname.startsWith(item.href + "/");
                 return (
                   <Link key={item.name} href={item.href} onClick={toggleMobile} prefetch={false}>
                     <div

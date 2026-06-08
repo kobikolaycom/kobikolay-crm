@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ import { useDebounce } from "use-debounce";
 interface AgentsTableClientProps {
   agencies: any[];
   sectors: any[];
+  users: any[];
   total: number;
   currentPage: number;
   pageSize: number;
@@ -54,6 +55,7 @@ interface AgentsTableClientProps {
   initialDateFrom?: string;
   initialDateTo?: string;
   initialMailInteraction?: string;
+  initialRepresentativeId?: string;
   initialSortBy?: string;
   initialSortOrder?: string;
 }
@@ -70,7 +72,7 @@ function statusBadge(status: string) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, users, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -224,14 +226,20 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
     setIsModalOpen(true);
   };
 
-  // URL based search
+  // URL based search — only trigger when the search term itself changes
+  const prevSearchRef = useRef(debouncedSearch);
   useEffect(() => {
+    // Skip if debouncedSearch hasn't actually changed
+    if (prevSearchRef.current === debouncedSearch) return;
+    prevSearchRef.current = debouncedSearch;
+
     const params = new URLSearchParams(searchParams.toString());
     if (debouncedSearch) {
       params.set("search", debouncedSearch);
     } else {
       params.delete("search");
     }
+    // Reset to page 1 only when search term changes
     params.delete("page");
     router.replace(`${pathname}?${params.toString()}`);
   }, [debouncedSearch, pathname, router, searchParams]);
@@ -560,6 +568,36 @@ export function AgentsTableClient({ agencies, sectors, total, currentPage, pageS
             router.push(`${pathname}?${params.toString()}`);
           }}
         />
+
+        {/* Representative filter */}
+        <Select
+          value={initialRepresentativeId || "all"}
+          onValueChange={(value) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (value === "all") {
+              params.delete("representativeId");
+            } else {
+              params.set("representativeId", value);
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
+            <div className="flex items-center gap-1.5">
+              <Users size={14} className="text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Temsilci" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Temsilciler</SelectItem>
+            {users.map((user: any) => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Mobile Card View */}

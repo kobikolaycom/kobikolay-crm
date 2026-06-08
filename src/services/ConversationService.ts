@@ -58,17 +58,22 @@ export class ConversationService {
    * Bir konuşmanın detaylarını ve mesajlarını getirir.
    */
   static async getConversationDetails(id: string) {
-    return prisma.conversation.findUnique({
-      where: { id },
-      include: {
-        agency: true,
-        assignedUser: { select: { id: true, name: true } },
-        createdByUser: { select: { id: true, name: true } },
-        messages: {
-          orderBy: { createdAt: "asc" },
+    try {
+      return await prisma.conversation.findUnique({
+        where: { id },
+        include: {
+          agency: true,
+          assignedUser: { select: { id: true, name: true } },
+          createdByUser: { select: { id: true, name: true } },
+          messages: {
+            orderBy: { createdAt: "asc" },
+          },
         },
-      },
-    });
+      });
+    } catch (error) {
+      console.warn("Database connection failed in ConversationService.getConversationDetails");
+      return null;
+    }
   }
 
   /**

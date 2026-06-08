@@ -26,6 +26,15 @@ export interface RecentConversation {
 }
 
 export class DashboardService {
+  // Turkey timezone helper (UTC+3)
+  private static getTurkeyToday(): Date {
+    const TR_OFFSET = 3 * 60 * 60 * 1000;
+    const nowTR = new Date(Date.now() + TR_OFFSET);
+    const todayStart = new Date(Date.UTC(nowTR.getUTCFullYear(), nowTR.getUTCMonth(), nowTR.getUTCDate()));
+    todayStart.setTime(todayStart.getTime() - TR_OFFSET);
+    return todayStart;
+  }
+
   /**
    * Dashboard istatistik kartları için özet veriler.
    */
@@ -116,8 +125,7 @@ export class DashboardService {
    */
   static async getOverdueTasks(userId?: string) {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = DashboardService.getTurkeyToday();
 
       const where: any = {
         status: "PENDING",
@@ -155,28 +163,19 @@ export class DashboardService {
    */
   static async getTodayTasks(userId?: string) {
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const today = DashboardService.getTurkeyToday();
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
       const where: any = {
         status: "PENDING",
-        OR: [
-          { dueDate: null },
-          { dueDate: { gte: today, lt: tomorrow } },
-        ],
+        dueDate: { gte: today, lt: tomorrow },
       };
 
       if (userId) {
-        where.AND = [
-          { OR: where.OR },
-          { OR: [
-            { assignedToId: userId },
-            { creatorId: userId },
-          ]},
+        where.OR = [
+          { assignedToId: userId },
+          { creatorId: userId },
         ];
-        delete where.OR;
       }
 
       const tasks = await prisma.activity.findMany({
@@ -203,9 +202,8 @@ export class DashboardService {
    */
   static async getUpcomingTasks(userId?: string) {
     try {
-      const tomorrow = new Date();
-      tomorrow.setHours(0, 0, 0, 0);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const today = DashboardService.getTurkeyToday();
+      const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
       const where: any = {
         status: "PENDING",

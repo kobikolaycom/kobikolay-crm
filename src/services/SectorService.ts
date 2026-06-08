@@ -92,10 +92,12 @@ export class SectorService {
       throw new Error(`Bu faaliyet alanına bağlı ${sector._count.agencies} acente var. Önce acentelerin bağlantısını kaldırın.`);
     }
 
-    // Delete linked templates and references first
-    await prisma.pitchTemplate.deleteMany({ where: { sectorId: id } });
-    await prisma.sectorReference.deleteMany({ where: { sectorId: id } });
-    await prisma.sector.delete({ where: { id } });
+    // Delete linked templates, references, and sector atomically
+    await prisma.$transaction([
+      prisma.pitchTemplate.deleteMany({ where: { sectorId: id } }),
+      prisma.sectorReference.deleteMany({ where: { sectorId: id } }),
+      prisma.sector.delete({ where: { id } }),
+    ]);
   }
 
   /**

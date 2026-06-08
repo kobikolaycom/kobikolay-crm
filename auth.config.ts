@@ -22,8 +22,8 @@ export const authConfig = {
       // Allow all API routes to handle their own auth (or webhooks to bypass)
       if (isApiRoute) return true;
 
-      // Redirect authenticated users away from login page
-      if (isLoggedIn && isPublicRoute) {
+      // Redirect authenticated users away from login page (but NOT /unsubscribe)
+      if (isLoggedIn && (nextUrl.pathname === "/" || nextUrl.pathname === "/login")) {
         return Response.redirect(new URL("/dashboard", nextUrl));
       }
 

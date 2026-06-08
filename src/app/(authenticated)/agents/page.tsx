@@ -1,5 +1,6 @@
 import { AgencyService } from "@/services/AgencyService";
 import { SectorService } from "@/services/SectorService";
+import { UserService } from "@/services/UserService";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AgentsTableClient } from "./AgentsTableClient";
 
@@ -20,6 +21,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const dateFrom = (params.dateFrom as string) || "";
   const dateTo = (params.dateTo as string) || "";
   const mailInteraction = (params.mailInteraction as string) || "all";
+  const representativeId = (params.representativeId as string) || "";
   const sortBy = (params.sortBy as string) || "";
   const sortOrder = (params.sortOrder as string) || "";
 
@@ -33,11 +35,15 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     mailInteraction: mailInteraction !== "all" ? mailInteraction : undefined,
+    representativeId: representativeId || undefined,
     sortBy: sortBy || undefined,
     sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
 
-  const sectors = await SectorService.list();
+  const [sectors, users] = await Promise.all([
+    SectorService.list(),
+    UserService.getActiveUsers(),
+  ]);
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -48,6 +54,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
       <AgentsTableClient
         agencies={JSON.parse(JSON.stringify(agencies))}
         sectors={JSON.parse(JSON.stringify(sectors))}
+        users={JSON.parse(JSON.stringify(users))}
         total={total}
         currentPage={page}
         pageSize={pageSize}
@@ -55,6 +62,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialDateFrom={dateFrom}
         initialDateTo={dateTo}
         initialMailInteraction={mailInteraction}
+        initialRepresentativeId={representativeId}
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
       />

@@ -36,6 +36,7 @@ export class PitchService {
     customIntro?: string,
     sentById?: string
   ) {
+    let mailLog: any = null;
     try {
       // ─── 1. Acente Bilgilerini Al ───
       const agency = await prisma.agency.findUnique({
@@ -213,7 +214,7 @@ export class PitchService {
       }
       const sectorNames = sectors.map((s) => s.name).join(", ") || "Belirtilmedi";
 
-      const mailLog = await prisma.mailLog.create({
+      mailLog = await prisma.mailLog.create({
         data: {
           agencyId,
           subject: emailSubject,
@@ -240,11 +241,14 @@ export class PitchService {
         }
       );
 
-      // Tracking pixel'i footer'dan hemen önce ekle + en sona fallback
-      trackedHtml = trackedHtml.replace(
-        "</div>\n      ",
-        `${trackingPixel}</div>\n      `
-      ) + trackingPixel;
+      // Tracking pixel'i HTML'in sonuna (son </div> kapanışından önce) ekle
+      const lastDivIndex = trackedHtml.lastIndexOf('</div>');
+      if (lastDivIndex !== -1) {
+        trackedHtml = trackedHtml.slice(0, lastDivIndex) + trackingPixel + trackedHtml.slice(lastDivIndex);
+      } else {
+        // Fallback: en sona ekle
+        trackedHtml += trackingPixel;
+      }
 
       // ─── 10. E-posta Gönder ───
       await MailService.sendEmail({
@@ -267,17 +271,27 @@ export class PitchService {
     } catch (error: any) {
       console.error(`[PitchService] sendPitch failed for agency ${agencyId}:`, error);
 
-      // Hata kaydı
-      await prisma.mailLog
-        .create({
-          data: {
-            agencyId,
-            subject: "Tanıtım Gönderim Hatası",
-            content: `Sistem Hatası: ${error.message}`,
-            status: MailStatus.FAILED,
-          },
-        })
-        .catch(() => {});
+      // Hata kaydı — mevcut PENDING log varsa güncelle, yoksa yeni oluştur
+      try {
+        if (mailLog) {
+          await prisma.mailLog.update({
+            where: { id: mailLog.id },
+            data: {
+              status: MailStatus.FAILED,
+              content: `Sistem Hatası: ${error.message}`,
+            },
+          });
+        } else {
+          await prisma.mailLog.create({
+            data: {
+              agencyId,
+              subject: "Tanıtım Gönderim Hatası",
+              content: `Sistem Hatası: ${error.message}`,
+              status: MailStatus.FAILED,
+            },
+          });
+        }
+      } catch () {}
 
       return { success: false, error: error.message || "Gönderim başarısız" };
     }

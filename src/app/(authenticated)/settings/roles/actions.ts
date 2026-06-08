@@ -27,10 +27,10 @@ export async function updateRoleAction(id: string, data: { name: string; descrip
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
-  if (data.name === "SuperAdmin") {
+  if (data.name === "Super Admin") {
     // Korumalı rol
     const existing = await prisma.role.findUnique({ where: { id } });
-    if (existing?.name === "SuperAdmin" && !data.permissions.includes("*")) {
+    if (existing?.name === "Super Admin" && !data.permissions.includes("*")) {
       throw new Error("SuperAdmin rolünden tam yetki (*) kaldırılamaz");
     }
   }
@@ -58,7 +58,7 @@ export async function deleteRoleAction(id: string) {
   });
 
   if (!role) throw new Error("Rol bulunamadı");
-  if (role.name === "SuperAdmin") throw new Error("SuperAdmin rolü silinemez");
+  if (role.name === "Super Admin") throw new Error("SuperAdmin rolü silinemez");
   if (role._count.users > 0) {
     throw new Error(`Bu rolü kullanan ${role._count.users} kullanıcı var. Önce kullanıcıların rolünü değiştirin.`);
   }

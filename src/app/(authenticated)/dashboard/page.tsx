@@ -4,14 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
   MessageSquare,
-  Megaphone,
   Send,
   ArrowUpRight,
   Clock,
   CheckCircle2,
   Mail,
   MessageCircle,
-  Phone,
   Calendar
 } from "lucide-react";
 import { DashboardService } from "@/services/DashboardService";

@@ -117,6 +117,7 @@ export class UserService {
             createdActivities: true,
             assignedConversations: true,
             createdConversations: true,
+            sentMailLogs: true,
           }
         }
       }
@@ -128,7 +129,8 @@ export class UserService {
       user._count.assignedActivities > 0 ||
       user._count.createdActivities > 0 ||
       user._count.assignedConversations > 0 ||
-      user._count.createdConversations > 0;
+      user._count.createdConversations > 0 ||
+      user._count.sentMailLogs > 0;
 
     if (hasRelations) {
       throw new Error("Bu kullanıcının sistemde işlem geçmişi (aktivite, not, sohbet vb.) bulunduğu için silinemez. Lütfen silmek yerine pasife çekmeyi tercih edin.");

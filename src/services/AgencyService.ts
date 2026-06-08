@@ -20,10 +20,11 @@ export class AgencyService {
     dateFrom?: string;
     dateTo?: string;
     mailInteraction?: string;
+    representativeId?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, sortBy, sortOrder } = params || {};
+    const { skip = 0, take = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, sortBy, sortOrder } = params || {};
     
     let where: Prisma.AgencyWhereInput = {};
 
@@ -39,17 +40,19 @@ export class AgencyService {
     }
 
     if (pitchStatus === "sent") {
-      where.mailLogs = { some: {} };
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { mailLogs: { some: {} } }];
     } else if (pitchStatus === "pending") {
-      where.mailLogs = { none: {} };
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { mailLogs: { none: {} } }];
     }
 
     // Mail interaction filter — exclusive logic across ALL mails
     if (mailInteraction === "unsubscribed") {
       where.isUnsubscribed = true;
     } else if (mailInteraction === "clicked") {
-      // En az bir mailde tıklama var
-      where.mailLogs = { some: { clickedAt: { not: null } } };
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { mailLogs: { some: { clickedAt: { not: null } } } }];
     } else if (mailInteraction === "opened") {
       // En az bir mail açıldı AMA hiçbir mailde tıklama yok
       const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
@@ -67,7 +70,8 @@ export class AgencyService {
         { mailLogs: { none: { openedAt: { not: null } } } },
       ];
     } else if (mailInteraction === "no_mail") {
-      where.mailLogs = { none: {} };
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { mailLogs: { none: {} } }];
     }
 
     // Custom date range filter (overrides campaignFilter)
@@ -78,10 +82,15 @@ export class AgencyService {
         const toDate = new Date(dateTo); toDate.setHours(23,59,59,999);
         sentAtFilter.sentAt = { ...sentAtFilter.sentAt, lte: toDate };
       }
-      where.OR = [
-        { campaignLogs: { some: sentAtFilter } },
-        { mailLogs: { some: sentAtFilter } },
-      ];
+      const dateCondition = {
+        OR: [
+          { campaignLogs: { some: sentAtFilter } },
+          { mailLogs: { some: sentAtFilter } },
+        ]
+      };
+      // Preserve existing search filter by combining with AND
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, dateCondition];
     }
     // Campaign send period filter — checks both campaignLogs AND mailLogs
     else if (campaignFilter && campaignFilter !== "all") {
@@ -131,6 +140,21 @@ export class AgencyService {
         where.mailLogs = { none: {} };
         where.activities = { none: {} };
       }
+    }
+
+    // Representative filter — show only agencies this user interacted with
+    if (representativeId) {
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [
+        ...existingAnd,
+        {
+          OR: [
+            { mailLogs: { some: { sentById: representativeId } } },
+            { activities: { some: { creatorId: representativeId } } },
+            { activities: { some: { assignedToId: representativeId } } },
+          ],
+        },
+      ];
     }
 
     // Build orderBy clause
@@ -316,13 +340,21 @@ export class AgencyService {
 
       // Mail geçmişi filtresi
       if (mailHistory === "sent") {
-        where.OR = [
-          { mailLogs: { some: { status: "SENT" } } },
-          { campaignLogs: { some: { status: "SENT" } } },
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [
+          ...existingAnd,
+          { OR: [
+            { mailLogs: { some: { status: "SENT" } } },
+            { campaignLogs: { some: { status: "SENT" } } },
+          ]}
         ];
       } else if (mailHistory === "not_sent") {
-        where.mailLogs = { none: {} };
-        where.campaignLogs = { none: {} };
+        const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+        where.AND = [
+          ...existingAnd,
+          { mailLogs: { none: {} } },
+          { campaignLogs: { none: {} } },
+        ];
       }
 
       // İletişim geçmişi filtresi

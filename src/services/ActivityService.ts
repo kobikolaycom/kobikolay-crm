@@ -61,10 +61,11 @@ export class ActivityService {
           where: {
             agencyId,
             status: ActivityStatus.PENDING,
+            id: { not: activity.id },
           },
           data: {
             status: ActivityStatus.COMPLETED,
-            content: "Otomatik Kapatıldı: Yeni Çağrı gerçekleştirildi."
+            completionNote: "Otomatik Kapatıldı: Yeni Çağrı gerçekleştirildi."
           }
         });
       }

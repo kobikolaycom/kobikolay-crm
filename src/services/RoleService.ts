@@ -48,7 +48,11 @@ export class RoleService {
   }
 
   static async deleteRole(id: string) {
-    // Note: In a production system, you'd check if any users are still assigned to this role.
+    // Atanmış kullanıcıları kontrol et
+    const usersWithRole = await prisma.user.count({ where: { roleId: id } });
+    if (usersWithRole > 0) {
+      throw new Error(`Bu role ${usersWithRole} kullanıcı atanmış durumda. Silmeden önce kullanıcıların rolünü değiştirin.`);
+    }
     return prisma.role.delete({
       where: { id }
     });

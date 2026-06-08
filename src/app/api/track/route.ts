@@ -63,15 +63,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "click") {
-      // Record link click
+      // Record link click (only first click)
       await prisma.mailLog.updateMany({
         where: {
           trackingId,
-          clickedAt: null, // Only record first click
+          clickedAt: null,
         },
         data: {
           clickedAt: new Date(),
-          // Also mark as opened if not already
+        },
+      });
+
+      // Also mark as opened if not already opened
+      await prisma.mailLog.updateMany({
+        where: {
+          trackingId,
+          openedAt: null,
+        },
+        data: {
           openedAt: new Date(),
         },
       });
