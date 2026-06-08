@@ -92,6 +92,9 @@ export class DashboardService {
   static async getRecentConversations(limit = 6): Promise<RecentConversation[]> {
     try {
       const convos = await prisma.conversation.findMany({
+        where: {
+          channelType: { not: "MANUAL_NOTE" },
+        },
         orderBy: { updatedAt: "desc" },
         take: limit,
         include: {
@@ -115,6 +118,43 @@ export class DashboardService {
       }));
     } catch (error) {
       console.warn("Database connection failed in DashboardService.getRecentConversations");
+      return [];
+    }
+  }
+
+  /**
+   * Son acente notları (MANUAL_NOTE).
+   */
+  static async getRecentNotes(limit = 6): Promise<RecentConversation[]> {
+    try {
+      const notes = await prisma.conversation.findMany({
+        where: {
+          channelType: "MANUAL_NOTE",
+        },
+        orderBy: { updatedAt: "desc" },
+        take: limit,
+        include: {
+          agency: { select: { companyName: true } },
+          createdByUser: { select: { name: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { content: true },
+          },
+        },
+      });
+
+      return notes.map(n => ({
+        id: n.id,
+        channelType: n.channelType,
+        status: n.status,
+        contactName: n.createdByUser?.name ?? null,
+        agencyName: n.agency?.companyName ?? null,
+        lastMessage: n.messages[0]?.content ?? null,
+        updatedAt: n.updatedAt,
+      }));
+    } catch (error) {
+      console.warn("Database connection failed in DashboardService.getRecentNotes");
       return [];
     }
   }

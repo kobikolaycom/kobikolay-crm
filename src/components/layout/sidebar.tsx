@@ -31,7 +31,7 @@ const navItems = [
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ logoUrl }: { logoUrl?: string | null }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -70,9 +70,16 @@ export function Sidebar() {
         {/* Brand / Logo */}
         <div className="flex items-center justify-between p-6 border-b">
           {!isCollapsed && (
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              KobiKolay
-            </span>
+            logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-8 max-w-[160px] object-contain" />
+            ) : (
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                KobiKolay
+              </span>
+            )
+          )}
+          {isCollapsed && logoUrl && (
+            <img src={logoUrl} alt="Logo" className="h-6 w-auto object-contain mx-auto" />
           )}
           <Button
             variant="ghost"
@@ -116,7 +123,11 @@ export function Sidebar() {
           />
           <aside className="fixed inset-y-0 left-0 z-50 w-[280px] bg-background border-r p-6 shadow-xl md:hidden animate-in slide-in-from-left duration-300">
             <div className="flex items-center justify-between mb-8">
-              <span className="text-2xl font-bold text-primary">KobiKolay</span>
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="h-8 max-w-[160px] object-contain" />
+              ) : (
+                <span className="text-2xl font-bold text-primary">KobiKolay</span>
+              )}
               <Button variant="ghost" size="icon" onClick={toggleMobile}>
                 <X size={24} />
               </Button>

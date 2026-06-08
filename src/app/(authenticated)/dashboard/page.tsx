@@ -11,12 +11,13 @@ import {
   CheckCircle2,
   Mail,
   MessageCircle,
-  Calendar
+  Calendar,
+  FileText
 } from "lucide-react";
 import { DashboardService } from "@/services/DashboardService";
 import { DashboardTasksClient } from "./DashboardTasksClient";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+
 
 export const dynamic = "force-dynamic";
 
@@ -47,17 +48,12 @@ function channelIcon(channelType: string) {
 export default async function DashboardPage() {
   const session = await auth();
   
-  let logoUrl: string | null = null;
-  try {
-    const logoSetting = await prisma.systemSetting.findFirst({ where: { category: "corporate", key: "logo_url" } });
-    logoUrl = logoSetting?.value || null;
-  } catch {}
-
   const userId = session?.user?.id;
 
-  const [stats, recentConversations, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
+  const [stats, recentConversations, recentNotes, overdueTasks, todayTasks, upcomingTasks] = await Promise.all([
     DashboardService.getStats(),
     DashboardService.getRecentConversations(),
+    DashboardService.getRecentNotes(),
     DashboardService.getOverdueTasks(userId),
     DashboardService.getTodayTasks(userId),
     DashboardService.getUpcomingTasks(userId),
@@ -85,16 +81,9 @@ export default async function DashboardPage() {
         const fullName = session?.user?.name || "Kullanıcı";
         const firstName = fullName.split(" ")[0];
         return (
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hoşgeldin, {firstName}!</h1>
-              <p className="text-muted-foreground mt-1 italic">&ldquo;{randomQuote}&rdquo;</p>
-            </div>
-            {logoUrl && (
-              <div className="shrink-0">
-                <img src={logoUrl} alt="Şirket Logosu" className="h-12 max-w-[200px] object-contain" />
-              </div>
-            )}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hoşgeldin, {firstName}!</h1>
+            <p className="text-muted-foreground mt-1 italic">&ldquo;{randomQuote}&rdquo;</p>
           </div>
         );
       })()}
@@ -201,6 +190,57 @@ export default async function DashboardPage() {
           todayTasks={serializeTasks(todayTasks)}
           upcomingTasks={serializeTasks(upcomingTasks)}
         />
+
+        {/* Recent Notes */}
+        <div className="lg:col-span-3 glass-card rounded-3xl border shadow-sm overflow-hidden flex flex-col h-[300px]">
+          <div className="px-6 py-5 border-b flex items-center justify-between">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <FileText size={18} className="text-amber-500" /> Son Acente Notları
+            </h3>
+            <Button variant="ghost" size="sm" asChild className="gap-1 text-xs">
+              <Link href="/inbox">Tümünü Gör <ArrowUpRight size={14} /></Link>
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto divide-y">
+            {recentNotes.length === 0 ? (
+              <div className="text-center py-16">
+                <FileText size={32} className="mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">Henüz acente notu bulunmuyor.</p>
+              </div>
+            ) : (
+              recentNotes.map(note => (
+                <Link
+                  key={note.id}
+                  href={`/inbox?conversationId=${note.id}`}
+                  className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50 transition-colors cursor-pointer group"
+                >
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="mt-0.5 shrink-0">
+                      <FileText className="text-amber-500 w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        {note.agencyName || "Bilinmeyen Acente"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {note.lastMessage || "Not içeriği yok"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-4">
+                    {note.contactName && (
+                      <span className="text-[10px] text-indigo-600 font-semibold">👤 {note.contactName}</span>
+                    )}
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock size={12} />
+                      {formatTimeAgo(note.updatedAt)}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
