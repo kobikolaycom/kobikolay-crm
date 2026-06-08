@@ -80,6 +80,8 @@ function LoginFormContent() {
                 className="pl-10 h-11 bg-background/50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                autoComplete="email"
                 required
               />
             </div>
@@ -98,6 +100,8 @@ function LoginFormContent() {
                 className="pl-10 h-11 bg-background/50"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                autoComplete="current-password"
                 required
               />
             </div>
@@ -118,9 +122,6 @@ function LoginFormContent() {
 
         <div className="mt-8 pt-6 border-t text-center text-xs text-slate-400">
           <p>Sisteme erişim yetkiniz yoksa yöneticinizle iletişime geçin.</p>
-          <p className="mt-2 text-amber-600 font-medium bg-amber-500/10 p-2 rounded-lg">
-            Not: Eğer veritabanı boşsa (Seed edilmediyse) giriş yapamazsınız. Bypass etmek için NextAuth middleware'ini devredışı bırakın.
-          </p>
         </div>
       </div>
     </div>
