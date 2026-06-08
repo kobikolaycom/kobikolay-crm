@@ -7,16 +7,17 @@ export async function GET() {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const [smtp, whatsapp, meta, system] = await Promise.all([
+    const [smtp, whatsapp, meta, meta_capi, system] = await Promise.all([
       SystemSettingService.getByCategory("smtp"),
       SystemSettingService.getByCategory("whatsapp"),
       SystemSettingService.getByCategory("meta"),
+      SystemSettingService.getByCategory("meta_capi"),
       SystemSettingService.getByCategory("system"),
     ]);
 
-    return NextResponse.json({ smtp, whatsapp, meta, system, userRole: session.user.role });
+    return NextResponse.json({ smtp, whatsapp, meta, meta_capi, system, userRole: session.user.role });
   } catch {
-    return NextResponse.json({ smtp: {}, whatsapp: {}, meta: {}, system: {}, userRole: null });
+    return NextResponse.json({ smtp: {}, whatsapp: {}, meta: {}, meta_capi: {}, system: {}, userRole: null });
   }
 }
 

@@ -97,7 +97,44 @@ export class ActivityService {
       });
     }
 
+    // Meta Conversions API — lead event'i gönder (fire-and-forget)
+    if (
+      (type === "CALL_LOG" && callStatus === "REACHED") ||
+      type === "TASK_ASSIGNMENT"
+    ) {
+      ActivityService.sendMetaConversionEvent(agencyId, type, callStatus).catch((err) => {
+        console.error("[ActivityService] Meta CAPI olay gönderilemedi:", err?.message || err);
+      });
+    }
+
     return result;
+  }
+
+  /**
+   * Meta Conversions API'ye lead olayı gönder
+   */
+  private static async sendMetaConversionEvent(
+    agencyId: string,
+    type: ActivityType,
+    callStatus?: CallStatus | null
+  ) {
+    const { MetaConversionsService } = await import("@/services/MetaConversionsService");
+    
+    const agency = await prisma.agency.findUnique({
+      where: { id: agencyId },
+      select: { companyName: true, contacts: { take: 1, select: { email: true, phone: true } } },
+    });
+    
+    if (!agency) return;
+    
+    const email = agency.contacts?.[0]?.email;
+    const phone = agency.contacts?.[0]?.phone;
+    
+    if (type === "CALL_LOG" && callStatus === "REACHED") {
+      await MetaConversionsService.sendContactedEvent(agency.companyName, email, phone);
+    } else if (type === "TASK_ASSIGNMENT") {
+      await MetaConversionsService.sendQualifiedEvent(agency.companyName, email, phone);
+    }
   }
 
   /**

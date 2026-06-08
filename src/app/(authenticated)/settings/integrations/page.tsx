@@ -16,13 +16,14 @@ interface IntegrationSettings {
   smtp: Record<string, string>;
   whatsapp: Record<string, string>;
   meta: Record<string, string>;
+  meta_capi: Record<string, string>;
   system?: Record<string, string>;
   userRole?: string | null;
 }
 
 async function loadSettings(): Promise<IntegrationSettings> {
   const res = await fetch("/api/settings/integrations");
-  if (!res.ok) return { smtp: {}, whatsapp: {}, meta: {}, system: {}, userRole: null };
+  if (!res.ok) return { smtp: {}, whatsapp: {}, meta: {}, meta_capi: {}, system: {}, userRole: null };
   return res.json();
 }
 
@@ -102,6 +103,12 @@ export default function IntegrationsPage() {
   const [igAccountId, setIgAccountId] = useState("");
   const [metaWebhookVerifyToken, setMetaWebhookVerifyToken] = useState("");
 
+  // Meta Conversions API (CAPI) Settings
+  const [capiAccessToken, setCapiAccessToken] = useState("");
+  const [capiDatasetId, setCapiDatasetId] = useState("");
+  const [capiTestEventCode, setCapiTestEventCode] = useState("");
+  const [isTestingCapi, setIsTestingCapi] = useState(false);
+
   const [loaded, setLoaded] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [testMode, setTestMode] = useState(false);
@@ -130,6 +137,11 @@ export default function IntegrationsPage() {
         setMetaPageToken(data.meta.pageToken || "");
         setIgAccountId(data.meta.igAccountId || "");
         setMetaWebhookVerifyToken(data.meta.webhookVerifyToken || "");
+      }
+      if (data.meta_capi) {
+        setCapiAccessToken(data.meta_capi.accessToken || "");
+        setCapiDatasetId(data.meta_capi.datasetId || "");
+        setCapiTestEventCode(data.meta_capi.testEventCode || "");
       }
       if (data.system) {
         setTestMode(data.system.testMode === "true");
@@ -319,6 +331,46 @@ export default function IntegrationsPage() {
         toast.error("Kaydetme başarısız");
       }
     });
+  };
+
+  const handleSaveMetaCapi = () => {
+    startTransition(async () => {
+      try {
+        await saveSettings("meta_capi", [
+          { key: "accessToken", value: capiAccessToken.trim() },
+          { key: "datasetId", value: capiDatasetId.trim() },
+          { key: "testEventCode", value: capiTestEventCode.trim() },
+        ]);
+        toast.success("Meta Dönüşüm API ayarları kaydedildi");
+      } catch {
+        toast.error("Kaydetme başarısız");
+      }
+    });
+  };
+
+  const handleTestCapi = async () => {
+    setIsTestingCapi(true);
+    try {
+      const res = await fetch("/api/settings/integrations/meta-capi-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessToken: capiAccessToken.trim(),
+          datasetId: capiDatasetId.trim(),
+          testEventCode: capiTestEventCode.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Test olayı başarıyla gönderildi!");
+      } else {
+        toast.error(data.error || "Test başarısız");
+      }
+    } catch {
+      toast.error("Bağlantı hatası");
+    } finally {
+      setIsTestingCapi(false);
+    }
   };
 
 
@@ -614,6 +666,92 @@ export default function IntegrationsPage() {
             <Button onClick={handleSaveMeta} disabled={isPending} className="gap-2 rounded-xl">
               {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
               Meta Ayarlarını Kaydet
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Meta Conversions API (CAPI) */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-blue-600">
+              <Globe size={20} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Meta Dönüşüm API (CAPI)</h3>
+              <p className="text-xs text-muted-foreground">Instagram/Facebook reklam dönüşümlerini otomatik bildirir</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {capiAccessToken && capiDatasetId ? (
+              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-600 border-emerald-200 gap-1"><CheckCircle2 size={10} /> Aktif</Badge>
+            ) : (
+              <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200">Yapılandırılmadı</Badge>
+            )}
+          </div>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 leading-relaxed">
+            <strong>Nasıl Çalışır:</strong> Bir acenteye ulaşıldığında veya görev atandığında, bu olay otomatik olarak Meta&apos;ya gönderilir. 
+            Meta bu verileri kullanarak Instagram/Facebook reklamlarınızı optimize eder ve benzer müşterilere ulaşmanızı sağlar.
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Erişim Jetonu (Access Token)</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Meta Olay Yöneticisi&apos;nden oluşturulan jeton</span>
+              </Label>
+              <PasswordInput value={capiAccessToken} onChange={setCapiAccessToken} placeholder="EAABs..." />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex flex-col gap-1">
+                <span>Veri Seti Kodu (Dataset ID)</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Piksel/Veri seti kimlik numarası</span>
+              </Label>
+              <Input value={capiDatasetId} onChange={(e) => setCapiDatasetId(e.target.value)} placeholder="1467921251160714" className="rounded-xl font-mono text-sm" />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label className="flex flex-col gap-1">
+                <span>Test Olay Kodu (Opsiyonel)</span>
+                <span className="text-[10px] font-normal text-muted-foreground">Meta Olay Yöneticisi&apos;ndeki Test Olayları sekmesinden alın. Canlıya geçince boş bırakın.</span>
+              </Label>
+              <Input value={capiTestEventCode} onChange={(e) => setCapiTestEventCode(e.target.value)} placeholder="TEST12345" className="rounded-xl font-mono text-sm" />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl border p-5 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium text-slate-700">API Uç Noktası</Label>
+              <p className="text-[10px] text-muted-foreground">Olaylar bu adrese otomatik gönderilir</p>
+            </div>
+            <code className="block bg-white border rounded-xl px-4 py-2.5 text-xs font-mono text-slate-700 select-all break-all">
+              {capiDatasetId ? `https://graph.facebook.com/v25.0/${capiDatasetId}/events` : 'https://graph.facebook.com/v25.0/{DATASET_ID}/events'}
+            </code>
+          </div>
+
+          <div className="bg-slate-50 rounded-2xl border p-5">
+            <h4 className="text-xs font-bold text-slate-700 mb-3">🔔 Otomatik Tetikleyiciler</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2 text-slate-600"><CheckCircle2 size={14} className="text-emerald-500" /> Acenteye ulaşıldığında (Çağrı → Ulaşıldı)</div>
+              <div className="flex items-center gap-2 text-slate-600"><CheckCircle2 size={14} className="text-emerald-500" /> Görev ataması yapıldığında</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row justify-between gap-3 pt-2 border-t">
+            <Button 
+              onClick={handleTestCapi} 
+              disabled={isTestingCapi || !capiAccessToken || !capiDatasetId} 
+              variant="outline" 
+              className="gap-2 rounded-xl"
+            >
+              {isTestingCapi ? <RefreshCw className="animate-spin" size={16} /> : <AlertCircle size={16} />}
+              Test Olayı Gönder
+            </Button>
+            <Button onClick={handleSaveMetaCapi} disabled={isPending} className="gap-2 rounded-xl">
+              {isPending ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+              CAPI Ayarlarını Kaydet
             </Button>
           </div>
         </div>
