@@ -29,16 +29,17 @@ export function getBaseUrl(): string {
       const { headers } = require("next/headers");
       const host = headers().get("host");
       if (host) {
-        const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
-        return `${protocol}://${host}`;
+        if (host.includes("localhost") || host.includes("127.0.0.1")) {
+          return `http://${host}`;
+        }
       }
     } catch {}
   }
 
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXTAUTH_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    "http://localhost:3000"
-  );
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL;
+  if (envUrl && (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"))) {
+    return envUrl;
+  }
+
+  return "https://kobikolay-crm.vercel.app";
 }

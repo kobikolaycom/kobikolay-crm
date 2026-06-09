@@ -236,7 +236,7 @@ export class PitchService {
         /href="(https?:\/\/[^"]+)"/g,
         (match: string, url: string) => {
           // Kendi tracking URL'lerimizi tekrar sarmalama
-          if (url.includes("/api/track")) return match;
+          if (url.includes("/api/track") || url.includes("acenteyazilim.com")) return match;
           const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
           return `href="${trackUrl}"`;
         }
