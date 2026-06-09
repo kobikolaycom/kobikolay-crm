@@ -229,6 +229,7 @@ export class EmailTemplateService {
     parsed = parsed.replace(/\{\{sectorNames\}\}/g, escapeHtml(sectorNames));
     parsed = parsed.replace(/\{\{currentDate\}\}/g, currentDate);
     parsed = parsed.replace(/\{\{unsubscribeUrl\}\}/g, unsubscribeUrl);
+    parsed = parsed.replace(/\{\{baseUrl\}\}/g, baseUrl);
 
     return parsed;
   }

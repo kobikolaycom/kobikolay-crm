@@ -71,6 +71,7 @@ export class CampaignService {
     parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
     parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${getBaseUrl()}/unsubscribe?token=${agency.unsubscribeToken}`);
+    parsed = parsed.replace(/{{baseUrl}}/g, getBaseUrl());
     return parsed;
   }
 

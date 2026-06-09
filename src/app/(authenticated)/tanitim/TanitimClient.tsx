@@ -358,13 +358,17 @@ export function TanitimClient({
   const canProceedStep2 = selectedIds.length > 0;
 
   // Canlı önizleme (örnek veriyle)
-  const previewContent = content
-    .replace(/{{companyName}}/g, "ABC Turizm Ltd.")
-    .replace(/{{authorizedPerson}}/g, "Ahmet Bey")
-    .replace(/{{documentNo}}/g, "12345")
-    .replace(/{{sectorNames}}/g, "Yazılım, Turizm")
-    .replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"))
-    .replace(/{{unsubscribeUrl}}/g, "#");
+  const previewContent = (() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return content
+      .replace(/{{companyName}}/g, "ABC Turizm Ltd.")
+      .replace(/{{authorizedPerson}}/g, "Ahmet Bey")
+      .replace(/{{documentNo}}/g, "12345")
+      .replace(/{{sectorNames}}/g, "Yazılım, Turizm")
+      .replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"))
+      .replace(/{{unsubscribeUrl}}/g, "#")
+      .replace(/{{baseUrl}}/g, origin);
+  })();
 
   return (
     <>

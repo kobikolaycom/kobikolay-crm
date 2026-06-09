@@ -83,6 +83,8 @@ function parseTemplate(content: string): string {
   for (const [key, value] of Object.entries(SAMPLE_DATA)) {
     parsed = parsed.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
   }
+  const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+  parsed = parsed.replace(/\{\{baseUrl\}\}/g, origin);
   return parsed;
 }
 
