@@ -56,6 +56,7 @@ interface AgentsTableClientProps {
   initialDateTo?: string;
   initialMailInteraction?: string;
   initialRepresentativeId?: string;
+  initialCallStatusFilter?: string;
   initialSortBy?: string;
   initialSortOrder?: string;
 }
@@ -87,7 +88,7 @@ function callStatusBadge(status: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, users, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, users, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -611,6 +612,39 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
                 {user.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        {/* Call status filter */}
+        <Select
+          value={initialCallStatusFilter || "all"}
+          onValueChange={(value) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (value === "all") {
+              params.delete("callStatusFilter");
+            } else {
+              params.set("callStatusFilter", value);
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
+            <div className="flex items-center gap-1.5">
+              <Phone size={14} className="text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Arama Durumu" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Arama Durumları</SelectItem>
+            <SelectItem value="none">Hiç Aranmadı</SelectItem>
+            <SelectItem value="REACHED">Ulaşıldı</SelectItem>
+            <SelectItem value="NO_ANSWER">Cevap Yok</SelectItem>
+            <SelectItem value="BUSY">Meşgul</SelectItem>
+            <SelectItem value="WRONG_NUMBER">Yanlış No</SelectItem>
+            <SelectItem value="GOOD">Olumlu</SelectItem>
+            <SelectItem value="NORMAL">Normal</SelectItem>
+            <SelectItem value="BAD">Olumsuz</SelectItem>
           </SelectContent>
         </Select>
       </div>

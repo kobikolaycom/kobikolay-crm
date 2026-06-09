@@ -22,6 +22,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const dateTo = (params.dateTo as string) || "";
   const mailInteraction = (params.mailInteraction as string) || "all";
   const representativeId = (params.representativeId as string) || "";
+  const callStatusFilter = (params.callStatusFilter as string) || "all";
   const sortBy = (params.sortBy as string) || "";
   const sortOrder = (params.sortOrder as string) || "";
 
@@ -36,6 +37,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     dateTo: dateTo || undefined,
     mailInteraction: mailInteraction !== "all" ? mailInteraction : undefined,
     representativeId: representativeId || undefined,
+    callStatusFilter: callStatusFilter !== "all" ? callStatusFilter : undefined,
     sortBy: sortBy || undefined,
     sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
@@ -63,6 +65,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialDateTo={dateTo}
         initialMailInteraction={mailInteraction}
         initialRepresentativeId={representativeId}
+        initialCallStatusFilter={callStatusFilter}
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
       />

@@ -21,10 +21,11 @@ export class AgencyService {
     dateTo?: string;
     mailInteraction?: string;
     representativeId?: string;
+    callStatusFilter?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, sortBy, sortOrder } = params || {};
+    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, callStatusFilter, sortBy, sortOrder } = params || {};
     const take = Math.min(rawTake, 200); // Pagination upper bound
     
     let where: Prisma.AgencyWhereInput = {
@@ -172,6 +173,62 @@ export class AgencyService {
     // Representative filter
     if (representativeId) {
       where.representativeId = representativeId;
+    }
+
+    // Call status filter (checks the most recent CALL_LOG status)
+    if (callStatusFilter && callStatusFilter !== "all") {
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      
+      if (callStatusFilter === "none") {
+        // Acentenin hiç CALL_LOG aktivitesi yok demektir
+        where.AND = [
+          ...existingAnd,
+          {
+            activities: {
+              none: {
+                type: "CALL_LOG"
+              }
+            }
+          }
+        ];
+      } else {
+        // En son yapılan aramanın durumu callStatusFilter olmalı.
+        // Bunu PostgreSQL/SQLite uyumlu bir alt sorgu ile bulup agency ID listesi çıkararak filtreleyelim:
+        try {
+          const matchingAgencies = await prisma.$queryRawUnsafe<{ agency_id: string }[]>(
+            `SELECT a1.agency_id 
+             FROM activities a1
+             INNER JOIN (
+               SELECT agency_id, MAX(created_at) as max_created_at
+               FROM activities
+               WHERE type = 'CALL_LOG'
+               GROUP BY agency_id
+             ) a2 ON a1.agency_id = a2.agency_id AND a1.created_at = a2.max_created_at
+             WHERE a1.type = 'CALL_LOG' AND a1.call_status = $1`,
+            callStatusFilter
+          );
+          
+          const matchingIds = matchingAgencies.map(a => a.agency_id);
+          
+          where.AND = [
+            ...existingAnd,
+            { id: { in: matchingIds } }
+          ];
+        } catch (e) {
+          console.warn("[AgencyService] Call status query failed, falling back to simple query:", e);
+          where.AND = [
+            ...existingAnd,
+            {
+              activities: {
+                some: {
+                  type: "CALL_LOG",
+                  callStatus: callStatusFilter as any
+                }
+              }
+            }
+          ];
+        }
+      }
     }
 
     // Build orderBy clause
