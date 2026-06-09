@@ -561,12 +561,18 @@ export function TanitimClient({
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1.5"><Eye size={14} /> Canlı Önizleme</Label>
-                    <div 
-                      className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed min-h-[220px] max-h-[280px] overflow-y-auto"
-                      style={{ whiteSpace: 'pre-wrap' }}
-                    >
-                      {previewContent || <span className="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>}
-                    </div>
+                    {(() => {
+                      const hasHtml = /<[a-z/][\s\S]*>/i.test(previewContent);
+                      const formatted = hasHtml ? previewContent : previewContent.replace(/\n/g, "<br>");
+                      return (
+                        <div 
+                          className="bg-slate-50 border rounded-xl p-4 text-sm leading-relaxed min-h-[220px] max-h-[280px] overflow-y-auto"
+                          dangerouslySetInnerHTML={{ 
+                            __html: formatted || '<span class="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>' 
+                          }}
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
               </>
@@ -813,12 +819,18 @@ export function TanitimClient({
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">E-posta Önizleme (Örnek Veriyle)</p>
                   <div className="bg-slate-50 border rounded-2xl p-5">
                     <p className="text-xs text-muted-foreground mb-2">Konu: <strong>{subject}</strong></p>
-                    <div 
-                      className="bg-white border rounded-xl p-4 text-sm leading-relaxed max-h-[200px] overflow-y-auto"
-                      style={{ whiteSpace: 'pre-wrap' }}
-                    >
-                      {previewContent || ''}
-                    </div>
+                    {(() => {
+                      const hasHtml = /<[a-z/][\s\S]*>/i.test(previewContent);
+                      const formatted = hasHtml ? previewContent : previewContent.replace(/\n/g, "<br>");
+                      return (
+                        <div 
+                          className="bg-white border rounded-xl p-4 text-sm leading-relaxed max-h-[200px] overflow-y-auto"
+                          dangerouslySetInnerHTML={{ 
+                            __html: formatted || '<span class="text-muted-foreground italic">İçerik yazın, önizleme burada görünecek...</span>' 
+                          }}
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
 

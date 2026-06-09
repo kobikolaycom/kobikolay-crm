@@ -568,11 +568,18 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       <strong>{parseTemplate(formSubject)}</strong>
                     </p>
                   )}
-                  <div 
-                    className="bg-white border rounded-lg p-4 text-sm leading-relaxed min-h-[200px] max-h-[350px] overflow-y-auto whitespace-pre-wrap"
-                  >
-                    {previewContent || <span className="text-slate-400 italic">İçerik yazdıkça önizleme burada görünecek...</span>}
-                  </div>
+                  {(() => {
+                    const hasHtml = /<[a-z/][\s\S]*>/i.test(previewContent);
+                    const formatted = hasHtml ? previewContent : previewContent.replace(/\n/g, "<br>");
+                    return (
+                      <div 
+                        className="bg-white border rounded-lg p-4 text-sm leading-relaxed min-h-[200px] max-h-[350px] overflow-y-auto"
+                        dangerouslySetInnerHTML={{ 
+                          __html: formatted || '<span class="text-slate-400 italic">İçerik yazdıkça önizleme burada görünecek...</span>' 
+                        }}
+                      />
+                    );
+                  })()}
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                       Örnek Veriler (Metne eklemek için tıkla):
