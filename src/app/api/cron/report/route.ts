@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ReportService } from "@/services/ReportService";
 
-// Vercel Cron Job security header
+// Vercel Cron Job security
 const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(request: NextRequest) {
-  // Security: Verify cron secret (fail-closed: deny if secret not configured)
+  // Security: Verify cron caller
+  // 1. If CRON_SECRET is configured, require Bearer token match
+  // 2. Otherwise, accept Vercel's built-in cron invocation header
   const authHeader = request.headers.get("authorization");
+  const isVercelCron = request.headers.get("x-vercel-cron") === "1" 
+    || request.headers.get("user-agent")?.includes("vercel-cron");
 
-  if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (CRON_SECRET) {
+    // CRON_SECRET tanımlı — Bearer token zorunlu
+    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else {
+    // CRON_SECRET tanımlı değil — sadece Vercel cron çağrılarına izin ver
+    if (!isVercelCron) {
+      console.warn("[Cron] CRON_SECRET not set and request is not from Vercel cron");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const isTest = request.nextUrl.searchParams.get("test") === "true";
