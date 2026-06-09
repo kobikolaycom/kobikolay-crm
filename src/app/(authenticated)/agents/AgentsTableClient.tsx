@@ -641,10 +641,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
             <SelectItem value="REACHED">Ulaşıldı</SelectItem>
             <SelectItem value="NO_ANSWER">Cevap Yok</SelectItem>
             <SelectItem value="BUSY">Meşgul</SelectItem>
-            <SelectItem value="WRONG_NUMBER">Yanlış No</SelectItem>
-            <SelectItem value="GOOD">Olumlu</SelectItem>
-            <SelectItem value="NORMAL">Normal</SelectItem>
-            <SelectItem value="BAD">Olumsuz</SelectItem>
+            <SelectItem value="WRONG_NUMBER">Yanlış Numara</SelectItem>
           </SelectContent>
         </Select>
       </div>
