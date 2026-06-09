@@ -76,7 +76,8 @@ export class PitchService {
       // ─── 4. Giriş Metni (Mail Şablonlarından çek, yoksa fallback) ───
       let introHtml: string;
       if (customIntro) {
-        introHtml = customIntro.replace(/\n/g, "<br>");
+        const hasHtml = /<[a-z/][\s\S]*>/i.test(customIntro);
+        introHtml = hasHtml ? customIntro : customIntro.replace(/\n/g, "<br>");
       } else {
         if (offerTemplate) {
           const parsedIntro = EmailTemplateService.parseTemplate(offerTemplate.content, {

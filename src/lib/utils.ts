@@ -23,6 +23,18 @@ export function escapeHtml(str: string): string {
  * Standardized across all services — single source of truth.
  */
 export function getBaseUrl(): string {
+  // Try to get host from request headers dynamically (Server side only)
+  if (typeof window === "undefined") {
+    try {
+      const { headers } = require("next/headers");
+      const host = headers().get("host");
+      if (host) {
+        const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+        return `${protocol}://${host}`;
+      }
+    } catch {}
+  }
+
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||

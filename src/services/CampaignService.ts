@@ -79,11 +79,13 @@ export class CampaignService {
    */
   static buildCampaignEmail(content: string, agency: any): string {
     const parsedContent = this.templateParser(content, agency);
+    const hasHtml = /<[a-z/][\s\S]*>/i.test(parsedContent);
+    const bodyContent = hasHtml ? parsedContent : parsedContent.replace(/\n/g, '<br>');
     return `
       <div style="font-family: sans-serif; padding: 20px; color: #333;">
         <h2>Sayın ${agency.companyName} Yetkilisi,</h2>
         <div style="line-height: 1.6; font-size: 14px;">
-          ${parsedContent.replace(/\n/g, '<br>')}
+          ${bodyContent}
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="font-size: 11px; color: #999; line-height: 1.5; margin: 0 0 8px 0;">
