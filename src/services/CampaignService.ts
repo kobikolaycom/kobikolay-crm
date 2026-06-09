@@ -131,12 +131,54 @@ export class CampaignService {
       if (i > 0) await delay(baseDelay + extraDelay);
 
       try {
+        const emailSubject = campaign.subject ? this.templateParser(campaign.subject, agency) : "KobiKolay Tanıtım";
+        const rawHtml = this.buildCampaignEmail(campaign.content, agency);
+
+        // Create MailLog record first to get trackingId
+        const mailLog = await prisma.mailLog.create({
+          data: {
+            agencyId: agency.id,
+            subject: emailSubject,
+            content: `Kampanya E-postası: ${campaign.name}`,
+            status: MailStatus.PENDING,
+          }
+        });
+
+        const tid = mailLog.trackingId;
+        const baseUrl = getBaseUrl();
+        const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+
+        // Wrap links for tracking
+        let trackedHtml = rawHtml.replace(
+          /href="(https?:\/\/[^"]+)"/g,
+          (match: string, url: string) => {
+            if (url.includes("/api/track")) return match;
+            const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
+            return `href="${trackUrl}"`;
+          }
+        );
+
+        const lastDivIndex = trackedHtml.lastIndexOf('</div>');
+        if (lastDivIndex !== -1) {
+          trackedHtml = trackedHtml.slice(0, lastDivIndex) + trackingPixel + trackedHtml.slice(lastDivIndex);
+        } else {
+          trackedHtml += trackingPixel;
+        }
+
         // Send actual email via SMTP
-        const html = this.buildCampaignEmail(campaign.content, agency);
         await MailService.sendEmail({
           to: email,
-          subject: campaign.subject ? this.templateParser(campaign.subject, agency) : "KobiKolay Tanıtım",
-          html,
+          subject: emailSubject,
+          html: trackedHtml,
+        });
+
+        // Update MailLog status to SENT
+        await prisma.mailLog.update({
+          where: { id: mailLog.id },
+          data: {
+            status: MailStatus.SENT,
+            sentAt: new Date(),
+          }
         });
 
         await prisma.campaignLog.create({
@@ -222,22 +264,50 @@ export class CampaignService {
     }
 
     const _emailHtml = this.buildCampaignEmail(plainTextContent, agency);
-    
     const parsedSubject = this.templateParser(subject, agency);
-    
-    // Send real email via SMTP
-    await MailService.sendEmail({
-      to: toEmail,
-      subject: parsedSubject,
-      html: _emailHtml,
-    });
 
-    // Log to MailLog (Röntgen)
-    await prisma.mailLog.create({
+    // Create MailLog record first to get trackingId
+    const mailLog = await prisma.mailLog.create({
       data: {
         agencyId: agency.id,
         subject: parsedSubject,
         content: `Birebir E-Posta (Inbox Hızlı Teklif).\n${attachedSectors.length > 0 ? `Odak Sektör(ler): ${sectorNames}\nEkli Dosya: ${hasPdfs ? 'Var' : 'Yok'}\n` : ''}Ön Yazı:\n${this.templateParser(plainTextContent, agency)}`,
+        status: MailStatus.PENDING,
+      }
+    });
+
+    const tid = mailLog.trackingId;
+    const baseUrl = getBaseUrl();
+    const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+
+    // Wrap links for tracking
+    let trackedHtml = _emailHtml.replace(
+      /href="(https?:\/\/[^"]+)"/g,
+      (match: string, url: string) => {
+        if (url.includes("/api/track")) return match;
+        const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
+        return `href="${trackUrl}"`;
+      }
+    );
+
+    const lastDivIndex = trackedHtml.lastIndexOf('</div>');
+    if (lastDivIndex !== -1) {
+      trackedHtml = trackedHtml.slice(0, lastDivIndex) + trackingPixel + trackedHtml.slice(lastDivIndex);
+    } else {
+      trackedHtml += trackingPixel;
+    }
+
+    // Send real email via SMTP
+    await MailService.sendEmail({
+      to: toEmail,
+      subject: parsedSubject,
+      html: trackedHtml,
+    });
+
+    // Update status to SENT
+    await prisma.mailLog.update({
+      where: { id: mailLog.id },
+      data: {
         status: MailStatus.SENT,
         sentAt: new Date(),
       }
