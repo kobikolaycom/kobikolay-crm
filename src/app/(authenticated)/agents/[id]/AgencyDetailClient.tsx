@@ -794,7 +794,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                               </span>
                               {item.callStatus && (
                                 <Badge variant="outline" className="text-[9px] font-bold">
-                                  {item.callStatus === "REACHED" ? "✅ Ulaşıldı" : item.callStatus === "NO_ANSWER" ? "📵 Cevap Yok" : item.callStatus === "BUSY" ? "⏳ Meşgul" : item.callStatus}
+                                  {item.callStatus === "REACHED" ? "✅ Ulaşıldı" : item.callStatus === "NO_ANSWER" ? "📵 Cevap Yok" : item.callStatus === "BUSY" ? "⏳ Meşgul" : item.callStatus === "WRONG_NUMBER" ? "❌ Yanlış Numara" : item.callStatus === "NORMAL" ? "🔄 Tekrar aranacak" : item.callStatus}
                                 </Badge>
                               )}
                               <span className="text-[10px] text-slate-400 font-medium ml-auto">
@@ -1369,6 +1369,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   <SelectItem value="NO_ANSWER">📵 Cevap Yok</SelectItem>
                   <SelectItem value="BUSY">⏳ Meşgul</SelectItem>
                   <SelectItem value="WRONG_NUMBER">❌ Yanlış Numara</SelectItem>
+                  <SelectItem value="NORMAL">🔄 Tekrar aranacak</SelectItem>
                 </SelectContent>
               </Select>
             </div>

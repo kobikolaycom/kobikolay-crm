@@ -79,10 +79,8 @@ function callStatusBadge(status: string | null | undefined) {
     REACHED:      { label: "Ulaşıldı", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     NO_ANSWER:    { label: "Cevap Yok", cls: "bg-amber-100 text-amber-700 border-amber-200" },
     BUSY:         { label: "Meşgul", cls: "bg-orange-100 text-orange-700 border-orange-200" },
-    WRONG_NUMBER: { label: "Yanlış No", cls: "bg-red-100 text-red-700 border-red-200" },
-    GOOD:         { label: "Olumlu", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-    NORMAL:       { label: "Normal", cls: "bg-blue-100 text-blue-700 border-blue-200" },
-    BAD:          { label: "Olumsuz", cls: "bg-red-100 text-red-700 border-red-200" },
+    WRONG_NUMBER: { label: "Yanlış Numara", cls: "bg-red-100 text-red-700 border-red-200" },
+    NORMAL:       { label: "Tekrar aranacak", cls: "bg-blue-100 text-blue-700 border-blue-200" },
   };
   const v = map[status] || { label: status, cls: "bg-muted text-muted-foreground" };
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
@@ -642,6 +640,7 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
             <SelectItem value="NO_ANSWER">Cevap Yok</SelectItem>
             <SelectItem value="BUSY">Meşgul</SelectItem>
             <SelectItem value="WRONG_NUMBER">Yanlış Numara</SelectItem>
+            <SelectItem value="NORMAL">Tekrar aranacak</SelectItem>
           </SelectContent>
         </Select>
       </div>
