@@ -40,6 +40,7 @@ import {
   completeTaskAction,
   addNoteAction,
   updateAgencyStatusAction,
+  updateAgencyAuthorizedPersonAction,
   getActiveUsersForAssignAction,
   createAgencyConversationAction,
   addAgencyMessageAction,
@@ -148,6 +149,13 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [users, setUsers] = useState<{ id: string; name: string | null }[]>([]);
+  
+  const [isEditingAuthPerson, setIsEditingAuthPerson] = useState(false);
+  const [authPersonValue, setAuthPersonValue] = useState(agency.authorizedPerson || "");
+
+  useEffect(() => {
+    setAuthPersonValue(agency.authorizedPerson || "");
+  }, [agency.authorizedPerson]);
 
   // Tab State - 3 tabs: notes, communication, mails
   const [activeTab, setActiveTab] = useState<"notes" | "communication" | "mails">("notes");
@@ -253,6 +261,19 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   };
 
   // ─── ACTION HANDLERS ───
+  const handleUpdateAuthPerson = () => {
+    startTransition(async () => {
+      try {
+        await updateAgencyAuthorizedPersonAction(agency.id, authPersonValue.trim() || null);
+        toast.success("Yetkili kişi güncellendi");
+        setIsEditingAuthPerson(false);
+        router.refresh();
+      } catch (e: any) {
+        toast.error(e?.message || "Yetkili kişi güncellenemedi");
+      }
+    });
+  };
+
   const handleAddNote = () => {
     if (!noteContent.trim()) return;
     startTransition(async () => {
@@ -599,15 +620,67 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   <ExternalLink size={12} className="text-violet-400 shrink-0" />
                 </a>
               )}
-              {agency.authorizedPerson && (
-                <div className="flex items-center gap-3 bg-rose-50 rounded-xl px-4 py-3 group hover:bg-rose-100 transition-colors">
-                  <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
-                    <User size={15} className="text-rose-600" />
+              {isEditingAuthPerson ? (
+                <div className="bg-rose-50 rounded-xl px-4 py-3 border border-rose-200">
+                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block mb-1">Yetkili Kişi Düzenle</span>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={authPersonValue}
+                      onChange={(e) => setAuthPersonValue(e.target.value)}
+                      placeholder="Yetkili adı yazın..."
+                      className="h-8 text-xs bg-white rounded-lg px-2 flex-1"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleUpdateAuthPerson();
+                        if (e.key === "Escape") setIsEditingAuthPerson(false);
+                      }}
+                    />
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-200 shrink-0"
+                      onClick={handleUpdateAuthPerson}
+                      disabled={isPending}
+                    >
+                      <Save size={13} />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500 border-slate-200 shrink-0"
+                      onClick={() => {
+                        setIsEditingAuthPerson(false);
+                        setAuthPersonValue(agency.authorizedPerson || "");
+                      }}
+                    >
+                      <X size={13} />
+                    </Button>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider">Yetkili Kişi</span>
-                    <p className="text-sm font-bold text-rose-900">{agency.authorizedPerson}</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3 bg-rose-50 rounded-xl px-4 py-3 group hover:bg-rose-100 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+                      <User size={15} className="text-rose-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">Yetkili Kişi</span>
+                      <p className={cn("text-sm font-bold truncate", agency.authorizedPerson ? "text-rose-900" : "text-rose-500 italic")}>
+                        {agency.authorizedPerson || "Yetkili kişi atanmamış"}
+                      </p>
+                    </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 rounded-lg text-rose-600 hover:bg-rose-200 shrink-0 transition-opacity",
+                      agency.authorizedPerson ? "opacity-0 group-hover:opacity-100" : "opacity-100"
+                    )}
+                    onClick={() => setIsEditingAuthPerson(true)}
+                  >
+                    <Plus size={14} />
+                  </Button>
                 </div>
               )}
               {!contact?.phone && !contact?.email && !contact?.province && !contact?.address && !agency.website && !agency.authorizedPerson && !agency.btkZone && (

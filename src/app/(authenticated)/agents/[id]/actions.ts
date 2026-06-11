@@ -80,6 +80,19 @@ export async function updateAgencyStatusAction(id: string, status: string) {
   revalidatePath(`/agents/${id}`);
 }
 
+export async function updateAgencyAuthorizedPersonAction(id: string, name: string | null) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz");
+
+  await prisma.agency.update({
+    where: { id },
+    data: { authorizedPerson: name },
+  });
+
+  revalidatePath(`/agents/${id}`);
+}
+
+
 export async function getActiveUsersForAssignAction() {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz");
