@@ -22,10 +22,13 @@ export class AgencyService {
     mailInteraction?: string;
     representativeId?: string;
     callStatusFilter?: string;
+    btkZone?: string;
+    province?: string;
+    district?: string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, callStatusFilter, sortBy, sortOrder } = params || {};
+    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, callStatusFilter, btkZone, province, district, sortBy, sortOrder } = params || {};
     const take = Math.min(rawTake, 200); // Pagination upper bound
     
     let where: Prisma.AgencyWhereInput = {
@@ -173,6 +176,23 @@ export class AgencyService {
     // Representative filter
     if (representativeId) {
       where.representativeId = representativeId;
+    }
+
+    // BTK Zone filter
+    if (btkZone && btkZone !== "all") {
+      where.btkZone = btkZone;
+    }
+
+    // Province filter (via contacts relation)
+    if (province && province !== "all") {
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { contacts: { some: { province } } }];
+    }
+
+    // District filter (via contacts relation)
+    if (district && district !== "all") {
+      const existingAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
+      where.AND = [...existingAnd, { contacts: { some: { district } } }];
     }
 
     // Call status filter (checks the most recent CALL_LOG status)
@@ -371,6 +391,24 @@ export class AgencyService {
       return result.map(r => r.province!).filter(Boolean);
     } catch (error) {
       console.warn("Database connection failed in AgencyService.getDistinctProvinces");
+      return [];
+    }
+  }
+
+  /**
+   * BTK Bölge listesini getirir (filtreleme için).
+   */
+  static async getDistinctBtkZones(): Promise<string[]> {
+    try {
+      const result = await prisma.agency.findMany({
+        where: { btkZone: { not: null }, status: { not: "DELETED" } },
+        select: { btkZone: true },
+        distinct: ["btkZone"],
+        orderBy: { btkZone: "asc" },
+      });
+      return result.map(r => r.btkZone!).filter(Boolean);
+    } catch (error) {
+      console.warn("Database connection failed in AgencyService.getDistinctBtkZones");
       return [];
     }
   }

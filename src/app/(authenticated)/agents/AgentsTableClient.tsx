@@ -29,7 +29,7 @@ import {
   Search, ChevronLeft, ChevronRight, Users, Mail, MailX,
   Upload, FileSpreadsheet, CheckCircle2, FileText,
   ExternalLink, Trash2, AlertTriangle, Plus, Building2, Phone,
-  Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown, Clock
+  Pencil, Eye, ArrowUpDown, ArrowUp, ArrowDown, Clock, MapPin
 } from "lucide-react";
 import {
   Dialog,
@@ -48,6 +48,8 @@ interface AgentsTableClientProps {
   agencies: any[];
   sectors: any[];
   users: any[];
+  btkZones: string[];
+  provinces: string[];
   total: number;
   currentPage: number;
   pageSize: number;
@@ -57,6 +59,9 @@ interface AgentsTableClientProps {
   initialMailInteraction?: string;
   initialRepresentativeId?: string;
   initialCallStatusFilter?: string;
+  initialBtkZone?: string;
+  initialProvince?: string;
+  initialDistrict?: string;
   initialSortBy?: string;
   initialSortOrder?: string;
 }
@@ -86,7 +91,7 @@ function callStatusBadge(status: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, users, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -147,6 +152,24 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
   const [editWebsite, setEditWebsite] = useState("");
   const [editBtkZone, setEditBtkZone] = useState("");
   const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
+
+  // District dynamic loading
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  // Load districts when province changes
+  useEffect(() => {
+    if (initialProvince && initialProvince !== "all") {
+      setLoadingDistricts(true);
+      fetch(`/api/agencies/districts?province=${encodeURIComponent(initialProvince)}`)
+        .then(res => res.json())
+        .then(data => setDistricts(data.districts || []))
+        .catch(() => setDistricts([]))
+        .finally(() => setLoadingDistricts(false));
+    } else {
+      setDistricts([]);
+    }
+  }, [initialProvince]);
 
   const openEditDialog = (agency: any) => {
     setEditingAgency(agency);
@@ -643,6 +666,100 @@ export function AgentsTableClient({ agencies, sectors, users, total, currentPage
             <SelectItem value="NORMAL">Tekrar aranacak</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* BTK Zone filter */}
+        <Select
+          value={initialBtkZone || "all"}
+          onValueChange={(value) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (value === "all") {
+              params.delete("btkZone");
+            } else {
+              params.set("btkZone", value);
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
+            <div className="flex items-center gap-1.5">
+              <MapPin size={14} className="text-muted-foreground shrink-0" />
+              <SelectValue placeholder="BTK Bölgesi" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm BTK Bölgeleri</SelectItem>
+            {btkZones.map((zone) => (
+              <SelectItem key={zone} value={zone}>
+                {zone}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Province (İl) filter */}
+        <Select
+          value={initialProvince || "all"}
+          onValueChange={(value) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (value === "all") {
+              params.delete("province");
+              params.delete("district");
+            } else {
+              params.set("province", value);
+              params.delete("district");
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          <SelectTrigger className="w-[160px] rounded-xl text-xs h-9">
+            <div className="flex items-center gap-1.5">
+              <MapPin size={14} className="text-muted-foreground shrink-0" />
+              <SelectValue placeholder="İl" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm İller</SelectItem>
+            {provinces.map((prov) => (
+              <SelectItem key={prov} value={prov}>
+                {prov}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* District (İlçe) filter — only shown when a province is selected */}
+        {initialProvince && initialProvince !== "all" && (
+          <Select
+            value={initialDistrict || "all"}
+            onValueChange={(value) => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete("page");
+              if (value === "all") {
+                params.delete("district");
+              } else {
+                params.set("district", value);
+              }
+              router.push(`${pathname}?${params.toString()}`);
+            }}
+          >
+            <SelectTrigger className="w-[160px] rounded-xl text-xs h-9">
+              <div className="flex items-center gap-1.5">
+                <MapPin size={14} className="text-muted-foreground shrink-0" />
+                <SelectValue placeholder={loadingDistricts ? "Yükleniyor..." : "İlçe"} />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tüm İlçeler</SelectItem>
+              {districts.map((dist) => (
+                <SelectItem key={dist} value={dist}>
+                  {dist}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Mobile Pagination & Sort Bar */}

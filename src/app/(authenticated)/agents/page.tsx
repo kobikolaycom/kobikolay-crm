@@ -23,6 +23,9 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const mailInteraction = (params.mailInteraction as string) || "all";
   const representativeId = (params.representativeId as string) || "";
   const callStatusFilter = (params.callStatusFilter as string) || "all";
+  const btkZone = (params.btkZone as string) || "all";
+  const province = (params.province as string) || "all";
+  const district = (params.district as string) || "all";
   const sortBy = (params.sortBy as string) || "";
   const sortOrder = (params.sortOrder as string) || "";
 
@@ -38,13 +41,18 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     mailInteraction: mailInteraction !== "all" ? mailInteraction : undefined,
     representativeId: representativeId || undefined,
     callStatusFilter: callStatusFilter !== "all" ? callStatusFilter : undefined,
+    btkZone: btkZone !== "all" ? btkZone : undefined,
+    province: province !== "all" ? province : undefined,
+    district: district !== "all" ? district : undefined,
     sortBy: sortBy || undefined,
     sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
 
-  const [sectors, users] = await Promise.all([
+  const [sectors, users, btkZones, provinces] = await Promise.all([
     SectorService.list(),
     UserService.getActiveUsers(),
+    AgencyService.getDistinctBtkZones(),
+    AgencyService.getDistinctProvinces(),
   ]);
 
   return (
@@ -57,6 +65,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         agencies={JSON.parse(JSON.stringify(agencies))}
         sectors={JSON.parse(JSON.stringify(sectors))}
         users={JSON.parse(JSON.stringify(users))}
+        btkZones={btkZones}
+        provinces={provinces}
         total={total}
         currentPage={page}
         pageSize={pageSize}
@@ -66,6 +76,9 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialMailInteraction={mailInteraction}
         initialRepresentativeId={representativeId}
         initialCallStatusFilter={callStatusFilter}
+        initialBtkZone={btkZone}
+        initialProvince={province}
+        initialDistrict={district}
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
       />
