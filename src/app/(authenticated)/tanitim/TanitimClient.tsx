@@ -184,6 +184,7 @@ export function TanitimClient({
   };
 
   // Step 2: Filtreler + Acente Seçimi
+  const PAGE_SIZE = 50;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProvince, setSelectedProvince] = useState("all");
   const [selectedDistrict, setSelectedDistrict] = useState("all");
@@ -194,6 +195,8 @@ export function TanitimClient({
   const [contactHistory, setContactHistory] = useState("all");
   const [agencies, setAgencies] = useState<AgencyRow[]>([]);
   const [totalAgencies, setTotalAgencies] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loadingAgencies, setLoadingAgencies] = useState(false);
 
@@ -218,8 +221,9 @@ export function TanitimClient({
     }
   }, [selectedProvince]);
 
-  // Acente listesini filtrele
-  const loadAgencies = useCallback(() => {
+  // Acente listesini filtrele (sayfalamalı)
+  const loadAgencies = useCallback((page?: number) => {
+    const targetPage = page || currentPage;
     setLoadingAgencies(true);
     getFilteredAgenciesAction({
       search: searchQuery || undefined,
@@ -229,14 +233,23 @@ export function TanitimClient({
       sectorId: selectedSector !== "all" ? selectedSector : undefined,
       mailHistory: mailHistory !== "all" ? mailHistory : undefined,
       contactHistory: contactHistory !== "all" ? contactHistory : undefined,
-    }).then(({ data, total }) => {
+      page: targetPage,
+      pageSize: PAGE_SIZE,
+    }).then(({ data, total, totalPages: pages }) => {
       setAgencies(data);
       setTotalAgencies(total);
+      setTotalPages(pages);
       setLoadingAgencies(false);
     }).catch(() => {
       setLoadingAgencies(false);
     });
-  }, [searchQuery, selectedProvince, selectedDistrict, selectedStatus, selectedSector, mailHistory, contactHistory]);
+  }, [searchQuery, selectedProvince, selectedDistrict, selectedStatus, selectedSector, mailHistory, contactHistory, currentPage]);
+
+  // Sayfa değiştirme (seçimler korunur)
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    loadAgencies(page);
+  };
 
   // Step 2'ye geçince acente listesini yükle
   useEffect(() => {
@@ -245,12 +258,17 @@ export function TanitimClient({
     }
   }, [step, loadAgencies]);
 
-  // Select all toggle
+  // Select all toggle — sayfadaki acenteleri mevcut seçime ekler/çıkarır
+  const currentPageIds = agencies.map(a => a.id);
+  const allCurrentPageSelected = currentPageIds.length > 0 && currentPageIds.every(id => selectedIds.includes(id));
+
   const toggleSelectAll = () => {
-    if (selectedIds.length === agencies.length) {
-      setSelectedIds([]);
+    if (allCurrentPageSelected) {
+      // Bu sayfadakileri seçimden çıkar (diğer sayfalardan seçilenler korunur)
+      setSelectedIds(prev => prev.filter(id => !currentPageIds.includes(id)));
     } else {
-      setSelectedIds(agencies.map(a => a.id));
+      // Bu sayfadakileri mevcut seçime ekle (tekrar eklemeyi önle)
+      setSelectedIds(prev => [...new Set([...prev, ...currentPageIds])]);
     }
   };
 
@@ -277,6 +295,8 @@ export function TanitimClient({
     setContactHistory("all");
     setAgencies([]);
     setSelectedIds([]);
+    setCurrentPage(1);
+    setTotalPages(0);
   };
 
   const openCreate = () => {
@@ -603,6 +623,7 @@ export function TanitimClient({
                         setSelectedSector("all");
                         setMailHistory("all");
                         setContactHistory("all");
+                        setCurrentPage(1);
                       }}
                     >
                       <X size={12} className="mr-1" /> Temizle
@@ -712,7 +733,7 @@ export function TanitimClient({
 
                   {/* Filtre butonu + sayaç */}
                   <div className="flex items-center justify-between pt-1">
-                    <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs gap-1" onClick={loadAgencies} disabled={loadingAgencies}>
+                    <Button variant="outline" size="sm" className="rounded-xl h-8 text-xs gap-1" onClick={() => { setCurrentPage(1); loadAgencies(1); }} disabled={loadingAgencies}>
                       {loadingAgencies ? <RefreshCw size={12} className="animate-spin" /> : <Search size={12} />}
                       Filtrele
                     </Button>
@@ -733,16 +754,27 @@ export function TanitimClient({
                       className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-primary transition-colors cursor-pointer"
                     >
                       <Checkbox
-                        checked={agencies.length > 0 && selectedIds.length === agencies.length}
+                        checked={allCurrentPageSelected}
                         onCheckedChange={toggleSelectAll}
                       />
-                      Tümünü Seç ({agencies.length})
+                      Bu Sayfayı Seç ({agencies.length})
                     </button>
-                    {selectedIds.length > 0 && (
-                      <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
-                        {selectedIds.length} acente seçildi
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {selectedIds.length > 0 && selectedIds.length !== currentPageIds.filter(id => selectedIds.includes(id)).length && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedIds([])}
+                          className="text-[10px] text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                        >
+                          <X size={10} /> Seçimi Temizle
+                        </button>
+                      )}
+                      {selectedIds.length > 0 && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
+                          Toplam {selectedIds.length} acente seçildi
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <div className="bg-white border rounded-xl divide-y max-h-[300px] overflow-y-auto">
@@ -789,6 +821,59 @@ export function TanitimClient({
                       ))
                     )}
                   </div>
+
+                  {/* Sayfalama Navigasyonu */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="text-xs text-muted-foreground">
+                        Sayfa {currentPage} / {totalPages} · {totalAgencies} acente
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs rounded-lg"
+                          disabled={currentPage <= 1 || loadingAgencies}
+                          onClick={() => goToPage(currentPage - 1)}
+                        >
+                          « Önceki
+                        </Button>
+                        {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                          let pageNum: number;
+                          if (totalPages <= 7) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 4) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 3) {
+                            pageNum = totalPages - 6 + i;
+                          } else {
+                            pageNum = currentPage - 3 + i;
+                          }
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              className={`h-7 w-7 p-0 text-xs rounded-lg ${currentPage === pageNum ? "" : ""}`}
+                              onClick={() => goToPage(pageNum)}
+                              disabled={loadingAgencies}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 text-xs rounded-lg"
+                          disabled={currentPage >= totalPages || loadingAgencies}
+                          onClick={() => goToPage(currentPage + 1)}
+                        >
+                          Sonraki »
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}

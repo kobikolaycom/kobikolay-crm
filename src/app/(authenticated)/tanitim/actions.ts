@@ -42,6 +42,8 @@ export async function getFilteredAgenciesAction(filters: {
   sectorId?: string;
   mailHistory?: string;
   contactHistory?: string;
+  page?: number;
+  pageSize?: number;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz");
@@ -171,14 +173,54 @@ export async function sendBulkPromotionAction(data: {
     if (i > 0) await delay(baseDelay + extraDelay);
 
     try {
-      // Parse template with agency data
-      const parsedContent = CampaignService.templateParser(data.content, agency);
-      const html = CampaignService.buildCampaignEmail(parsedContent, agency);
+      // Parse template and build email HTML
+      const emailSubject = CampaignService.templateParser(data.subject, agency);
+      const rawHtml = CampaignService.buildCampaignEmail(data.content, agency);
+
+      // Create MailLog record for tracking (pixel + link)
+      const mailLog = await prisma.mailLog.create({
+        data: {
+          agencyId: agency.id,
+          subject: emailSubject,
+          content: `Kampanya E-postası: ${data.campaignName}`,
+          status: MailStatus.PENDING,
+        },
+      });
+
+      // Inject tracking pixel and wrap links
+      const tid = mailLog.trackingId;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kobikolay-crm.vercel.app";
+      const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
+
+      let trackedHtml = rawHtml.replace(
+        /href="(https?:\/\/[^"]+)"/g,
+        (match: string, url: string) => {
+          if (url.includes("/api/track") || url.includes("acenteyazilim.com")) return match;
+          const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
+          return `href="${trackUrl}"`;
+        }
+      );
+
+      const lastDivIndex = trackedHtml.lastIndexOf('</div>');
+      if (lastDivIndex !== -1) {
+        trackedHtml = trackedHtml.slice(0, lastDivIndex) + trackingPixel + trackedHtml.slice(lastDivIndex);
+      } else {
+        trackedHtml += trackingPixel;
+      }
 
       await MailService.sendEmail({
         to: email,
-        subject: CampaignService.templateParser(data.subject, agency),
-        html,
+        subject: emailSubject,
+        html: trackedHtml,
+      });
+
+      // Update MailLog status to SENT
+      await prisma.mailLog.update({
+        where: { id: mailLog.id },
+        data: {
+          status: MailStatus.SENT,
+          sentAt: new Date(),
+        },
       });
 
       await prisma.campaignLog.create({
@@ -189,6 +231,8 @@ export async function sendBulkPromotionAction(data: {
           sentAt: new Date(),
         },
       });
+
+      await AgencyService.updateLastInteraction(agency.id);
       sentCount++;
     } catch (error: any) {
       await prisma.campaignLog.create({

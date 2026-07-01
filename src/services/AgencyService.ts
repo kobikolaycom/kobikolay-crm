@@ -442,9 +442,15 @@ export class AgencyService {
     sectorId?: string;
     mailHistory?: string; // "sent" | "not_sent" | "all"
     contactHistory?: string; // "contacted" | "not_contacted" | "all"
-  }): Promise<{ data: any[]; total: number }> {
+    page?: number;
+    pageSize?: number;
+  }): Promise<{ data: any[]; total: number; totalPages: number }> {
     try {
       const { search, province, district, status, sectorId, mailHistory, contactHistory } = params;
+      const page = Math.max(1, params.page || 1);
+      const pageSize = Math.min(Math.max(1, params.pageSize || 50), 200);
+      const skip = (page - 1) * pageSize;
+
       const where: any = {
         isUnsubscribed: false,
         status: { not: "DELETED" },  // Exclude soft-deleted agencies
@@ -526,15 +532,16 @@ export class AgencyService {
             _count: { select: { mailLogs: true, campaignLogs: true, conversations: true } },
           },
           orderBy: { companyName: "asc" },
-          take: 500, // Güvenlik limiti
+          skip,
+          take: pageSize,
         }),
         prisma.agency.count({ where }),
       ]);
 
-      return { data, total };
+      return { data, total, totalPages: Math.ceil(total / pageSize) };
     } catch (error) {
       console.warn("Database connection failed in AgencyService.getFilteredForPromotion");
-      return { data: [], total: 0 };
+      return { data: [], total: 0, totalPages: 0 };
     }
   }
 
