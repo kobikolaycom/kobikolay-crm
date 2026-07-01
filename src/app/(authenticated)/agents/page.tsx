@@ -13,7 +13,7 @@ interface PageProps {
 export default async function AgentsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Number(params.page) || 1;
-  const pageSize = 20;
+  const pageSize = 50;
   const search = (params.search as string) || "";
   const sector = (params.sector as string) || "all";
   const pitchStatus = (params.pitchStatus as string) || "all";
