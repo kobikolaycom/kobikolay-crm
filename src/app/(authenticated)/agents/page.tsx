@@ -81,6 +81,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialDistrict={district}
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
+        initialSector={sector}
       />
     </div>
   );

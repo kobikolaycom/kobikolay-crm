@@ -64,6 +64,7 @@ interface AgentsTableClientProps {
   initialDistrict?: string;
   initialSortBy?: string;
   initialSortOrder?: string;
+  initialSector?: string;
 }
 
 function statusBadge(status: string) {
@@ -91,7 +92,7 @@ function callStatusBadge(status: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, sectors, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "", initialSector = "all" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -605,6 +606,36 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
             router.push(`${pathname}?${params.toString()}`);
           }}
         />
+
+        {/* Sector (Faaliyet Alanı) filter */}
+        <Select
+          value={initialSector || "all"}
+          onValueChange={(value) => {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("page");
+            if (value === "all") {
+              params.delete("sector");
+            } else {
+              params.set("sector", value);
+            }
+            router.push(`${pathname}?${params.toString()}`);
+          }}
+        >
+          <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
+            <div className="flex items-center gap-1.5">
+              <Building2 size={14} className="text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Faaliyet Alanı" />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tüm Faaliyet Alanları</SelectItem>
+            {sectors.map((sec: any) => (
+              <SelectItem key={sec.id} value={sec.id}>
+                {sec.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Representative filter */}
         <Select
