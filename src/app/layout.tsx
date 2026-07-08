@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "KobiKolay CRM",
-  description: "Acenteler için profesyonel müşteri ilişkileri yönetim sistemi.",
+  description: "İşletmeler için profesyonel müşteri ilişkileri yönetim sistemi.",
 };
 
 export default function RootLayout({

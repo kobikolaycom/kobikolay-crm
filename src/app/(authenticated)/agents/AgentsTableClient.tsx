@@ -223,7 +223,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
       setEditingAgency(null);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Acente güncellenemedi");
+      toast.error(err.message || "İşletme güncellenemedi");
     } finally {
       setIsEditing(false);
     }
@@ -407,7 +407,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                 setImportSkippedLive(msg.skipped);
               } else if (msg.type === "done") {
                 setImportResult(msg);
-                toast.success(`${msg.created} acente başarıyla eklendi`);
+                toast.success(`${msg.created} işletme başarıyla eklendi`);
               }
             } catch {
               // Skip malformed JSON lines
@@ -438,7 +438,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
     setIsResetting(true);
     try {
       const res = await resetBatchImportedAgenciesAction();
-      toast.success(`${res.count} adet işlem görmemiş pasif acente sıfırlandı.`);
+      toast.success(`${res.count} adet işlem görmemiş pasif işletme sıfırlandı.`);
       setShowResetConfirmDialog(false);
       router.refresh();
     } catch (err: any) {
@@ -491,7 +491,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
       resetCreateForm();
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "Acente eklenemedi");
+      toast.error(err.message || "İşletme eklenemedi");
     } finally {
       setIsCreating(false);
     }
@@ -510,7 +510,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
           <Input
-            placeholder="Acente ara (isim, belge no)..."
+            placeholder="İşletme ara (isim, belge no)..."
             className="pl-9 rounded-xl"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -522,7 +522,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
             onClick={() => { resetCreateForm(); setShowCreateDialog(true); }}
             className="gap-1.5 rounded-xl text-xs sm:text-sm"
           >
-            <Plus size={16} /> <span className="hidden sm:inline">Yeni Acente</span><span className="sm:hidden">Yeni</span>
+            <Plus size={16} /> <span className="hidden sm:inline">Yeni İşletme</span><span className="sm:hidden">Yeni</span>
           </Button>
           <Button
             variant="outline"
@@ -811,7 +811,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
             <div className="bg-white rounded-2xl border shadow-sm p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-muted-foreground">
-                  <strong>{total.toLocaleString()}</strong> acente · Sayfa {currentPage}/{totalPages}
+                  <strong>{total.toLocaleString()}</strong> işletme · Sayfa {currentPage}/{totalPages}
                 </span>
                 <button
                   onClick={() => toggleSort("documentNo")}
@@ -868,7 +868,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
         {agencies.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border">
             <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-muted-foreground">Acente bulunamadı</p>
+            <p className="text-muted-foreground">İşletme bulunamadı</p>
           </div>
         ) : (
           agencies.map((agency) => {
@@ -1008,7 +1008,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                 <tr>
                   <td colSpan={15} className="text-center py-20">
                     <Users size={32} className="mx-auto text-muted-foreground/30 mb-3" />
-                    <p className="text-muted-foreground">Acente bulunamadı</p>
+                    <p className="text-muted-foreground">İşletme bulunamadı</p>
                   </td>
                 </tr>
               ) : (
@@ -1183,10 +1183,10 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                              <Eye size={15} />
                            </Button>
                          </Link>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors" onClick={() => openEditDialog(agency)} title="Acenteyi Güncelle">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors" onClick={() => openEditDialog(agency)} title="İşletmeyi Güncelle">
                            <Pencil size={15} />
                          </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }} title="Acenteyi Sil">
+                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={() => { setDeletingAgency(agency); setShowDeleteAgencyDialog(true); }} title="İşletmeyi Sil">
                            <Trash2 size={15} />
                          </Button>
                        </div>
@@ -1224,7 +1224,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           return (
             <div className="border-t px-4 py-3 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Toplam <strong>{total.toLocaleString()}</strong> acente, sayfa {currentPage}/{totalPages}
+                Toplam <strong>{total.toLocaleString()}</strong> işletme, sayfa {currentPage}/{totalPages}
               </span>
               <div className="flex items-center gap-1">
                 <Link
@@ -1280,7 +1280,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Toplu Tanıtım Gönderimi</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {selectedIds.length} acente seçildi — her acenteye kişiselleştirilmiş e-posta gönderilecek
+                  {selectedIds.length} işletme seçildi — her işletmeye kişiselleştirilmiş e-posta gönderilecek
                 </p>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} className="rounded-full">
@@ -1334,7 +1334,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                     </div>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    ℹ️ Her acente için kişi adı ve acente adı otomatik olarak doldurulacaktır. Yetkili kişi tanımlı değilse &quot;Sayın Yetkili&quot; yazılacaktır.
+                    ℹ️ Her işletme için kişi adı ve işletme adı otomatik olarak doldurulacaktır. Yetkili kişi tanımlı değilse &quot;Sayın Yetkili&quot; yazılacaktır.
                   </p>
                 </div>
 
@@ -1360,7 +1360,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
               </Button>
               <Button onClick={handleBulkSend} disabled={isSending} className="gap-2 rounded-xl">
                 {isSending ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
-                {isSending ? "İşleniyor..." : `${selectedIds.length} Acenteye Gönder`}
+                {isSending ? "İşleniyor..." : `${selectedIds.length} İşletmeye Gönder`}
               </Button>
             </div>
           </div>
@@ -1372,10 +1372,10 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet size={20} className="text-emerald-600" />
-              Excel ile Acente Aktar
+              Excel ile İşletme Aktar
             </DialogTitle>
             <DialogDescription>
-              Excel dosyanızı yükleyin, acenteler otomatik olarak sisteme aktarılır.
+              Excel dosyanızı yükleyin, işletmeler otomatik olarak sisteme aktarılır.
             </DialogDescription>
           </DialogHeader>
 
@@ -1536,11 +1536,11 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
         <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle size={20} /> Acenteyi Sil
+              <AlertTriangle size={20} /> İşletmeyi Sil
             </DialogTitle>
             <DialogDescription>
-              <strong>&quot;{deletingAgency?.companyName}&quot;</strong> acentesini silmek istediğinize emin misiniz?
-              Yazışması veya işlemi olan acenteler silinemez.
+              <strong>&quot;{deletingAgency?.companyName}&quot;</strong> işletmesini silmek istediğinize emin misiniz?
+              Yazışması veya işlemi olan işletmeler silinemez.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1565,10 +1565,10 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 size={20} className="text-primary" />
-              Yeni Acente Kaydet
+              Yeni İşletme Kaydet
             </DialogTitle>
             <DialogDescription>
-              Acente bilgilerini girin. TÜRSAB numarası mükerrer olamaz.
+              İşletme bilgilerini girin. TÜRSAB numarası mükerrer olamaz.
             </DialogDescription>
           </DialogHeader>
 
@@ -1716,10 +1716,10 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 size={20} className="text-primary" />
-              Acente Bilgilerini Güncelle
+              İşletme Bilgilerini Güncelle
             </DialogTitle>
             <DialogDescription>
-              Acente bilgilerini güncelleyin. TÜRSAB numarası mükerrer olamaz.
+              İşletme bilgilerini güncelleyin. TÜRSAB numarası mükerrer olamaz.
             </DialogDescription>
           </DialogHeader>
 
@@ -1869,7 +1869,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
               <AlertTriangle size={20} /> Test Verilerini Sıfırla
             </DialogTitle>
             <DialogDescription className="text-slate-600 text-sm leading-relaxed mt-2">
-              Sistemde yer alan, **hiçbir işlem görmemiş (yazışması, görevi, teklifi, mail kaydı bulunmayan) tüm pasif acenteler** ve onlara bağlı iletişim bilgileri kalıcı olarak silinecektir.
+              Sistemde yer alan, **hiçbir işlem görmemiş (yazışması, görevi, teklifi, mail kaydı bulunmayan) tüm pasif işletmeler** ve onlara bağlı iletişim bilgileri kalıcı olarak silinecektir.
               <br /><br />
               <span className="text-red-700 font-extrabold">⚠️ DİKKAT:</span> Bu işlem geri alınamaz. Bu mod test/geliştirme aşaması bittiğinde canlı ortamda kaldırılacaktır.
             </DialogDescription>

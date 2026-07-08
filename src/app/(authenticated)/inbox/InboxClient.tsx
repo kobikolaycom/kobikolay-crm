@@ -273,7 +273,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
     setLinkingAgencyId(agencyId);
     try {
       await linkAgencyAction(selectedId, agencyId);
-      toast.success("Konuşma acenteye bağlandı");
+      toast.success("Konuşma işletmeye bağlandı");
       const updated = await getConversationByIdAction(selectedId);
       setSelectedConvo(updated);
       await refreshConversations();
@@ -372,7 +372,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
           <div className="relative mb-4">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <Input
-              placeholder="Ara (İsim, Telefon, Acente)..."
+              placeholder="Ara (İsim, Telefon, İşletme)..."
               className="pl-10 h-10 rounded-2xl bg-white border-slate-200 shadow-sm focus-visible:ring-primary/20"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -589,7 +589,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                       className="rounded-lg gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100"
                       onClick={() => { setShowLinkPanel(!showLinkPanel); setShowAssignPanel(false); }}
                     >
-                      <Building2 size={14} /> Acenteye Bağla
+                      <Building2 size={14} /> İşletmeye Bağla
                     </Button>
                   )}
 
@@ -598,7 +598,7 @@ export function InboxClient({ initialConversations }: { initialConversations: Co
                     <div className="absolute top-full left-0 mt-2 w-80 bg-white border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="p-3 border-b bg-slate-50">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-slate-700">Acente Ara & Bağla</span>
+                          <span className="text-xs font-bold text-slate-700">İşletme Ara & Bağla</span>
                           <button onClick={() => setShowLinkPanel(false)} className="text-slate-400 hover:text-slate-900 bg-white rounded-full p-1 shadow-sm">
                             <X size={12} />
                           </button>

@@ -80,7 +80,7 @@ export default async function ActivitiesPage({
     <div className="space-y-6 p-6 lg:p-8">
       <PageHeader
         title="İşlem Geçmişi"
-        description="Tüm acente aktiviteleri: notlar, çağrılar, görevler ve hatırlatıcılar."
+        description="Tüm işletme aktiviteleri: notlar, çağrılar, görevler ve hatırlatıcılar."
       />
 
       {/* Date Filter Tabs */}
@@ -189,7 +189,7 @@ export default async function ActivitiesPage({
               <thead>
                 <tr className="bg-slate-50/80 border-b text-xs text-muted-foreground">
                   <th className="text-left px-5 py-3.5 font-medium">Tür</th>
-                  <th className="text-left px-4 py-3.5 font-medium">Acente</th>
+                  <th className="text-left px-4 py-3.5 font-medium">İşletme</th>
                   <th className="text-left px-4 py-3.5 font-medium">İçerik</th>
                   <th className="text-left px-4 py-3.5 font-medium">Şehir</th>
                   <th className="text-left px-4 py-3.5 font-medium">Sektör</th>

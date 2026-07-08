@@ -160,7 +160,7 @@ export default function IntegrationsPage() {
         { key: "testMode", value: checked ? "true" : "false" },
       ]);
       setTestMode(checked);
-      toast.success(checked ? "Test modu aktif edildi. Acenteler artık bağlı kayıtlarıyla birlikte silinebilir." : "Test modu kapatıldı. Canlı veri koruması aktif.");
+      toast.success(checked ? "Test modu aktif edildi. İşletmeler artık bağlı kayıtlarıyla birlikte silinebilir." : "Test modu kapatıldı. Canlı veri koruması aktif.");
     } catch {
       toast.error("İşlem gerçekleştirilemedi");
     } finally {
@@ -392,7 +392,7 @@ export default function IntegrationsPage() {
               </div>
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-lg">
-                  Sistem Çalışma Modu (Acente Silme Kilidi)
+                  Sistem Çalışma Modu (İşletme Silme Kilidi)
                   {testMode ? (
                     <Badge className="bg-amber-500 hover:bg-amber-600 border-none text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-bounce">TEST / SEED MODU</Badge>
                   ) : (
@@ -401,8 +401,8 @@ export default function IntegrationsPage() {
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
                   {testMode 
-                    ? "⚠️ DİKKAT: Test modu aktif! Adminler acenteleri silerken bağlı tüm geçmiş yazışmaları, teklifleri ve aktiviteleri veritabanından kalıcı olarak temizler (Cascade Delete)." 
-                    : "🔒 GÜVENLİ: Canlı mod aktif. Acenteler yanlışlıkla silinemez; bağlı herhangi bir geçmiş yazışma veya işlem varsa silme işlemi engellenir."
+                    ? "⚠️ DİKKAT: Test modu aktif! Adminler işletmeleri silerken bağlı tüm geçmiş yazışmaları, teklifleri ve aktiviteleri veritabanından kalıcı olarak temizler (Cascade Delete)." 
+                    : "🔒 GÜVENLİ: Canlı mod aktif. İşletmeler yanlışlıkla silinemez; bağlı herhangi bir geçmiş yazışma veya işlem varsa silme işlemi engellenir."
                   }
                 </p>
               </div>
@@ -479,7 +479,7 @@ export default function IntegrationsPage() {
                 <span>Mail Tanım</span>
                 <span className="text-[10px] font-normal text-muted-foreground">Mail atıldığında görülecek isim</span>
               </Label>
-              <Input value={smtpFromName} onChange={(e) => setSmtpFromName(e.target.value)} placeholder="Acente Yazilim" className="rounded-xl" />
+              <Input value={smtpFromName} onChange={(e) => setSmtpFromName(e.target.value)} placeholder="İşletme Yazilim" className="rounded-xl" />
             </div>
 
             <div className="space-y-2">
@@ -693,7 +693,7 @@ export default function IntegrationsPage() {
         </div>
         <div className="p-6 space-y-6">
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-800 leading-relaxed">
-            <strong>Nasıl Çalışır:</strong> Bir acenteye ulaşıldığında veya görev atandığında, bu olay otomatik olarak Meta&apos;ya gönderilir. 
+            <strong>Nasıl Çalışır:</strong> Bir işletmeye ulaşıldığında veya görev atandığında, bu olay otomatik olarak Meta&apos;ya gönderilir. 
             Meta bu verileri kullanarak Instagram/Facebook reklamlarınızı optimize eder ve benzer müşterilere ulaşmanızı sağlar.
           </div>
           
@@ -734,7 +734,7 @@ export default function IntegrationsPage() {
           <div className="bg-slate-50 rounded-2xl border p-5">
             <h4 className="text-xs font-bold text-slate-700 mb-3">🔔 Otomatik Tetikleyiciler</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2 text-slate-600"><CheckCircle2 size={14} className="text-emerald-500" /> Acenteye ulaşıldığında (Çağrı → Ulaşıldı)</div>
+              <div className="flex items-center gap-2 text-slate-600"><CheckCircle2 size={14} className="text-emerald-500" /> İşletmeye ulaşıldığında (Çağrı → Ulaşıldı)</div>
               <div className="flex items-center gap-2 text-slate-600"><CheckCircle2 size={14} className="text-emerald-500" /> Görev ataması yapıldığında</div>
             </div>
           </div>

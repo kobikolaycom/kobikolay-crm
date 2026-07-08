@@ -29,7 +29,7 @@ function UnsubscribeContent() {
     fetch(`/api/unsubscribe?token=${token}`)
       .then((res) => {
         if (!res.ok) {
-          throw new Error("Acente bulunamadı veya bağlantı süresi dolmuş.");
+          throw new Error("İşletme bulunamadı veya bağlantı süresi dolmuş.");
         }
         return res.json();
       })
@@ -41,7 +41,7 @@ function UnsubscribeContent() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message || "Acente bilgileri alınamadı.");
+        setError(err.message || "İşletme bilgileri alınamadı.");
         setLoading(false);
       });
   }, [token]);
@@ -77,7 +77,7 @@ function UnsubscribeContent() {
     return (
       <div className="flex flex-col items-center justify-center p-8 min-h-[300px]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-sm text-slate-500 font-medium animate-pulse">Acente bilgileri doğrulanıyor...</p>
+        <p className="text-sm text-slate-500 font-medium animate-pulse">İşletme bilgileri doğrulanıyor...</p>
       </div>
     );
   }
@@ -105,11 +105,11 @@ function UnsubscribeContent() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2">Abonelikten Ayrıldınız</h2>
         <p className="text-sm text-slate-500 leading-relaxed max-w-md mx-auto mb-6">
-          <strong>{agencyData?.companyName || "Acenteniz"}</strong> başarıyla e-posta listemizden çıkarılmıştır. 
+          <strong>{agencyData?.companyName || "İşletmeniz"}</strong> başarıyla e-posta listemizden çıkarılmıştır. 
           Bundan sonra tarafınıza bilgilendirme, teklif veya tanıtım e-postası gönderilmeyecektir.
         </p>
         <p className="text-xs text-muted-foreground border-t pt-4">
-          Fikrinizi değiştirirseniz acente temsilcinizle iletişime geçerek listenize tekrar dahil olabilirsiniz.
+          Fikrinizi değiştirirseniz müşteri temsilcinizle iletişime geçerek listenize tekrar dahil olabilirsiniz.
         </p>
       </div>
     );
@@ -160,7 +160,7 @@ function UnsubscribeContent() {
         <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-xs text-amber-700 flex items-start gap-2.5">
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />
           <span>
-            <strong>Lütfen Dikkat:</strong> Abonelikten ayrıldığınızda güncel teknolojilerimizden, özel indirim fırsatlarımızdan ve acentenizin dijital altyapısını güçlendirecek kritik güncellemelerden haberdar olamayacaksınız.
+            <strong>Lütfen Dikkat:</strong> Abonelikten ayrıldığınızda güncel teknolojilerimizden, özel indirim fırsatlarımızdan ve işletmenizin dijital altyapısını güçlendirecek kritik güncellemelerden haberdar olamayacaksınız.
           </span>
         </div>
 

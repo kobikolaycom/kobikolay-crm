@@ -157,7 +157,7 @@ export default function CommunicationHub({ initialEntries }: { initialEntries: H
                 {entry.isMassOperation ? (
                   <div className="flex items-center gap-1.5">
                     <Users size={12} />
-                    <span>{entry.agencyIds?.length || 0} acente hedeflendi</span>
+                    <span>{entry.agencyIds?.length || 0} işletme hedeflendi</span>
                   </div>
                 ) : entry.agency ? (
                   <div className="flex items-center gap-1.5">
@@ -207,12 +207,12 @@ export default function CommunicationHub({ initialEntries }: { initialEntries: H
                   {selectedEntry.isMassOperation ? (
                     <div className="flex items-center gap-2 text-sm">
                       <Users size={16} className="text-purple-600" />
-                      <span className="font-medium">{selectedEntry.agencyIds?.length || 0} acente</span>
+                      <span className="font-medium">{selectedEntry.agencyIds?.length || 0} işletme</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-purple-700 font-bold">
                       <FileText size={16} />
-                      {selectedEntry.agency?.companyName || "Bilinmeyen Acente"}
+                      {selectedEntry.agency?.companyName || "Bilinmeyen İşletme"}
                     </div>
                   )}
                 </div>

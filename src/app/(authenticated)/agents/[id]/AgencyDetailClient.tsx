@@ -520,7 +520,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
           <div>
             <h4 className="font-bold text-sm tracking-tight">E-posta Listesinden Ayrıldı</h4>
             <p className="text-xs text-red-700/90 leading-relaxed mt-1">
-              Bu acente e-posta listesinden kendi isteğiyle veya manuel olarak ayrılmıştır. Yasal düzenlemeler gereği bu acenteye toplu veya B2B tanıtım e-postaları <strong>gönderilemez</strong>.
+              Bu işletme e-posta listesinden kendi isteğiyle veya manuel olarak ayrılmıştır. Yasal düzenlemeler gereği bu işletmeye toplu veya B2B tanıtım e-postaları <strong>gönderilemez</strong>.
             </p>
           </div>
         </div>
@@ -969,7 +969,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                       <div className="text-center py-16 px-4">
                         <MessageCircle size={36} className="mx-auto text-slate-300 mb-3" />
                         <p className="text-sm font-semibold text-slate-500">Konuşma bulunamadı</p>
-                        <p className="text-xs text-slate-400 mt-1">Bu acente için henüz {hubChannel !== "ALL" ? channelConfig[hubChannel as ChannelType]?.label : ""} mesajı yok</p>
+                        <p className="text-xs text-slate-400 mt-1">Bu işletme için henüz {hubChannel !== "ALL" ? channelConfig[hubChannel as ChannelType]?.label : ""} mesajı yok</p>
                       </div>
                     ) : (
                       <div className="py-1">
@@ -1360,7 +1360,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                     <Mail size={28} className="text-slate-200" />
                   </div>
                   <p className="text-sm font-bold text-slate-500">Henüz mail gönderilmemiş</p>
-                  <p className="text-xs text-slate-400 mt-1">Bu acenteye gönderilen mailler burada görünecek</p>
+                  <p className="text-xs text-slate-400 mt-1">Bu işletmeye gönderilen mailler burada görünecek</p>
                 </div>
               )}
 
@@ -1416,7 +1416,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
           <Textarea
             value={noteContent}
             onChange={(e) => setNoteContent(e.target.value)}
-            placeholder="Acente hakkında not yazın..."
+            placeholder="İşletme hakkında not yazın..."
             className="min-h-[120px] rounded-xl"
           />
           <DialogFooter>
@@ -1592,7 +1592,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
               <Plus size={18} /> Yeni Görüşme Başlat
             </DialogTitle>
             <DialogDescription>
-              Bu acente ile yeni bir mesajlaşma oturumu oluşturun.
+              Bu işletme ile yeni bir mesajlaşma oturumu oluşturun.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-3">
@@ -1706,7 +1706,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
               Tanıtım E-postası Gönder
             </DialogTitle>
             <DialogDescription>
-              {agency.companyName} acentesine faaliyet alanlarına göre tanıtım e-postası gönderin.
+              {agency.companyName} işletmesine faaliyet alanlarına göre tanıtım e-postası gönderin.
               PDF broşürler otomatik eklenir.
             </DialogDescription>
           </DialogHeader>
@@ -1850,7 +1850,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
             <Button
               onClick={async () => {
                 if (!contact?.email) {
-                  toast.error("Bu acentenin e-posta adresi tanımlı değil");
+                  toast.error("Bu işletmenin e-posta adresi tanımlı değil");
                   return;
                 }
                 setPitchSending(true);

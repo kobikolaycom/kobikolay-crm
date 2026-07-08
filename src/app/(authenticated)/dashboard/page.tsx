@@ -105,7 +105,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <Link href="/agents" className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
           <div>
-            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Toplam Acente</span>
+            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Toplam İşletme</span>
             <h3 className="text-3xl font-extrabold text-slate-900 mt-2 group-hover:text-primary transition-colors">{stats.totalAgencies.toLocaleString()}</h3>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -265,7 +265,7 @@ export default async function DashboardPage() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b text-xs text-muted-foreground">
                     <th className="text-left px-5 py-3 font-medium">Tür</th>
-                    <th className="text-left px-4 py-3 font-medium">Acente</th>
+                    <th className="text-left px-4 py-3 font-medium">İşletme</th>
                     <th className="text-left px-4 py-3 font-medium">İçerik</th>
                     <th className="text-left px-4 py-3 font-medium">Şehir</th>
                     <th className="text-left px-4 py-3 font-medium">Sektör</th>

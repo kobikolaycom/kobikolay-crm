@@ -60,8 +60,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <PageHeader
-        title="Acenteler"
-        description="Tüm acente kayıtlarını görüntüleyin ve yönetin."
+        title="İşletmeler"
+        description="Tüm işletme kayıtlarını görüntüleyin ve yönetin."
       />
       <AgentsTableClient
         agencies={JSON.parse(JSON.stringify(agencies))}
