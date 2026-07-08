@@ -121,8 +121,6 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-      );
-    }
 
     // ─── STREAMING RESPONSE ───
     const encoder = new TextEncoder();
@@ -195,7 +193,7 @@ export async function POST(req: NextRequest) {
 
             // Build contact data
             const phone = phoneCol ? String(row[phoneCol] || "").trim() : "";
-            const email = emailCol ? String(row[emailCol] || "").trim() : "";
+            // email is already defined
             const address = addressCol ? String(row[addressCol] || "").trim() : "";
             const province = provinceCol ? String(row[provinceCol] || "").trim() : "";
             const district = districtCol ? String(row[districtCol] || "").trim() : "";

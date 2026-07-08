@@ -146,7 +146,7 @@ interface AgencyDetailClientProps {
 // ══════════════════════════════════════════════════════════
 // ─── MAIN COMPONENT ───
 // ══════════════════════════════════════════════════════════
-export function AgencyDetailClient({ agency, notes, conversations: initialConversations, activeIntegrations = { whatsapp: true, instagram: true, messenger: true } }: AgencyDetailClientProps) {
+export function AgencyDetailClient({ agency, categories = [], notes, conversations: initialConversations, activeIntegrations = { whatsapp: true, instagram: true, messenger: true } }: AgencyDetailClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [users, setUsers] = useState<{ id: string; name: string | null }[]>([]);
@@ -184,8 +184,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   const [completionNote, setCompletionNote] = useState("");
 
   // ─── Omnichannel Hub State ───
-  const [conversations,
-  categories = [], setConversations] = useState<Conversation[]>(initialConversations);
+  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
   const [hubChannel, setHubChannel] = useState<ChannelType | "ALL">("ALL");
   const [hubSearch, setHubSearch] = useState("");
   const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
