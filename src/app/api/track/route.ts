@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
         try {
           const parsed = new URL(redirectUrl);
           const appDomain = process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : "localhost";
-          const allowedDomains = [appDomain, "kobikolay.com", "www.kobikolay.com", "acenteyazilim.com", "www.acenteyazilim.com"];
+          const allowedDomains = [appDomain, "kobikolay.com", "www.kobikolay.com", "acenteyazilim.com", "www.acenteyazilim.com", "api.whatsapp.com", "wa.me", "web.whatsapp.com"];
           if (
             (parsed.protocol === "http:" || parsed.protocol === "https:") &&
             allowedDomains.some(d => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`))

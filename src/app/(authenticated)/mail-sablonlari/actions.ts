@@ -54,3 +54,23 @@ export async function seedDefaultsAction() {
   revalidatePath("/mail-sablonlari");
   return { success: true };
 }
+
+export async function setDefaultTemplateAction(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  await EmailTemplateService.setDefault(id);
+  revalidatePath("/mail-sablonlari");
+  revalidatePath("/tanitim");
+  return { success: true };
+}
+
+export async function duplicateTemplateAction(id: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Yetkisiz erişim");
+
+  await EmailTemplateService.duplicate(id);
+  revalidatePath("/mail-sablonlari");
+  revalidatePath("/tanitim");
+  return { success: true };
+}

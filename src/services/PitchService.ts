@@ -235,8 +235,8 @@ export class PitchService {
       let trackedHtml = fullHtml.replace(
         /href="(https?:\/\/[^"]+)"/g,
         (match: string, url: string) => {
-          // Kendi tracking URL'lerimizi tekrar sarmalama
-          if (url.includes("/api/track") || url.includes("acenteyazilim.com")) return match;
+          // Kendi tracking URL'lerimizi ve WhatsApp linklerini sarmalama
+          if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
           const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
           return `href="${trackUrl}"`;
         }

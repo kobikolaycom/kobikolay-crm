@@ -180,13 +180,83 @@ export class EmailTemplateService {
       const model = getModel();
       if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
 
-      const template = await model.delete({
+      // Aktif şablon silinemez
+      const template = await model.findUnique({ where: { id } });
+      if (template?.isDefault) {
+        throw new Error("Aktif şablon silinemez. Önce başka bir şablonu aktif yapın.");
+      }
+
+      const deleted = await model.delete({
         where: { id },
       });
 
-      return template;
+      return deleted;
     } catch (error) {
       console.error("E-posta şablonu silinirken hata oluştu:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Belirli bir şablonu varsayılan (aktif) yap.
+   * Aynı kategorideki diğer şablonların isDefault değerini false yapar.
+   */
+  static async setDefault(id: string) {
+    try {
+      const model = getModel();
+      if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
+
+      const template = await model.findUnique({ where: { id } });
+      if (!template) throw new Error("Şablon bulunamadı.");
+
+      // Transaction ile atomik güncelleme
+      await prisma.$transaction(async (tx: any) => {
+        const txModel = tx.emailTemplate;
+
+        // Aynı kategorideki tüm şablonları pasif yap
+        await txModel.updateMany({
+          where: { category: template.category, isDefault: true },
+          data: { isDefault: false },
+        });
+
+        // Seçilen şablonu aktif yap
+        await txModel.update({
+          where: { id },
+          data: { isDefault: true },
+        });
+      });
+
+      return await model.findUnique({ where: { id } });
+    } catch (error) {
+      console.error("Şablon aktif yapılırken hata oluştu:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Bir şablonu kopyalayarak yeni şablon oluştur
+   */
+  static async duplicate(id: string) {
+    try {
+      const model = getModel();
+      if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
+
+      const original = await model.findUnique({ where: { id } });
+      if (!original) throw new Error("Kopyalanacak şablon bulunamadı.");
+
+      const copy = await model.create({
+        data: {
+          name: `${original.name} (Kopya)`,
+          category: original.category,
+          subject: original.subject,
+          content: original.content,
+          isDefault: false, // Kopya asla varsayılan olmaz
+        },
+      });
+
+      return copy;
+    } catch (error) {
+      console.error("Şablon kopyalanırken hata oluştu:", error);
       throw error;
     }
   }

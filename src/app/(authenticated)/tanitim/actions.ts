@@ -195,7 +195,7 @@ export async function sendBulkPromotionAction(data: {
       let trackedHtml = rawHtml.replace(
         /href="(https?:\/\/[^"]+)"/g,
         (match: string, url: string) => {
-          if (url.includes("/api/track") || url.includes("acenteyazilim.com")) return match;
+          if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
           const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
           return `href="${trackUrl}"`;
         }

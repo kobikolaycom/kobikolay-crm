@@ -34,11 +34,16 @@ import {
   Eye,
   Code2,
   FileText,
+  Copy,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import {
   createTemplateAction,
   updateTemplateAction,
   deleteTemplateAction,
+  setDefaultTemplateAction,
+  duplicateTemplateAction,
 } from "./actions";
 
 // ─── Tipler ───
@@ -153,19 +158,17 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
   const [formIsDefault, setFormIsDefault] = useState(false);
 
   // Şablonları kategoriye göre ayır
-  const offerIntro = templates.find(
-    (t) => t.category === "offer_intro" && t.isDefault
-  );
+  const offerIntroTemplates = templates.filter((t) => t.category === "offer_intro");
   const specialTemplates = templates.filter((t) => t.category === "special");
 
   // Önizleme
   const previewContent = useMemo(() => parseTemplate(formContent), [formContent]);
 
   // ─── Form işlemleri ───
-  const openCreate = () => {
+  const openCreate = (category: string = "special") => {
     setEditingTemplate(null);
     setFormName("");
-    setFormCategory("special");
+    setFormCategory(category);
     setFormSubject("");
     setFormContent("");
     setFormIsDefault(false);
@@ -232,61 +235,177 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
     });
   };
 
+  const handleSetDefault = (template: EmailTemplate) => {
+    if (template.isDefault) return; // Zaten aktif
+    startTransition(async () => {
+      try {
+        await setDefaultTemplateAction(template.id);
+        toast.success(`"${template.name}" şablonu aktif yapıldı`);
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err.message || "Şablon aktif yapılamadı");
+      }
+    });
+  };
+
+  const handleDuplicate = (template: EmailTemplate) => {
+    startTransition(async () => {
+      try {
+        await duplicateTemplateAction(template.id);
+        toast.success(`"${template.name}" şablonu kopyalandı`);
+        router.refresh();
+      } catch (err: any) {
+        toast.error(err.message || "Şablon kopyalanamadı");
+      }
+    });
+  };
+
   const isEditingDefault =
     editingTemplate !== null &&
     editingTemplate.category === "offer_intro";
 
   return (
     <>
-      {/* ─── ÜST BÖLÜM: Tanıtım Maili Ön Yazısı ─── */}
-      <div className="w-full">
-        {/* Tanıtım Maili Ön Yazısı */}
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b flex items-center gap-3">
+      {/* ─── ÜST BÖLÜM: Tanıtım Maili Şablonları ─── */}
+      <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl">
               📢
             </div>
-            <div className="flex-1 min-w-0">
+            <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-slate-900">
-                  Tanıtım Maili Ön Yazısı
+                  Tanıtım Maili Şablonları
                 </h3>
                 <Badge
                   variant="outline"
                   className="text-[10px] font-semibold bg-blue-100 text-blue-700 border-blue-200"
                 >
-                  Varsayılan
+                  {offerIntroTemplates.length} şablon
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Tanıtım ve teklif e-postalarında kullanılan genel giriş metni
+                Tanıtım e-postalarında kullanılan giriş metinleri. Aktif olan şablon gönderilecek maillerde kullanılır.
               </p>
             </div>
           </div>
-          <div className="px-6 py-4">
-            {offerIntro ? (
-              <>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                  {offerIntro.content.slice(0, 200)}
-                  {offerIntro.content.length > 200 && "..."}
-                </p>
-                <div className="mt-4">
-                  <Button
-                    variant="outline"
-                    className="gap-2 rounded-xl"
-                    onClick={() => openEdit(offerIntro)}
-                  >
-                    <Pencil size={14} /> Düzenle
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground italic">
-                Henüz bir tanıtım ön yazısı tanımlanmamış.
-              </p>
-            )}
-          </div>
+          <Button onClick={() => openCreate("offer_intro")} className="gap-2 rounded-xl">
+            <Plus size={16} /> Yeni Şablon
+          </Button>
         </div>
+
+        {offerIntroTemplates.length === 0 ? (
+          <div className="text-center py-16">
+            <Mail
+              size={40}
+              className="mx-auto text-muted-foreground/30 mb-3"
+            />
+            <p className="text-sm text-muted-foreground">
+              Henüz tanıtım şablonu eklenmemiş
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4 gap-2 rounded-xl"
+              onClick={() => openCreate("offer_intro")}
+            >
+              <Plus size={16} /> İlk Şablonu Oluştur
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+            {offerIntroTemplates.map((template) => (
+              <div
+                key={template.id}
+                className={`relative border-2 rounded-xl p-4 transition-all group ${
+                  template.isDefault
+                    ? "border-emerald-400 bg-emerald-50/40 shadow-sm shadow-emerald-100"
+                    : "border-slate-200 hover:border-slate-300 hover:shadow-md"
+                }`}
+              >
+                {/* Aktif / Pasif Göstergesi */}
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {template.isDefault ? (
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                    ) : (
+                      <Circle size={18} className="text-slate-300 shrink-0" />
+                    )}
+                    <h4 className="font-semibold text-slate-900 text-sm truncate">
+                      {template.name}
+                    </h4>
+                  </div>
+                  {template.isDefault && (
+                    <Badge className="bg-emerald-600 text-white text-[10px] shrink-0 ml-2">
+                      ✓ Aktif
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Konu */}
+                {template.subject && (
+                  <p className="text-xs text-muted-foreground mb-1.5 line-clamp-1 pl-[26px]">
+                    Konu: {template.subject}
+                  </p>
+                )}
+
+                {/* İçerik Önizleme */}
+                <p className="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap line-clamp-3 pl-[26px]">
+                  {template.content.slice(0, 200)}
+                  {template.content.length > 200 && "..."}
+                </p>
+
+                {/* Aksiyonlar */}
+                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 pl-[26px]">
+                  {!template.isDefault && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs gap-1.5 rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                      onClick={() => handleSetDefault(template)}
+                      disabled={isPending}
+                    >
+                      <CheckCircle2 size={12} />
+                      Aktif Yap
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary"
+                    onClick={() => openEdit(template)}
+                    disabled={isPending}
+                    title="Düzenle"
+                  >
+                    <Pencil size={13} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-blue-600"
+                    onClick={() => handleDuplicate(template)}
+                    disabled={isPending}
+                    title="Kopyala"
+                  >
+                    <Copy size={13} />
+                  </Button>
+                  {!template.isDefault && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-red-600"
+                      onClick={() => handleDelete(template)}
+                      disabled={isPending}
+                      title="Sil"
+                    >
+                      <Trash2 size={13} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ─── ALT BÖLÜM: Özel Gün Şablonları ─── */}
@@ -305,7 +424,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
               </p>
             </div>
           </div>
-          <Button onClick={openCreate} className="gap-2 rounded-xl">
+          <Button onClick={() => openCreate("special")} className="gap-2 rounded-xl">
             <Plus size={16} /> Yeni Şablon
           </Button>
         </div>
@@ -322,7 +441,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
             <Button
               variant="outline"
               className="mt-4 gap-2 rounded-xl"
-              onClick={openCreate}
+              onClick={() => openCreate("special")}
             >
               <Plus size={16} /> Şablon Ekle
             </Button>
@@ -346,6 +465,15 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       onClick={() => openEdit(template)}
                     >
                       <Pencil size={13} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-blue-600"
+                      onClick={() => handleDuplicate(template)}
+                      title="Kopyala"
+                    >
+                      <Copy size={13} />
                     </Button>
                     <Button
                       variant="ghost"
@@ -549,7 +677,7 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                       }
                     />
                     <Label htmlFor="isDefault" className="text-sm cursor-pointer">
-                      Varsayılan şablon olarak ayarla
+                      Aktif (varsayılan) şablon olarak ayarla
                     </Label>
                   </div>
                 )}
