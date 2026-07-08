@@ -328,8 +328,24 @@ export async function updateAgencyAction(
 
 export async function bulkDeleteAgenciesAction(ids: string[]) {
   if (!ids || ids.length === 0) return;
-  await prisma.agency.deleteMany({
-    where: { id: { in: ids } }
-  });
+
+  let successCount = 0;
+  let lastError = null;
+
+  for (const id of ids) {
+    try {
+      await deleteAgencyAction(id);
+      successCount++;
+    } catch (err: any) {
+      lastError = err.message;
+    }
+  }
+
   revalidatePath("/agents");
+
+  if (lastError && successCount === 0) {
+    throw new Error(lastError);
+  } else if (lastError && successCount > 0) {
+    throw new Error(`${successCount} işletme silindi ancak diğerleri silinemedi: ${lastError}`);
+  }
 }
