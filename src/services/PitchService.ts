@@ -46,8 +46,14 @@ export class PitchService {
 
       let introHtml: string;
       if (customIntro) {
-        const hasHtml = /<[a-z/][\s\S]*>/i.test(customIntro);
-        introHtml = hasHtml ? customIntro : customIntro.replace(/\n/g, "<br>");
+        const parsedCustomIntro = EmailTemplateService.parseTemplate(customIntro, {
+          companyName: agencyName,
+          authorizedPerson,
+          documentNo: agency.documentNo || undefined,
+          unsubscribeToken: agency.unsubscribeToken || undefined,
+        });
+        const hasHtml = /<[a-z/][\s\S]*>/i.test(parsedCustomIntro);
+        introHtml = hasHtml ? parsedCustomIntro : parsedCustomIntro.replace(/\n/g, "<br>");
       } else {
         if (offerTemplate) {
           const parsedIntro = EmailTemplateService.parseTemplate(offerTemplate.content, {
