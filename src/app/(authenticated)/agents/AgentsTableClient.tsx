@@ -236,8 +236,16 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [progress, setProgress] = useState(0);
 
   const openBulkSendModal = () => {
-    setCoverLetter("Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız dijital çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi");
-    setSelectedTemplateId("none");
+    let defaultTpl = templates?.find((t: any) => t.isDefault);
+    if (!defaultTpl && templates && templates.length > 0) defaultTpl = templates[0];
+    
+    if (defaultTpl) {
+      setSelectedTemplateId(defaultTpl.id);
+      setCoverLetter(defaultTpl.content);
+    } else {
+      setSelectedTemplateId("");
+      setCoverLetter("");
+    }
     setIsModalOpen(true);
   };
 
@@ -316,7 +324,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           coverLetter, 
           i, 
           chunkSize, 
-          selectedTemplateId === "none" ? undefined : selectedTemplateId
+          selectedTemplateId || undefined
         );
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
@@ -1295,7 +1303,6 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                     <SelectValue placeholder="Şablon Seçin" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Varsayılan veya Özel Yazı</SelectItem>
                     {templates?.map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                     ))}

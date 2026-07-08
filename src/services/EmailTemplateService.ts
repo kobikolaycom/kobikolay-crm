@@ -334,51 +334,5 @@ export class EmailTemplateService {
   /**
    * Varsayılan şablonları oluştur (eğer yoklarsa)
    */
-  static async seedDefaults() {
-    try {
-      const model = getModel();
-      if (!model) return;
-
-      await model.deleteMany({
-        where: { 
-          category: "promotion_intro",
-          name: { in: ["Tanıtım Giriş Metni", "Promotion Intro"] }
-        }
-      });
-
-      await model.updateMany({
-        where: { category: "offer_intro", name: "Teklif Ön Yazısı" },
-        data: { name: "Tanıtım Maili Ön Yazısı" }
-      });
-
-      const defaults = [
-        {
-          name: "Tanıtım Maili Ön Yazısı",
-          category: "offer_intro",
-          content:
-            "Sayın {{authorizedPerson}},\n\n{{companyName}} olarak sizlere sunduğumuz hizmetleri tanıtmak istiyoruz.",
-          isDefault: true,
-        },
-      ];
-
-      for (const template of defaults) {
-        const existing = await model.findFirst({
-          where: {
-            category: template.category,
-            categoryId: null, // Global defaults
-            isDefault: true,
-          },
-        });
-
-        if (!existing) {
-          await model.create({
-            data: template,
-          });
-          console.log(`Varsayılan şablon oluşturuldu: ${template.name}`);
-        }
-      }
-    } catch (error) {
-      console.error("Varsayılan şablonlar oluşturulurken hata oluştu:", error);
-    }
-  }
+  static async seedDefaults() { return; }
 }
