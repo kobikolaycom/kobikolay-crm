@@ -389,18 +389,16 @@ export function MailTemplatesClient({ templates }: { templates: EmailTemplate[] 
                   >
                     <Copy size={13} />
                   </Button>
-                  {!template.isDefault && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 rounded-lg text-muted-foreground hover:text-red-600"
-                      onClick={() => handleDelete(template)}
-                      disabled={isPending}
-                      title="Sil"
-                    >
-                      <Trash2 size={13} />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-lg text-muted-foreground hover:text-red-600"
+                    onClick={() => handleDelete(template)}
+                    disabled={isPending}
+                    title="Sil"
+                  >
+                    <Trash2 size={13} />
+                  </Button>
                 </div>
               </div>
             ))}

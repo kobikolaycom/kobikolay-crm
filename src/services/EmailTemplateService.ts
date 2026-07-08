@@ -180,10 +180,25 @@ export class EmailTemplateService {
       const model = getModel();
       if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
 
-      // Aktif şablon silinemez
       const template = await model.findUnique({ where: { id } });
-      if (template?.isDefault) {
-        throw new Error("Aktif şablon silinemez. Önce başka bir şablonu aktif yapın.");
+      if (!template) throw new Error("Şablon bulunamadı.");
+
+      // Eğer aktif şablonsa, silmeden önce aynı kategorideki başka birini aktif yap
+      if (template.isDefault) {
+        const nextDefault = await model.findFirst({
+          where: {
+            category: template.category,
+            id: { not: id },
+          },
+          orderBy: { createdAt: "desc" },
+        });
+
+        if (nextDefault) {
+          await model.update({
+            where: { id: nextDefault.id },
+            data: { isDefault: true },
+          });
+        }
       }
 
       const deleted = await model.delete({
