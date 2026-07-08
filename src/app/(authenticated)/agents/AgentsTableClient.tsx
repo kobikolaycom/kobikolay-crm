@@ -129,7 +129,6 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [isCreating, setIsCreating] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newDocumentNo, setNewDocumentNo] = useState("");
-  const isNewAgencyAcente = categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes("acente") || false;
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newAddress, setNewAddress] = useState("");
@@ -139,6 +138,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [newWebsite, setNewWebsite] = useState("");
   const [newBtkZone, setNewBtkZone] = useState("");
   const [newCategoryId, setNewCategoryId] = useState<string>("");
+  const isNewAgencyAcente = categories.find((c: any) => c.id === newCategoryId)?.name.toLowerCase().includes("acente") || false;
 
   // Edit Agency State
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -146,7 +146,6 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [editingAgency, setEditingAgency] = useState<any>(null);
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editDocumentNo, setEditDocumentNo] = useState("");
-  const isEditAgencyAcente = categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes("acente") || false;
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
@@ -156,6 +155,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [editWebsite, setEditWebsite] = useState("");
   const [editBtkZone, setEditBtkZone] = useState("");
   const [editCategoryId, setEditCategoryId] = useState<string>("");
+  const isEditAgencyAcente = categories.find((c: any) => c.id === editCategoryId)?.name.toLowerCase().includes("acente") || false;
 
   // District dynamic loading
   const [districts, setDistricts] = useState<string[]>([]);
