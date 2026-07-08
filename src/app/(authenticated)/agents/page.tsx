@@ -12,22 +12,23 @@ interface PageProps {
 
 export default async function AgentsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const page = Number(params.page) || 1;
+  const getParam = (p: string | string[] | undefined) => Array.isArray(p) ? p[0] : p;
+  const page = Number(getParam(params.page)) || 1;
   const pageSize = 50;
-  const search = (params.search as string) || "";
-  const categoryId = (params.categoryId as string) || "all";
-  const pitchStatus = (params.pitchStatus as string) || "all";
-  const campaignFilter = (params.campaignFilter as string) || "all";
-  const dateFrom = (params.dateFrom as string) || "";
-  const dateTo = (params.dateTo as string) || "";
-  const mailInteraction = (params.mailInteraction as string) || "all";
-  const representativeId = (params.representativeId as string) || "";
-  const callStatusFilter = (params.callStatusFilter as string) || "all";
-  const btkZone = (params.btkZone as string) || "all";
-  const province = (params.province as string) || "all";
-  const district = (params.district as string) || "all";
-  const sortBy = (params.sortBy as string) || "";
-  const sortOrder = (params.sortOrder as string) || "";
+  const search = getParam(params.search) || "";
+  const categoryId = getParam(params.categoryId) || "all";
+  const pitchStatus = getParam(params.pitchStatus) || "all";
+  const campaignFilter = getParam(params.campaignFilter) || "all";
+  const dateFrom = getParam(params.dateFrom) || "";
+  const dateTo = getParam(params.dateTo) || "";
+  const mailInteraction = getParam(params.mailInteraction) || "all";
+  const representativeId = getParam(params.representativeId) || "";
+  const callStatusFilter = getParam(params.callStatusFilter) || "all";
+  const btkZone = getParam(params.btkZone) || "all";
+  const province = getParam(params.province) || "all";
+  const district = getParam(params.district) || "all";
+  const sortBy = getParam(params.sortBy) || "";
+  const sortOrder = getParam(params.sortOrder) || "";
 
   const { data: agencies, total } = await AgencyService.list({
     skip: (page - 1) * pageSize,

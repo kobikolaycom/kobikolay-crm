@@ -26,6 +26,8 @@ export async function dispatchBulkPitchChunkAction(
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
     const result = await PitchService.sendPitch(agencyId, coverLetter, userId);
     results.push(result);
+    // Wait 1 second to reduce spam risk
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   revalidatePath("/agents");
