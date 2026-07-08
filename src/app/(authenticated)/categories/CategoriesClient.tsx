@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createCategoryAction, updateCategoryAction, deleteCategoryAction, migrateAgenciesAction } from "./actions";
 
 interface Category {
@@ -25,6 +26,8 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
+  const [migrateTargetId, setMigrateTargetId] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   // Form state
@@ -63,17 +66,18 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
 
   
   const handleMigrate = () => {
+    if (!migrateTargetId) return toast.error("Lütfen aktarılacak kategoriyi seçin.");
     startTransition(async () => {
       try {
-        const count = await migrateAgenciesAction();
-        toast.success(count + " adet kategorisiz işletme 'Seyahat Acenteleri TR' kategorisine taşındı.");
+        const count = await migrateAgenciesAction(migrateTargetId);
+        toast.success(count + " adet kayıt seçilen kategoriye taşındı.");
+        setShowMigrateModal(false);
         window.location.reload();
       } catch (err: any) {
         toast.error("Taşıma başarısız: " + err.message);
       }
     });
   };
-
   const handleDelete = () => {
     if (!selectedCategory) return;
     startTransition(async () => {
@@ -102,7 +106,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={handleMigrate} disabled={isPending}>
+          <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => setShowMigrateModal(true)}>
             Eski Kayıtları Aktar
           </Button>
           <Button onClick={() => { setName(""); setDescription(""); setShowCreateModal(true); }}>
@@ -218,6 +222,36 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    
+      {/* Migrate Modal */}
+      <Dialog open={showMigrateModal} onOpenChange={setShowMigrateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Eski Kayıtları Aktar</DialogTitle>
+            <DialogDescription>
+              Sistemdeki <strong>Kategorisiz</strong> tüm işletmeleri (eski kayıtları) aşağıdaki kategoriye aktarmak üzeresiniz. Lütfen hedef kategoriyi seçin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label className="mb-2 block">Hedef Kategori</Label>
+            <Select value={migrateTargetId} onValueChange={setMigrateTargetId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Kategori Seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMigrateModal(false)}>İptal</Button>
+            <Button onClick={handleMigrate} disabled={isPending || !migrateTargetId}>Aktarımı Başlat</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

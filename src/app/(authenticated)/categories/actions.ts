@@ -29,14 +29,11 @@ export async function deleteCategoryAction(id: string) {
 
 
 import prisma from "@/lib/prisma";
-export async function migrateAgenciesAction() {
-  let cat = await prisma.businessCategory.findFirst({ where: { name: 'Seyahat Acenteleri TR' } });
-  if (!cat) {
-    cat = await prisma.businessCategory.create({ data: { name: 'Seyahat Acenteleri TR', slug: 'seyahat-acenteleri-tr' } });
-  }
-  const result = await prisma.agency.updateMany({ 
+export async function migrateAgenciesAction(targetCategoryId: string) {
+  if (!targetCategoryId) throw new Error("Kategori seçilmedi");
+  const result = await prisma.agency.updateMany({
     where: { categoryId: null },
-    data: { categoryId: cat.id } 
+    data: { categoryId: targetCategoryId }
   });
   revalidatePath("/categories");
   revalidatePath("/agents");
