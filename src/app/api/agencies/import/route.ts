@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
     const authorizedCol = findCol(["yetkili", "authorized", "kişi", "sorumlu"]);
     const btkCol = findCol(["btk", "bölge", "zone"]);
 
+    
     if (!companyCol) {
       return new Response(
         JSON.stringify({
@@ -108,6 +109,18 @@ export async function POST(req: NextRequest) {
           columns: keys,
         }),
         { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!emailCol) {
+      return new Response(
+        JSON.stringify({
+          error: "Excel'de e-posta sütunu bulunamadı. Sütun başlığında 'mail', 'email' veya 'e-posta' olmalı.",
+          columns: keys,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
       );
     }
 
@@ -141,13 +154,21 @@ export async function POST(req: NextRequest) {
           const contactsToCreate: any[] = [];
 
           for (const row of batch) {
+            
             const companyName = String(row[companyCol] || "").trim();
             if (!companyName) {
               skipped++;
               continue;
             }
 
+            const email = emailCol ? String(row[emailCol] || "").trim() : "";
+            if (!email) {
+              skipped++;
+              continue;
+            }
+
             let documentNo = docCol ? String(row[docCol] || "").trim() : "";
+
             if (!documentNo) {
               documentNo = `AUTO-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
             }
