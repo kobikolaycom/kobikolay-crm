@@ -105,7 +105,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   // Excel Import State
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importCategoryId, setImportCategoryId] = useState("none");
+  const [importCategoryId, setImportCategoryId] = useState(initialCategoryId !== "all" ? initialCategoryId : "none");
   const [importing, setImporting] = useState(false);
   const [importPercent, setImportPercent] = useState(0);
   const [importProcessed, setImportProcessed] = useState(0);
@@ -380,7 +380,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
     try {
       const fd = new FormData();
       fd.append("file", importFile);
-      if (importCategoryId !== "none") fd.append("sectorId", importCategoryId);
+      if (importCategoryId !== "none") fd.append("categoryId", importCategoryId);
 
       const res = await fetch("/api/agencies/import", { method: "POST", body: fd });
 
