@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { createCategoryAction, updateCategoryAction, deleteCategoryAction } from "./actions";
+import { createCategoryAction, updateCategoryAction, deleteCategoryAction, migrateAgenciesAction } from "./actions";
 
 interface Category {
   id: string;
@@ -61,6 +61,19 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     });
   };
 
+  
+  const handleMigrate = () => {
+    startTransition(async () => {
+      try {
+        const count = await migrateAgenciesAction();
+        toast.success(count + " adet kategorisiz işletme 'Seyahat Acenteleri TR' kategorisine taşındı.");
+        window.location.reload();
+      } catch (err: any) {
+        toast.error("Taşıma başarısız: " + err.message);
+      }
+    });
+  };
+
   const handleDelete = () => {
     if (!selectedCategory) return;
     startTransition(async () => {
@@ -87,10 +100,17 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
             <p className="text-sm text-slate-500">{categories.length} adet kategori mevcut</p>
           </div>
         </div>
-        <Button onClick={() => { setName(""); setDescription(""); setShowCreateModal(true); }}>
-          <Plus size={16} className="mr-2" />
-          Yeni Ekle
-        </Button>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50" onClick={handleMigrate} disabled={isPending}>
+            Eski Kayıtları Aktar
+          </Button>
+          <Button onClick={() => { setName(""); setDescription(""); setShowCreateModal(true); }}>
+            <Plus size={16} className="mr-2" />
+            Yeni Ekle
+          </Button>
+        </div>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

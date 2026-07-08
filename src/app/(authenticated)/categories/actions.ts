@@ -26,3 +26,19 @@ export async function deleteCategoryAction(id: string) {
   revalidatePath("/categories");
   revalidatePath("/agents");
 }
+
+
+import prisma from "@/lib/prisma";
+export async function migrateAgenciesAction() {
+  let cat = await prisma.businessCategory.findFirst({ where: { name: 'Seyahat Acenteleri TR' } });
+  if (!cat) {
+    cat = await prisma.businessCategory.create({ data: { name: 'Seyahat Acenteleri TR', slug: 'seyahat-acenteleri-tr' } });
+  }
+  const result = await prisma.agency.updateMany({ 
+    where: { categoryId: null },
+    data: { categoryId: cat.id } 
+  });
+  revalidatePath("/categories");
+  revalidatePath("/agents");
+  return result.count;
+}
