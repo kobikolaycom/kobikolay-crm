@@ -7,7 +7,7 @@ export class BusinessCategoryService {
         orderBy: { sortOrder: "asc" },
         include: {
           _count: {
-            select: { agencies: true, emailTemplates: true },
+            select: { agencies: true },
           },
         },
       });
