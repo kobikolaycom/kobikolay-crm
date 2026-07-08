@@ -314,8 +314,8 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
     setIsSending(true);
     setProgress(0);
 
-    const chunkSize = 5;
-    const totalChunks = Math.ceil(selectedIds.length / chunkSize);
+    const chunkSize = 1;
+    const totalChunks = selectedIds.length;
 
     try {
       for (let i = 0; i < totalChunks; i++) {
@@ -329,6 +329,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
       toast.success(`${selectedIds.length} işletmeye tanıtım gönderildi`);
+      await new Promise(r => setTimeout(r, 800)); // Let the user see 100% progress
       setIsModalOpen(false);
       setSelectedIds([]);
       setProgress(0);
