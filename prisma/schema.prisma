@@ -64,37 +64,26 @@ model Agency {
   mailLogs         MailLog[]
   offers           Offer[]
   taxInfo          TaxInfo?
-  sectors          Sector[]       @relation("AgencySectors")
+  categoryId       String?        @map("category_id")
+  category         BusinessCategory? @relation(fields: [categoryId], references: [id])
 
   @@map("agencies")
 }
 
-model Sector {
-  id          String             @id @default(cuid())
-  name        String             @unique
-  createdAt   DateTime           @default(now()) @map("created_at")
-  updatedAt   DateTime           @updatedAt @map("updated_at")
+model BusinessCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
   description String?
-  pdfUrl      String?            @map("pdf_url")
-  coverLetter String?            @map("cover_letter") @db.Text
-  templates   PitchTemplate[]
-  references  SectorReference[]
-  agencies    Agency[]           @relation("AgencySectors")
+  icon        String?
+  color       String?  @default("#4f46e5")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  agencies    Agency[]
+  emailTemplates EmailTemplate[]
 
-  @@map("sectors")
-}
-
-model SectorReference {
-  id        String   @id @default(cuid())
-  sectorId  String   @map("sector_id")
-  name      String
-  domain    String
-  logoUrl   String?  @map("logo_url")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  sector    Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
-
-  @@map("sector_references")
+  @@map("business_categories")
 }
 
 model Contact {
@@ -167,18 +156,6 @@ model SystemModule {
   @@map("system_modules")
 }
 
-model PitchTemplate {
-  id             String   @id @default(cuid())
-  sectorId       String   @map("sector_id")
-  templateName   String   @map("template_name")
-  coverLetter    String   @map("cover_letter")
-  attachedPdfUrl String?  @map("attached_pdf_url")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  sector         Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
-
-  @@map("pitch_templates")
-}
 
 model MailLog {
   id           String     @id @default(cuid())
@@ -379,6 +356,8 @@ model EmailTemplate {
   id        String   @id @default(cuid())
   name      String                          // "Yılbaşı Şablonu", "Genel Tanıtım" vb.
   category  String   @default("special")    // "offer_intro" | "promotion_intro" | "special"
+  categoryId String? @map("category_id")
+  businessCategory BusinessCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   subject   String?                         // Konu satırı şablonu
   content   String   @db.Text               // Şablon içeriği (placeholder'lı)
   isDefault Boolean  @default(false) @map("is_default")

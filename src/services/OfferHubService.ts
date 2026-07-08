@@ -4,7 +4,7 @@ import { CommunicationType, OfferStatus } from "@prisma/client";
 export interface HubFilter {
   isMassOperation?: boolean;
   type?: CommunicationType;
-  sectorId?: string;
+  categoryId?: string;
   search?: string;
 }
 

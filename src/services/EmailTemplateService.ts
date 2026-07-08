@@ -2,8 +2,6 @@ import prisma from "@/lib/prisma";
 import { escapeHtml, getBaseUrl } from "@/lib/utils";
 
 // E-posta şablonları servisi
-// NOT: emailTemplate modeli migration uygulanmadan önce undefined olabilir.
-// Bu yüzden tüm erişimleri güvenli bir şekilde yapıyoruz.
 function getModel() {
   const model = (prisma as any).emailTemplate;
   if (!model) {
@@ -15,14 +13,17 @@ function getModel() {
 
 export class EmailTemplateService {
   /**
-   * Tüm şablonları listele, opsiyonel olarak kategoriye göre filtrele
+   * Tüm şablonları listele, opsiyonel olarak kategoriye (offer_intro vb.) ve businessCategoryId'ye göre filtrele
    */
-  static async list(category?: string) {
+  static async list(category?: string, categoryId?: string) {
     try {
       const model = getModel();
       if (!model) return [];
 
-      const where = category ? { category } : {};
+      const where: any = {};
+      if (category) where.category = category;
+      if (categoryId) where.categoryId = categoryId;
+      else if (categoryId === null) where.categoryId = null;
 
       const templates = await model.findMany({
         where,
@@ -56,9 +57,9 @@ export class EmailTemplateService {
   }
 
   /**
-   * Belirli bir kategori için varsayılan şablonu getir
+   * Belirli bir kategori ve businessCategory için varsayılan şablonu getir
    */
-  static async getDefault(category: string) {
+  static async getDefault(category: string, categoryId?: string) {
     try {
       const model = getModel();
       if (!model) return null;
@@ -66,9 +67,21 @@ export class EmailTemplateService {
       const template = await model.findFirst({
         where: {
           category,
+          categoryId: categoryId || null,
           isDefault: true,
         },
       });
+
+      // Eğer businessCategory'e özel şablon yoksa, genel (categoryId null) varsayılanı getir
+      if (!template && categoryId) {
+        return await model.findFirst({
+          where: {
+            category,
+            categoryId: null,
+            isDefault: true,
+          }
+        });
+      }
 
       return template;
     } catch (error) {
@@ -79,20 +92,19 @@ export class EmailTemplateService {
 
   /**
    * Yeni bir e-posta şablonu oluştur
-   * Eğer isDefault true ise, aynı kategorideki diğer şablonların isDefault değerini false yap
    */
   static async create(data: {
     name: string;
     category: string;
+    categoryId?: string;
     subject?: string;
     content: string;
     isDefault?: boolean;
   }) {
     try {
       const model = getModel();
-      if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil. Veritabanı migration'ını çalıştırın.");
+      if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
 
-      // Use transaction to prevent race condition with default flag
       const template = await prisma.$transaction(async (tx: any) => {
         const txModel = tx.emailTemplate;
         if (!txModel) throw new Error("EmailTemplate modeli henüz mevcut değil.");
@@ -100,7 +112,11 @@ export class EmailTemplateService {
         // Varsayılan olarak işaretleniyorsa, aynı kategorideki diğerlerini güncelle
         if (data.isDefault) {
           await txModel.updateMany({
-            where: { category: data.category, isDefault: true },
+            where: { 
+              category: data.category, 
+              categoryId: data.categoryId || null,
+              isDefault: true 
+            },
             data: { isDefault: false },
           });
         }
@@ -109,6 +125,7 @@ export class EmailTemplateService {
           data: {
             name: data.name,
             category: data.category,
+            categoryId: data.categoryId || null,
             subject: data.subject,
             content: data.content,
             isDefault: data.isDefault ?? false,
@@ -125,13 +142,13 @@ export class EmailTemplateService {
 
   /**
    * Mevcut bir e-posta şablonunu güncelle
-   * Eğer isDefault true ise, aynı kategorideki diğer şablonların isDefault değerini false yap
    */
   static async update(
     id: string,
     data: {
       name?: string;
       category?: string;
+      categoryId?: string;
       subject?: string;
       content?: string;
       isDefault?: boolean;
@@ -141,17 +158,16 @@ export class EmailTemplateService {
       const model = getModel();
       if (!model) throw new Error("EmailTemplate modeli henüz mevcut değil.");
 
-      // Varsayılan olarak işaretleniyorsa, aynı kategorideki diğerlerini güncelle
       if (data.isDefault) {
-        // Güncellenecek şablonun kategorisini belirle
-        const category =
-          data.category ??
-          (await model.findUnique({ where: { id } }))?.category;
+        const existing = await model.findUnique({ where: { id } });
+        const category = data.category ?? existing?.category;
+        const categoryId = data.categoryId !== undefined ? data.categoryId : existing?.categoryId;
 
         if (category) {
           await model.updateMany({
             where: {
               category,
+              categoryId: categoryId || null,
               isDefault: true,
               id: { not: id },
             },
@@ -183,11 +199,11 @@ export class EmailTemplateService {
       const template = await model.findUnique({ where: { id } });
       if (!template) throw new Error("Şablon bulunamadı.");
 
-      // Eğer aktif şablonsa, silmeden önce aynı kategorideki başka birini aktif yap
       if (template.isDefault) {
         const nextDefault = await model.findFirst({
           where: {
             category: template.category,
+            categoryId: template.categoryId,
             id: { not: id },
           },
           orderBy: { createdAt: "desc" },
@@ -214,7 +230,6 @@ export class EmailTemplateService {
 
   /**
    * Belirli bir şablonu varsayılan (aktif) yap.
-   * Aynı kategorideki diğer şablonların isDefault değerini false yapar.
    */
   static async setDefault(id: string) {
     try {
@@ -224,17 +239,18 @@ export class EmailTemplateService {
       const template = await model.findUnique({ where: { id } });
       if (!template) throw new Error("Şablon bulunamadı.");
 
-      // Transaction ile atomik güncelleme
       await prisma.$transaction(async (tx: any) => {
         const txModel = tx.emailTemplate;
 
-        // Aynı kategorideki tüm şablonları pasif yap
         await txModel.updateMany({
-          where: { category: template.category, isDefault: true },
+          where: { 
+            category: template.category, 
+            categoryId: template.categoryId,
+            isDefault: true 
+          },
           data: { isDefault: false },
         });
 
-        // Seçilen şablonu aktif yap
         await txModel.update({
           where: { id },
           data: { isDefault: true },
@@ -263,9 +279,10 @@ export class EmailTemplateService {
         data: {
           name: `${original.name} (Kopya)`,
           category: original.category,
+          categoryId: original.categoryId,
           subject: original.subject,
           content: original.content,
-          isDefault: false, // Kopya asla varsayılan olmaz
+          isDefault: false,
         },
       });
 
@@ -285,7 +302,6 @@ export class EmailTemplateService {
       companyName: string;
       authorizedPerson?: string | null;
       documentNo?: string;
-      sectors?: { name: string }[];
       unsubscribeToken?: string | null;
     }
   ): string {
@@ -294,9 +310,6 @@ export class EmailTemplateService {
     const unsubscribeUrl = agency.unsubscribeToken
       ? `${baseUrl}/unsubscribe?token=${agency.unsubscribeToken}`
       : "";
-
-    const sectorNames =
-      agency.sectors?.map((s) => s.name).join(", ") || "";
 
     const currentDate = new Date().toLocaleDateString("tr-TR");
 
@@ -311,7 +324,6 @@ export class EmailTemplateService {
       /\{\{documentNo\}\}/g,
       escapeHtml(agency.documentNo || "")
     );
-    parsed = parsed.replace(/\{\{sectorNames\}\}/g, escapeHtml(sectorNames));
     parsed = parsed.replace(/\{\{currentDate\}\}/g, currentDate);
     parsed = parsed.replace(/\{\{unsubscribeUrl\}\}/g, unsubscribeUrl);
     parsed = parsed.replace(/\{\{baseUrl\}\}/g, baseUrl);
@@ -325,20 +337,15 @@ export class EmailTemplateService {
   static async seedDefaults() {
     try {
       const model = getModel();
-      if (!model) {
-        console.warn("[EmailTemplateService] seedDefaults atlanıyor — model henüz mevcut değil.");
-        return;
-      }
+      if (!model) return;
 
-      // Eski seeded promotion_intro kayıtlarını temizle (sadece sistem tarafından oluşturulanları)
       await model.deleteMany({
         where: { 
           category: "promotion_intro",
-          name: { in: ["Tanıtım Giriş Metni", "Promotion Intro"] } // Sadece bilinen seed isimleri
+          name: { in: ["Tanıtım Giriş Metni", "Promotion Intro"] }
         }
       });
 
-      // Ayrıca eski seeded offer_intro ismini güncelle (Migration)
       await model.updateMany({
         where: { category: "offer_intro", name: "Teklif Ön Yazısı" },
         data: { name: "Tanıtım Maili Ön Yazısı" }
@@ -355,30 +362,23 @@ export class EmailTemplateService {
       ];
 
       for (const template of defaults) {
-        // Bu kategoride varsayılan şablon var mı kontrol et
         const existing = await model.findFirst({
           where: {
             category: template.category,
+            categoryId: null, // Global defaults
             isDefault: true,
           },
         });
 
-        // Yoksa oluştur
         if (!existing) {
           await model.create({
             data: template,
           });
-          console.log(
-            `Varsayılan şablon oluşturuldu: ${template.name}`
-          );
+          console.log(`Varsayılan şablon oluşturuldu: ${template.name}`);
         }
       }
     } catch (error) {
-      console.error(
-        "Varsayılan şablonlar oluşturulurken hata oluştu:",
-        error
-      );
-      // seedDefaults hata verse de sayfa çökmemeli
+      console.error("Varsayılan şablonlar oluşturulurken hata oluştu:", error);
     }
   }
 }

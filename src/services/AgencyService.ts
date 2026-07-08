@@ -14,7 +14,7 @@ export class AgencyService {
     skip?: number; 
     take?: number; 
     search?: string;
-    sector?: string;
+    categoryId?: string;
     pitchStatus?: string;
     campaignFilter?: string;
     dateFrom?: string;
@@ -28,7 +28,7 @@ export class AgencyService {
     sortBy?: string;
     sortOrder?: "asc" | "desc";
   }): Promise<{ data: AgencyWithRelations[], total: number }> {
-    const { skip = 0, take: rawTake = 50, search, sector, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, callStatusFilter, btkZone, province, district, sortBy, sortOrder } = params || {};
+    const { skip = 0, take: rawTake = 50, search, categoryId, pitchStatus, campaignFilter, dateFrom, dateTo, mailInteraction, representativeId, callStatusFilter, btkZone, province, district, sortBy, sortOrder } = params || {};
     const take = Math.min(rawTake, 200); // Pagination upper bound
     
     let where: Prisma.AgencyWhereInput = {
@@ -61,8 +61,8 @@ export class AgencyService {
       ];
     }
 
-    if (sector && sector !== "all") {
-      where.sectors = { some: { id: sector } };
+    if (categoryId && categoryId !== "all") {
+      where.categoryId = categoryId;
     }
 
     if (pitchStatus === "sent") {
@@ -265,7 +265,7 @@ export class AgencyService {
           take,
           orderBy,
           include: {
-            sectors: true,
+            category: true,
             contacts: true,
             representative: { select: { id: true, name: true } },
             offers: { orderBy: { createdAt: "desc" } },
@@ -307,7 +307,7 @@ export class AgencyService {
       return await prisma.agency.findUnique({
         where: { id },
         include: {
-          sectors: true,
+          category: true,
           contacts: true,
           taxInfo: true,
           offers: { orderBy: { createdAt: "desc" } },
@@ -335,7 +335,7 @@ export class AgencyService {
     
     return await prisma.agency.create({
       data: validData,
-      include: { sectors: true },
+      include: { category: true },
     });
   }
 
@@ -349,7 +349,7 @@ export class AgencyService {
     return await prisma.agency.update({
       where: { id },
       data: updateData,
-      include: { sectors: true },
+      include: { category: true },
     });
   }
 
@@ -439,14 +439,14 @@ export class AgencyService {
     province?: string;
     district?: string;
     status?: string;
-    sectorId?: string;
+    categoryId?: string;
     mailHistory?: string; // "sent" | "not_sent" | "all"
     contactHistory?: string; // "contacted" | "not_contacted" | "all"
     page?: number;
     pageSize?: number;
   }): Promise<{ data: any[]; total: number; totalPages: number }> {
     try {
-      const { search, province, district, status, sectorId, mailHistory, contactHistory } = params;
+      const { search, province, district, status, categoryId, mailHistory, contactHistory } = params;
       const page = Math.max(1, params.page || 1);
       const pageSize = Math.min(Math.max(1, params.pageSize || 50), 200);
       const skip = (page - 1) * pageSize;
@@ -492,8 +492,8 @@ export class AgencyService {
         where.status = status;
       }
 
-      if (sectorId && sectorId !== "all") {
-        where.sectors = { some: { id: sectorId } };
+      if (categoryId && categoryId !== "all") {
+        where.categoryId = categoryId;
       }
 
       // Mail geçmişi filtresi
@@ -527,7 +527,7 @@ export class AgencyService {
           where,
           include: {
             contacts: { select: { email: true, province: true, district: true } },
-            sectors: { select: { id: true, name: true } },
+            category: { select: { id: true, name: true } },
             mailLogs: { take: 1, orderBy: { sentAt: "desc" }, select: { sentAt: true, status: true } },
             _count: { select: { mailLogs: true, campaignLogs: true, conversations: true } },
           },

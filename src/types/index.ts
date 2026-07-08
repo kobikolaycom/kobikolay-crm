@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 
 export type AgencyWithRelations = Prisma.AgencyGetPayload<{
   include: {
-    sectors: true;
+    category: true;
     contacts: true;
     taxInfo: true;
     offers: true;

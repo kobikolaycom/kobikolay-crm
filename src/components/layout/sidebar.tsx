@@ -28,7 +28,7 @@ const navItems = [
   { name: "Mesajlar", href: "/inbox", icon: MessageSquare },
   { name: "Tanıtım", href: "/tanitim", icon: Mail },
   { name: "Mail Şablonları", href: "/mail-sablonlari", icon: FileText },
-  { name: "Faaliyet Alanları", href: "/settings/sectors", icon: Briefcase },
+  { name: "Kategoriler", href: "/settings/categories", icon: Briefcase },
   { name: "Faaliyet Geçmişi", href: "/activities", icon: ClipboardList },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const sectorId = formData.get("sectorId") as string | null;
+    const categoryId = formData.get("categoryId") as string | null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: "Dosya yüklenmedi" }), {
@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
               id: agencyId,
               companyName,
               documentNo,
+              categoryId: (categoryId && categoryId !== "none") ? categoryId : null,
               website: websiteCol ? String(row[websiteCol] || "").trim() || null : null,
               authorizedPerson: authorizedCol ? String(row[authorizedCol] || "").trim() || null : null,
               btkZone: btkCol ? String(row[btkCol] || "").trim() || null : null,
@@ -204,21 +205,7 @@ export async function POST(req: NextRequest) {
                   data: contactsToCreate,
                   skipDuplicates: true,
                 });
-              }
 
-              // Link to sector if specified
-              if (sectorId && sectorId !== "none") {
-                for (const agency of agenciesToCreate) {
-                  try {
-                    await prisma.agency.update({
-                      where: { id: agency.id },
-                      data: { sectors: { connect: { id: sectorId } } },
-                    });
-                  } catch {
-                    // Sector link failure is not critical
-                  }
-                }
-              }
 
               created += agenciesToCreate.length;
             } catch (err: any) {

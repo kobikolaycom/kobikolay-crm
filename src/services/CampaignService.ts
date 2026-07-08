@@ -5,7 +5,7 @@ import { AgencyService } from "@/services/AgencyService";
 import { escapeHtml, getBaseUrl } from "@/lib/utils";
 
 export interface CampaignFilter {
-  sectorId?: string;
+  categoryId?: string;
   province?: string;
   btkZone?: string;
   status?: "ACTIVE" | "PASSIVE" | "LEAD";
@@ -31,10 +31,8 @@ export class CampaignService {
       };
     }
 
-    if (filter.sectorId) {
-      whereClause.sectors = {
-        some: { id: filter.sectorId },
-      };
+    if (filter.categoryId) {
+      whereClause.categoryId = filter.categoryId;
     }
 
     if (filter.btkZone) {
@@ -67,7 +65,7 @@ export class CampaignService {
     parsed = parsed.replace(/{{companyName}}/g, escapeHtml(agency.companyName || ""));
     parsed = parsed.replace(/{{authorizedPerson}}/g, escapeHtml(agency.authorizedPerson || "Yetkili"));
     parsed = parsed.replace(/{{documentNo}}/g, escapeHtml(agency.documentNo || ""));
-    parsed = parsed.replace(/{{sectorNames}}/g, escapeHtml(agency.sectors?.map((s: any) => s.name).join(", ") || ""));
+    parsed = parsed.replace(/{{categoryName}}/g, escapeHtml(agency.category?.name || ""));
     parsed = parsed.replace(/{{currentDate}}/g, new Date().toLocaleDateString("tr-TR"));
     parsed = parsed.replace(/{{unsubscribeToken}}/g, agency.unsubscribeToken || "");
     parsed = parsed.replace(/{{unsubscribeUrl}}/g, `${getBaseUrl()}/unsubscribe?token=${agency.unsubscribeToken}`);
@@ -221,37 +219,33 @@ export class CampaignService {
   /**
    * Sends an individual email directly to one agency from Inbox / Offer Hub
    */
-  static async sendIndividualEmail(agencyId: string, subject: string, plainTextContent: string, newSectorId?: string) {
+  static async sendIndividualEmail(agencyId: string, subject: string, plainTextContent: string, newCategoryId?: string) {
     const agency = await prisma.agency.findUnique({
       where: { id: agencyId },
-      include: { sectors: true }
+      include: { category: true }
     });
 
     if (!agency) throw new Error("Acente bulunamadı");
     if (agency.isUnsubscribed) throw new Error("Acente e-posta almak istemiyor (Abonelikten çıkmış)");
     
-    let attachedSectors = agency.sectors;
+    let currentCategory = agency.category;
 
-    if (newSectorId && newSectorId !== "none") {
-      const isAlreadyAssigned = agency.sectors.some(s => s.id === newSectorId);
-      if (!isAlreadyAssigned) {
+    if (newCategoryId && newCategoryId !== "none") {
+      if (agency.categoryId !== newCategoryId) {
         await prisma.agency.update({
           where: { id: agency.id },
           data: {
-            sectors: {
-              connect: { id: newSectorId }
-            }
+            categoryId: newCategoryId
           }
         });
-        const newlyAdded = await prisma.sector.findUnique({ where: { id: newSectorId } });
+        const newlyAdded = await prisma.businessCategory.findUnique({ where: { id: newCategoryId } });
         if (newlyAdded) {
-          attachedSectors.push(newlyAdded);
+          currentCategory = newlyAdded;
         }
       }
     }
 
-    const sectorNames = attachedSectors.map(s => s.name).join(", ");
-    const hasPdfs = attachedSectors.some(s => s.pdfUrl);
+    const categoryName = currentCategory ? currentCategory.name : "Belirtilmedi";
 
     // Fetch the target email address for individual message
     const contact = await prisma.contact.findFirst({
@@ -271,7 +265,7 @@ export class CampaignService {
       data: {
         agencyId: agency.id,
         subject: parsedSubject,
-        content: `Birebir E-Posta (Inbox Hızlı Teklif).\n${attachedSectors.length > 0 ? `Odak Sektör(ler): ${sectorNames}\nEkli Dosya: ${hasPdfs ? 'Var' : 'Yok'}\n` : ''}Ön Yazı:\n${this.templateParser(plainTextContent, agency)}`,
+        content: `Birebir E-Posta (Inbox Hızlı Teklif).\nKategori: ${categoryName}\nÖn Yazı:\n${this.templateParser(plainTextContent, agency)}`,
         status: MailStatus.PENDING,
       }
     });
@@ -406,26 +400,24 @@ export class CampaignService {
       },
     });
 
-    // Sektör bazlı gönderim — CampaignLog + MailLog birleşik
-    let sectorStats: { name: string; count: number }[] = [];
+    let categoryStats: { name: string; count: number }[] = [];
     try {
       const rawStats = await prisma.$queryRaw<{ name: string; count: bigint }[]>`
-        SELECT s.name, COUNT(*)::bigint as count FROM (
+        SELECT c.name, COUNT(*)::bigint as count FROM (
           SELECT cl.agency_id FROM campaign_logs cl WHERE cl.status = 'SENT'
           UNION ALL
           SELECT ml.agency_id FROM mail_logs ml WHERE ml.status = 'SENT'
         ) combined
         JOIN agencies a ON a.id = combined.agency_id
-        JOIN "_AgencySectors" as2 ON as2."A" = a.id
-        JOIN sectors s ON s.id = as2."B"
-        GROUP BY s.name
+        JOIN business_categories c ON c.id = a.category_id
+        GROUP BY c.name
         ORDER BY count DESC
         LIMIT 10
       `;
-      sectorStats = rawStats.map(s => ({ name: s.name, count: Number(s.count) }));
+      categoryStats = rawStats.map(s => ({ name: s.name, count: Number(s.count) }));
     } catch (statsError) {
-      console.error("[CampaignService] Failed to fetch sector stats:", statsError);
-      sectorStats = [];
+      console.error("[CampaignService] Failed to fetch category stats:", statsError);
+      categoryStats = [];
     }
 
     return {
@@ -454,7 +446,7 @@ export class CampaignService {
         openedAt: m.openedAt,
         clickedAt: m.clickedAt,
       })),
-      sectorStats,
+      sectorStats: categoryStats, // Retaining key name to prevent breaking UI if it expects sectorStats
     };
   }
 }

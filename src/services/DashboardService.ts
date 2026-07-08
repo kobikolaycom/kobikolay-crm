@@ -31,7 +31,7 @@ export interface RecentNote {
   agencyId: string | null;
   agencyName: string | null;
   agencyProvince: string | null;
-  agencySector: string | null;
+  agencyCategory: string | null;
   agencyStatus: string | null;
   representativeName: string | null;
   createdByName: string | null;
@@ -161,8 +161,7 @@ export class DashboardService {
                 take: 1,
                 select: { province: true },
               },
-              sectors: {
-                take: 1,
+              category: {
                 select: { name: true },
               },
             },
@@ -181,7 +180,7 @@ export class DashboardService {
         agencyId: n.agencyId,
         agencyName: n.agency?.companyName ?? null,
         agencyProvince: n.agency?.contacts?.[0]?.province ?? null,
-        agencySector: n.agency?.sectors?.[0]?.name ?? null,
+        agencyCategory: n.agency?.category?.name ?? null,
         agencyStatus: n.agency?.status ?? null,
         representativeName: n.agency?.representative?.name ?? null,
         createdByName: n.createdByUser?.name ?? null,
@@ -237,7 +236,7 @@ export class DashboardService {
                 status: true,
                 representative: { select: { name: true } },
                 contacts: { take: 1, select: { province: true } },
-                sectors: { take: 1, select: { name: true } },
+                category: { select: { name: true } },
               },
             },
             creator: { select: { id: true, name: true } },
@@ -261,7 +260,7 @@ export class DashboardService {
                 status: true,
                 representative: { select: { name: true } },
                 contacts: { take: 1, select: { province: true } },
-                sectors: { take: 1, select: { name: true } },
+                category: { select: { name: true } },
               },
             },
             createdByUser: { select: { id: true, name: true } },

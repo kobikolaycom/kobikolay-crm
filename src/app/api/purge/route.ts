@@ -32,18 +32,15 @@ export async function POST(req: NextRequest) {
       results.push(`${convoCount.count} konuşma ve ${msgCount.count} mesaj silindi`);
     }
 
-    if (target === "sectors" || target === "all") {
-      // Disconnect agency-sector relations
-      await prisma.$executeRaw`DELETE FROM "_AgencySectors"`;
-      
-      // Delete sector references
-      try { await prisma.sectorReference.deleteMany({}); } catch {}
+    if (target === "categories" || target === "all") {
+      // Disconnect agency-category relations
+      await prisma.agency.updateMany({ data: { categoryId: null } });
       
       // Delete email templates
       try { await prisma.emailTemplate.deleteMany({}); } catch {}
 
-      const sectorCount = await prisma.sector.deleteMany({});
-      results.push(`${sectorCount.count} faaliyet alanı silindi`);
+      const categoryCount = await prisma.businessCategory.deleteMany({});
+      results.push(`${categoryCount.count} kategori silindi`);
     }
 
     return new Response(

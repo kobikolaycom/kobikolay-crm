@@ -1,5 +1,5 @@
 import { AgencyService } from "@/services/AgencyService";
-import { SectorService } from "@/services/SectorService";
+import { BusinessCategoryService } from "@/services/BusinessCategoryService";
 import { UserService } from "@/services/UserService";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AgentsTableClient } from "./AgentsTableClient";
@@ -15,7 +15,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
   const page = Number(params.page) || 1;
   const pageSize = 50;
   const search = (params.search as string) || "";
-  const sector = (params.sector as string) || "all";
+  const categoryId = (params.categoryId as string) || "all";
   const pitchStatus = (params.pitchStatus as string) || "all";
   const campaignFilter = (params.campaignFilter as string) || "all";
   const dateFrom = (params.dateFrom as string) || "";
@@ -33,7 +33,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     skip: (page - 1) * pageSize,
     take: pageSize,
     search,
-    sector,
+    categoryId,
     pitchStatus,
     campaignFilter,
     dateFrom: dateFrom || undefined,
@@ -48,8 +48,8 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
 
-  const [sectors, users, btkZones, provinces] = await Promise.all([
-    SectorService.list(),
+  const [categories, users, btkZones, provinces] = await Promise.all([
+    BusinessCategoryService.list(),
     UserService.getActiveUsers(),
     AgencyService.getDistinctBtkZones(),
     AgencyService.getDistinctProvinces(),
@@ -63,7 +63,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
       />
       <AgentsTableClient
         agencies={JSON.parse(JSON.stringify(agencies))}
-        sectors={JSON.parse(JSON.stringify(sectors))}
+        categories={JSON.parse(JSON.stringify(categories))}
         users={JSON.parse(JSON.stringify(users))}
         btkZones={btkZones}
         provinces={provinces}
@@ -81,7 +81,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialDistrict={district}
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
-        initialSector={sector}
+        initialCategoryId={categoryId}
       />
     </div>
   );

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const safeName = file.name
       .replace(/[^a-zA-Z0-9._-]/g, "_")
       .replace(/_+/g, "_");
-    const blobPath = `sectors/${timestamp}_${safeName}`;
+    const blobPath = `categories/${timestamp}_${safeName}`;
 
     // Convert file to Buffer for robust compatibility in serverless environments
     const arrayBuffer = await file.arrayBuffer();
