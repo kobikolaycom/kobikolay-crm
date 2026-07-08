@@ -120,14 +120,7 @@ export class PitchService {
       const tid = mailLog.trackingId;
       const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
 
-      let trackedHtml = fullHtml.replace(
-        /href="(https?:\/\/[^"]+)"/g,
-        (match: string, url: string) => {
-          if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
-          const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
-          return `href="${trackUrl}"`;
-        }
-      );
+      let trackedHtml = fullHtml;
 
       const lastDivIndex = trackedHtml.lastIndexOf('</div>');
       if (lastDivIndex !== -1) {

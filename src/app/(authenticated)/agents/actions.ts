@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export async function dispatchBulkPitchChunkAction(
   agencyIds: string[],
-  sectorIds: string[],
+
   coverLetter: string,
   chunkIndex: number,
   chunkSize: number
@@ -24,7 +24,7 @@ export async function dispatchBulkPitchChunkAction(
   const results = [];
   for (const agencyId of chunk) {
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
-    const result = await PitchService.sendPitch(agencyId, sectorIds, undefined, userId);
+    const result = await PitchService.sendPitch(agencyId, coverLetter, userId);
     results.push(result);
   }
 
@@ -140,7 +140,7 @@ export async function createAgencyAction(data: {
   authorizedPerson?: string;
   website?: string;
   btkZone?: string;
-  sectorIds?: string[];
+  categoryId?: string;
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
@@ -166,9 +166,7 @@ export async function createAgencyAction(data: {
       website: data.website || null,
       btkZone: data.btkZone || null,
       status: "ACTIVE",
-      sectors: data.sectorIds && data.sectorIds.length > 0 
-        ? { connect: data.sectorIds.map(id => ({ id })) } 
-        : undefined,
+      categoryId: data.categoryId || null,
     },
   });
 
@@ -256,7 +254,7 @@ export async function updateAgencyAction(
     authorizedPerson?: string;
     website?: string;
     btkZone?: string;
-    sectorIds?: string[];
+    categoryId?: string;
   }
 ) {
   const session = await auth();
@@ -287,7 +285,7 @@ export async function updateAgencyAction(
       authorizedPerson: data.authorizedPerson || null,
       website: data.website || null,
       btkZone: data.btkZone || null,
-      sectors: data.sectorIds ? { set: data.sectorIds.map(id => ({ id })) } : { set: [] },
+      categoryId: data.categoryId || null,
     },
   });
 

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { TanitimClient } from "./TanitimClient";
 import { EmailTemplateService } from "@/services/EmailTemplateService";
 import { AgencyService } from "@/services/AgencyService";
-import { SectorService } from "@/services/SectorService";
+import { BusinessCategoryService } from "@/services/BusinessCategoryService";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export default async function TanitimPage() {
   let campaigns: any[] = [];
   let templates: any[] = [];
   let provinces: string[] = [];
-  let sectors: any[] = [];
+  let categories: any[] = [];
 
   try {
     campaigns = await prisma.campaign.findMany({
@@ -46,9 +46,9 @@ export default async function TanitimPage() {
   }
 
   try {
-    sectors = await SectorService.list();
+    categories = await BusinessCategoryService.list();
   } catch (error) {
-    console.error("Failed to load sectors:", error);
+    console.error("Failed to load categories:", error);
   }
 
   return (
@@ -57,7 +57,7 @@ export default async function TanitimPage() {
         campaigns={JSON.parse(JSON.stringify(campaigns))}
         templates={JSON.parse(JSON.stringify(templates))}
         provinces={provinces}
-        sectors={JSON.parse(JSON.stringify(sectors.map((s: any) => ({ id: s.id, name: s.name }))))}
+        categories={JSON.parse(JSON.stringify(categories.map((c: any) => ({ id: c.id, name: c.name }))))}
       />
     </div>
   );

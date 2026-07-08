@@ -75,7 +75,7 @@ interface AgencyRow {
   authorizedPerson: string | null;
   status: string;
   contacts: { email: string | null; province: string | null; district: string | null }[];
-  sectors: { id: string; name: string }[];
+  category: { id: string; name: string } | null;
   mailLogs: { sentAt: string | null; status: string }[];
   _count: { mailLogs: number; campaignLogs: number; conversations: number };
 }
@@ -113,12 +113,12 @@ export function TanitimClient({
   campaigns: initialCampaigns,
   templates: initialTemplates,
   provinces: initialProvinces,
-  sectors: initialSectors,
+  categories: initialSectors,
 }: {
   campaigns: Campaign[];
   templates: EmailTemplate[];
   provinces: string[];
-  sectors: Sector[];
+  categories: Sector[];
 }) {
   const router = useRouter();
   const [campaigns] = useState(initialCampaigns);
@@ -230,7 +230,7 @@ export function TanitimClient({
       province: selectedProvince !== "all" ? selectedProvince : undefined,
       district: selectedDistrict !== "all" ? selectedDistrict : undefined,
       status: selectedStatus !== "all" ? selectedStatus : undefined,
-      sectorId: selectedSector !== "all" ? selectedSector : undefined,
+      categoryId: selectedSector !== "all" ? selectedSector : undefined,
       mailHistory: mailHistory !== "all" ? mailHistory : undefined,
       contactHistory: contactHistory !== "all" ? contactHistory : undefined,
       page: targetPage,

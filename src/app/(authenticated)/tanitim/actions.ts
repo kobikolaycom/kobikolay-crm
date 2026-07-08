@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth";
 import { CampaignService } from "@/services/CampaignService";
-import { SectorService } from "@/services/SectorService";
+import { BusinessCategoryService } from "@/services/BusinessCategoryService";
 import { AgencyService } from "@/services/AgencyService";
 import { EmailTemplateService } from "@/services/EmailTemplateService";
 import { MailService } from "@/services/MailService";
@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
 export async function getSectorsAction() {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz");
-  return SectorService.list();
+  return BusinessCategoryService.list();
 }
 
 export async function getProvincesAction() {
@@ -39,7 +39,7 @@ export async function getFilteredAgenciesAction(filters: {
   province?: string;
   district?: string;
   status?: string;
-  sectorId?: string;
+  categoryId?: string;
   mailHistory?: string;
   contactHistory?: string;
   page?: number;
@@ -51,7 +51,7 @@ export async function getFilteredAgenciesAction(filters: {
 }
 
 export async function getTargetCountAction(filter: {
-  sectorId?: string;
+  categoryId?: string;
   status?: string;
 }) {
   const session = await auth();
@@ -61,7 +61,7 @@ export async function getTargetCountAction(filter: {
 }
 
 export async function getTargetAgenciesPreviewAction(filter: {
-  sectorId?: string;
+  categoryId?: string;
   status?: string;
 }) {
   const session = await auth();
@@ -78,7 +78,7 @@ export async function createAndDispatchCampaignAction(data: {
   name: string;
   subject: string;
   content: string;
-  sectorId?: string;
+  categoryId?: string;
   agencyStatus?: string;
 }) {
   const session = await auth();
@@ -100,7 +100,7 @@ export async function createAndDispatchCampaignAction(data: {
 
   // 2. Build filter
   const filter: any = {};
-  if (data.sectorId && data.sectorId !== "all") filter.sectorId = data.sectorId;
+  if (data.categoryId && data.categoryId !== "all") filter.categoryId = data.categoryId;
   if (data.agencyStatus && data.agencyStatus !== "all") filter.status = data.agencyStatus;
 
   // 3. Dispatch
@@ -153,7 +153,7 @@ export async function sendBulkPromotionAction(data: {
     },
     include: {
       contacts: { select: { email: true } },
-      sectors: { select: { name: true } },
+      category: { select: { name: true } },
     },
   });
 
@@ -192,16 +192,9 @@ export async function sendBulkPromotionAction(data: {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kobikolay-crm.vercel.app";
       const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
 
-      let trackedHtml = rawHtml.replace(
-        /href="(https?:\/\/[^"]+)"/g,
-        (match: string, url: string) => {
-          if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
-          const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
-          return `href="${trackUrl}"`;
-        }
-      );
+      let trackedHtml = rawHtml;
 
-      const lastDivIndex = trackedHtml.lastIndexOf('</div>');
+        const lastDivIndex = trackedHtml.lastIndexOf('</div>');
       if (lastDivIndex !== -1) {
         trackedHtml = trackedHtml.slice(0, lastDivIndex) + trackingPixel + trackedHtml.slice(lastDivIndex);
       } else {

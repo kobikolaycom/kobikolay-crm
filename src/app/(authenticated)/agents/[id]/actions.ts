@@ -238,29 +238,16 @@ export async function getAgencyConversationsAction(agencyId: string) {
   });
 }
 
-// ─── Faaliyet Alanı Tanıtım Gönderim Aksiyonları ───
-
-export async function getAllSectorsAction() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Yetkisiz erişim");
-
-  return prisma.sector.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      references: { orderBy: { createdAt: "asc" } },
-    },
-  });
-}
+// ─── Kategori Tanıtım Gönderim Aksiyonları ───
 
 export async function sendAgencyPitchAction(data: {
   agencyId: string;
-  sectorIds: string[];
 }) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
   const { PitchService } = await import("@/services/PitchService");
-  const result = await PitchService.sendPitch(data.agencyId, data.sectorIds, undefined, session.user.id);
+  const result = await PitchService.sendPitch(data.agencyId, undefined, session.user.id);
 
   if (!result.success) {
     throw new Error(result.error || "E-posta gönderilemedi");

@@ -147,14 +147,7 @@ export class CampaignService {
         const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
 
         // Wrap links for tracking
-        let trackedHtml = rawHtml.replace(
-          /href="(https?:\/\/[^"]+)"/g,
-          (match: string, url: string) => {
-            if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
-            const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
-            return `href="${trackUrl}"`;
-          }
-        );
+        let trackedHtml = rawHtml;
 
         const lastDivIndex = trackedHtml.lastIndexOf('</div>');
         if (lastDivIndex !== -1) {
@@ -275,14 +268,7 @@ export class CampaignService {
     const trackingPixel = `<img src="${baseUrl}/api/track?tid=${tid}&type=open" width="1" height="1" style="display:none;border:0;" alt="" />`;
 
     // Wrap links for tracking
-    let trackedHtml = _emailHtml.replace(
-      /href="(https?:\/\/[^"]+)"/g,
-      (match: string, url: string) => {
-        if (url.includes("/api/track") || url.includes("acenteyazilim.com") || url.includes("whatsapp.com") || url.includes("wa.me")) return match;
-        const trackUrl = `${baseUrl}/api/track?tid=${tid}&type=click&url=${encodeURIComponent(url)}`;
-        return `href="${trackUrl}"`;
-      }
-    );
+    let trackedHtml = _emailHtml;
 
     const lastDivIndex = trackedHtml.lastIndexOf('</div>');
     if (lastDivIndex !== -1) {

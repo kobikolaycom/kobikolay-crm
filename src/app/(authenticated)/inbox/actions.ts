@@ -155,7 +155,7 @@ export async function getSectorsAction() {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
 
-  return prisma.sector.findMany({
+  return prisma.businessCategory.findMany({
     orderBy: { name: "asc" },
   });
 }

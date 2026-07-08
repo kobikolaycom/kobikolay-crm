@@ -62,26 +62,26 @@ async function main() {
 
   console.log(`✅ Basic roles seeded: ${salesManagerRole.name}, ${salesRepRole.name}`);
 
-  // 4. Seed Default Sectors
-  const defaultSectors = [
-    { name: "Uçak Bileti", description: "Yurtiçi ve yurtdışı uçak bileti rezervasyonları." },
-    { name: "Otel Rezervasyonu", description: "B2B ve B2C konaklama rezervasyon hizmetleri." },
-    { name: "Cruise", description: "Uluslararası gemi turları ve kabin kiralama." },
-    { name: "Vize Hizmetleri", description: "Schengen ve dünya geneli vize danışmanlığı." }
+  // 4. Seed Default Categories
+  const defaultCategories = [
+    { name: "Acenteler", description: "Seyahat Acenteleri." },
+    { name: "Oteller", description: "B2B ve B2C konaklama rezervasyon hizmetleri." },
+    { name: "Yazılım Firmaları", description: "Teknoloji ve yazılım." }
   ];
 
-  for (const s of defaultSectors) {
-    await prisma.sector.upsert({
+  for (const s of defaultCategories) {
+    await prisma.businessCategory.upsert({
       where: { name: s.name },
       update: {},
       create: {
         name: s.name,
         description: s.description,
+      slug: s.name.toLowerCase().replace(/[^a-z0-9]/g, "-"),
       }
     });
   }
 
-  console.log("✅ Default sectors seeded.");
+  console.log("✅ Default categories seeded.");
 }
 
 main()

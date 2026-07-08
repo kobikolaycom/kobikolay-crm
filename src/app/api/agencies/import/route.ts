@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
                   data: contactsToCreate,
                   skipDuplicates: true,
                 });
-
+              }
 
               created += agenciesToCreate.length;
             } catch (err: any) {

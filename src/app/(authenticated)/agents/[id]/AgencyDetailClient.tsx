@@ -47,7 +47,6 @@ import {
   resolveAgencyConversationAction,
   reopenAgencyConversationAction,
   getAgencyConversationsAction,
-  getAllSectorsAction,
   sendAgencyPitchAction,
 } from "./actions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -209,7 +208,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
 
   useEffect(() => {
     getActiveUsersForAssignAction().then(setUsers).catch(() => {});
-    getAllSectorsAction().then(setAllSectors).catch(() => {});
+    Promise.resolve([]).then(setAllSectors).catch(() => {});
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -233,6 +232,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   }, [agency.id]);
 
   const contact = agency.contacts?.[0];
+  const isAcente = agency.category?.name?.toLowerCase().includes("acente") || false;
   const selectedConvo = conversations.find((c) => c.id === selectedConvoId) || null;
 
   // ─── Filter conversations for hub ───
@@ -477,7 +477,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
               </Badge>
             )}
           </div>
-          {agency.documentNo && (
+          {(isAcente && agency.documentNo) && (
             <p className="text-sm text-slate-400 mt-0.5 font-medium">Belge No: {agency.documentNo}</p>
           )}
         </div>
@@ -540,7 +540,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 {agency.companyName?.charAt(0)?.toUpperCase() || "?"}
               </div>
               <h2 className="text-lg font-black text-white mt-3 tracking-tight">{agency.companyName}</h2>
-              {agency.documentNo && (
+              {(isAcente && agency.documentNo) && (
                 <p className="text-white/60 text-xs font-medium mt-1">Belge No: {agency.documentNo}</p>
               )}
               <div className="mt-3">
@@ -597,7 +597,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 </div>
               )}
               {/* BTK Bölgesi */}
-              {agency.btkZone && (
+              {(isAcente && agency.btkZone) && (
                 <div className="flex items-center gap-3 bg-cyan-50 rounded-xl px-4 py-3 group hover:bg-cyan-100 transition-colors">
                   <div className="w-8 h-8 rounded-lg bg-cyan-100 flex items-center justify-center">
                     <Building2 size={15} className="text-cyan-600" />
@@ -683,7 +683,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                   </Button>
                 </div>
               )}
-              {!contact?.phone && !contact?.email && !contact?.province && !contact?.address && !agency.website && !agency.authorizedPerson && !agency.btkZone && (
+              {!contact?.phone && !contact?.email && !contact?.province && !contact?.address && !agency.website && !agency.authorizedPerson && !(isAcente && agency.btkZone) && (
                 <div className="text-center py-6">
                   <Building2 size={28} className="mx-auto text-slate-200 mb-2" />
                   <p className="text-xs text-slate-400 font-medium">İletişim bilgisi yok</p>
@@ -1853,10 +1853,7 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
                 }
                 setPitchSending(true);
                 try {
-                  await sendAgencyPitchAction({
-                    agencyId: agency.id,
-                    sectorIds: pitchSelectedSectorIds,
-                  });
+                  await sendAgencyPitchAction({ agencyId: agency.id });
                   toast.success("Tanıtım e-postası başarıyla gönderildi! 🚀");
                   setShowPitchDialog(false);
                   router.refresh();

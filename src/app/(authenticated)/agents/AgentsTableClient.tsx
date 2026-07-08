@@ -46,7 +46,7 @@ import { useDebounce } from "use-debounce";
 
 interface AgentsTableClientProps {
   agencies: any[];
-  sectors: any[];
+  categories: any[];
   users: any[];
   btkZones: string[];
   provinces: string[];
@@ -64,7 +64,7 @@ interface AgentsTableClientProps {
   initialDistrict?: string;
   initialSortBy?: string;
   initialSortOrder?: string;
-  initialSector?: string;
+  initialCategoryId?: string;
 }
 
 function statusBadge(status: string) {
@@ -92,7 +92,7 @@ function callStatusBadge(status: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, sectors, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "", initialSector = "all" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, categories, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "", initialCategoryId = "all" }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -105,7 +105,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   // Excel Import State
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importSectorId, setImportSectorId] = useState("none");
+  const [importCategoryId, setImportCategoryId] = useState("none");
   const [importing, setImporting] = useState(false);
   const [importPercent, setImportPercent] = useState(0);
   const [importProcessed, setImportProcessed] = useState(0);
@@ -128,6 +128,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const [isCreating, setIsCreating] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [newDocumentNo, setNewDocumentNo] = useState("");
+  const isNewAgencyAcente = categories.find(c => c.id === newCategoryId)?.name.toLowerCase().includes("acente") || false;
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newAddress, setNewAddress] = useState("");
@@ -136,7 +137,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const [newAuthorized, setNewAuthorized] = useState("");
   const [newWebsite, setNewWebsite] = useState("");
   const [newBtkZone, setNewBtkZone] = useState("");
-  const [newSectorIds, setNewSectorIds] = useState<string[]>([]);
+  const [newCategoryId, setNewCategoryId] = useState<string>("");
 
   // Edit Agency State
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -144,6 +145,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const [editingAgency, setEditingAgency] = useState<any>(null);
   const [editCompanyName, setEditCompanyName] = useState("");
   const [editDocumentNo, setEditDocumentNo] = useState("");
+  const isEditAgencyAcente = categories.find(c => c.id === editCategoryId)?.name.toLowerCase().includes("acente") || false;
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
@@ -152,7 +154,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const [editAuthorized, setEditAuthorized] = useState("");
   const [editWebsite, setEditWebsite] = useState("");
   const [editBtkZone, setEditBtkZone] = useState("");
-  const [editSectorIds, setEditSectorIds] = useState<string[]>([]);
+  const [editCategoryId, setEditCategoryId] = useState<string>("");
 
   // District dynamic loading
   const [districts, setDistricts] = useState<string[]>([]);
@@ -187,8 +189,8 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
     setEditProvince(contact?.province || "");
     setEditDistrict(contact?.district || "");
     
-    const sectorIds = agency.sectors?.map((s: any) => s.id) || [];
-    setEditSectorIds(sectorIds);
+    const catId = agency.categoryId || "none";
+    setEditCategoryId(catId);
     
     setShowEditDialog(true);
   };
@@ -212,7 +214,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
         authorizedPerson: editAuthorized.trim() || undefined,
         website: editWebsite.trim() || undefined,
         btkZone: editBtkZone.trim() || undefined,
-        sectorIds: editSectorIds,
+        categoryId: editCategoryId !== "none" ? editCategoryId : undefined,
       });
       toast.success(`"${editCompanyName.trim()}" başarıyla güncellendi`);
       setShowEditDialog(false);
@@ -226,7 +228,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   };
 
   // Modal State
-  const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string[]>([]);
   const [coverLetter, setCoverLetter] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -236,18 +238,18 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
     const preselectedSectors: string[] = [];
     agencies.forEach(agency => {
       if (selectedIds.includes(agency.id)) {
-        agency.sectors?.forEach((s: any) => {
+        agency.categories?.forEach((s: any) => {
           if (!preselectedSectors.includes(s.id)) {
             preselectedSectors.push(s.id);
           }
         });
       }
     });
-    setSelectedSectorIds(preselectedSectors);
+    setSelectedCategoryId(preselectedSectors);
     
-    // Generate default cover letter by merging all preselected sectors' cover letters
+    // Generate default cover letter by merging all preselected categories' cover letters
     let mergedLetter = "";
-    const selectedSectors = sectors.filter(s => preselectedSectors.includes(s.id));
+    const selectedSectors = categories.filter(s => preselectedSectors.includes(s.id));
     
     if (selectedSectors.length > 0) {
       const coverLettersText = selectedSectors
@@ -334,13 +336,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
 
     try {
       for (let i = 0; i < totalChunks; i++) {
-        await dispatchBulkPitchChunkAction(
-          selectedIds,
-          selectedSectorIds,
-          coverLetter,
-          i,
-          chunkSize
-        );
+        await dispatchBulkPitchChunkAction(selectedIds, coverLetter, i, chunkSize);
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
       toast.success(`${selectedIds.length} acenteye tanıtım gönderildi`);
@@ -384,7 +380,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
     try {
       const fd = new FormData();
       fd.append("file", importFile);
-      if (importSectorId !== "none") fd.append("sectorId", importSectorId);
+      if (importCategoryId !== "none") fd.append("sectorId", importCategoryId);
 
       const res = await fetch("/api/agencies/import", { method: "POST", body: fd });
 
@@ -440,7 +436,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const resetImport = () => {
     setImportFile(null);
     setImportResult(null);
-    setImportSectorId("none");
+    setImportCategoryId("none");
     setImportPercent(0);
     setImportProcessed(0);
     setImportTotal(0);
@@ -499,7 +495,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
         authorizedPerson: newAuthorized.trim() || undefined,
         website: newWebsite.trim() || undefined,
         btkZone: newBtkZone.trim() || undefined,
-        sectorIds: newSectorIds,
+        categoryId: newCategoryId !== "none" ? newCategoryId : undefined,
       });
       toast.success(`"${newCompanyName.trim()}" başarıyla eklendi`);
       setShowCreateDialog(false);
@@ -515,7 +511,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
   const resetCreateForm = () => {
     setNewCompanyName(""); setNewDocumentNo(""); setNewPhone(""); setNewEmail("");
     setNewAddress(""); setNewProvince(""); setNewDistrict("");
-    setNewAuthorized(""); setNewWebsite(""); setNewBtkZone(""); setNewSectorIds([]);
+    setNewAuthorized(""); setNewWebsite(""); setNewBtkZone(""); setNewCategoryId("none");
   };
 
   return (
@@ -609,14 +605,14 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
 
         {/* Sector (Faaliyet Alanı) filter */}
         <Select
-          value={initialSector || "all"}
+          value={initialCategoryId || "all"}
           onValueChange={(value) => {
             const params = new URLSearchParams(searchParams.toString());
             params.delete("page");
             if (value === "all") {
-              params.delete("sector");
+              params.delete("categoryId");
             } else {
-              params.set("sector", value);
+              params.set("categoryId", value);
             }
             router.push(`${pathname}?${params.toString()}`);
           }}
@@ -629,7 +625,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tüm Faaliyet Alanları</SelectItem>
-            {sectors.map((sec: any) => (
+            {categories.map((sec: any) => (
               <SelectItem key={sec.id} value={sec.id}>
                 {sec.name}
               </SelectItem>
@@ -913,9 +909,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                   <p className="text-xs text-slate-500 mb-2">👤 {agency.authorizedPerson}</p>
                 )}
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {agency.sectors?.map((s: any) => (
-                    <Badge key={s.id} variant="secondary" className="text-[9px]">{s.name}</Badge>
-                  ))}
+                  {agency.category ? <Badge variant="secondary" className="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100">{agency.category.name}</Badge> : <span className="text-slate-400 text-xs">—</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px] text-slate-500">
                   {agency.lastCallAt && (
@@ -1046,11 +1040,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 flex-wrap">
-                        {agency.sectors?.map((s: any) => (
-                          <Badge key={s.id} variant="secondary" className="text-[9px]">
-                            {s.name}
-                          </Badge>
-                        ))}
+                        {agency.category ? <Badge variant="secondary" className="text-[10px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100">{agency.category.name}</Badge> : <span className="text-slate-400 text-xs">—</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -1302,8 +1292,8 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Gönderilecek Faaliyet Alanları</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  {sectors.map((s: any) => {
-                    const isChecked = selectedSectorIds.includes(s.id);
+                  {categories.map((s: any) => {
+                    const isChecked = selectedCategoryId.includes(s.id);
                     return (
                       <label
                         key={s.id}
@@ -1316,7 +1306,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => {
-                            setSelectedSectorIds(prev =>
+                            setSelectedCategoryId(prev =>
                               prev.includes(s.id)
                                 ? prev.filter(id => id !== s.id)
                                 : [...prev, s.id]
@@ -1352,8 +1342,8 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                       </p>
                     </div>
                     <hr className="border-slate-200" />
-                    {sectors
-                      .filter((s: any) => selectedSectorIds.includes(s.id))
+                    {categories
+                      .filter((c: any) => selectedCategoryId.includes(c.id))
                       .map((s: any) => (
                         <div key={s.id} className="bg-white rounded-lg border border-slate-200 p-3 space-y-1">
                           <p className="font-bold text-slate-800 text-xs flex items-center gap-2">
@@ -1464,13 +1454,13 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
             {/* Sector Assignment */}
             <div className="space-y-2">
               <Label>Faaliyet Alanı Ataması (isteğe bağlı)</Label>
-              <Select value={importSectorId} onValueChange={setImportSectorId} disabled={importing}>
+              <Select value={importCategoryId} onValueChange={setImportCategoryId} disabled={importing}>
                 <SelectTrigger className="rounded-xl">
                   <SelectValue placeholder="Faaliyet alanı seçin..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Faaliyet alanı atama</SelectItem>
-                  {sectors.map((s: any) => (
+                  {categories.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -1694,7 +1684,8 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                   className="rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
+              {isNewAgencyAcente && (
+<div className="space-y-2">
                 <Label>BTK Bölgesi</Label>
                 <Input
                   value={newBtkZone}
@@ -1703,11 +1694,12 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                   className="rounded-xl"
                 />
               </div>
+)}
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  {sectors.map((s: any) => {
-                    const isChecked = newSectorIds.includes(s.id);
+                  {categories.map((s: any) => {
+                    const isChecked = newCategoryId.includes(s.id);
                     return (
                       <label
                         key={s.id}
@@ -1720,9 +1712,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => {
-                            setNewSectorIds(prev =>
-                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                            );
+                            setNewCategoryId(s.id);
                           }}
                         />
                         <span className="truncate">{s.name}</span>
@@ -1845,7 +1835,8 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                   className="rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
+              {isEditAgencyAcente && (
+<div className="space-y-2">
                 <Label>BTK Bölgesi</Label>
                 <Input
                   value={editBtkZone}
@@ -1854,11 +1845,12 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                   className="rounded-xl"
                 />
               </div>
+)}
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
-                  {sectors.map((s: any) => {
-                    const isChecked = editSectorIds.includes(s.id);
+                  {categories.map((s: any) => {
+                    const isChecked = editCategoryId.includes(s.id);
                     return (
                       <label
                         key={s.id}
@@ -1871,9 +1863,7 @@ export function AgentsTableClient({ agencies, sectors, users, btkZones, province
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => {
-                            setEditSectorIds(prev =>
-                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
-                            );
+                            setEditCategoryId(s.id);
                           }}
                         />
                         <span className="truncate">{s.name}</span>
