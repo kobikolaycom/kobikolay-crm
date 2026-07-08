@@ -49,11 +49,12 @@ export default async function AgentsPage({ searchParams }: PageProps) {
     sortOrder: (sortOrder as "asc" | "desc") || undefined,
   });
 
-  const [categories, users, btkZones, provinces] = await Promise.all([
+  const [categories, users, btkZones, provinces, templates] = await Promise.all([
     BusinessCategoryService.list(),
     UserService.getActiveUsers(),
     AgencyService.getDistinctBtkZones(),
     AgencyService.getDistinctProvinces(),
+    import("@/services/EmailTemplateService").then(m => m.EmailTemplateService.list())
   ]);
 
   return (
@@ -83,6 +84,7 @@ export default async function AgentsPage({ searchParams }: PageProps) {
         initialSortBy={sortBy}
         initialSortOrder={sortOrder}
         initialCategoryId={categoryId}
+        templates={JSON.parse(JSON.stringify(templates))}
       />
     </div>
   );

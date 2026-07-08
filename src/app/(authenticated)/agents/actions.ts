@@ -7,10 +7,10 @@ import { revalidatePath } from "next/cache";
 
 export async function dispatchBulkPitchChunkAction(
   agencyIds: string[],
-
   coverLetter: string,
   chunkIndex: number,
-  chunkSize: number
+  chunkSize: number,
+  templateId?: string
 ) {
   const session = await auth();
   if (!session?.user) throw new Error("Yetkisiz erişim");
@@ -24,7 +24,7 @@ export async function dispatchBulkPitchChunkAction(
   const results = [];
   for (const agencyId of chunk) {
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
-    const result = await PitchService.sendPitch(agencyId, coverLetter, userId);
+    const result = await PitchService.sendPitch(agencyId, coverLetter, userId, templateId);
     results.push(result);
     // Wait 1 second to reduce spam risk
     await new Promise(resolve => setTimeout(resolve, 1000));

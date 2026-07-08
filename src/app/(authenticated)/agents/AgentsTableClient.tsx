@@ -65,6 +65,7 @@ interface AgentsTableClientProps {
   initialSortBy?: string;
   initialSortOrder?: string;
   initialCategoryId?: string;
+  templates?: any[];
 }
 
 function statusBadge(status: string) {
@@ -92,7 +93,7 @@ function callStatusBadge(status: string | null | undefined) {
   return <Badge variant="outline" className={`text-[10px] font-semibold ${v.cls}`}>{v.label}</Badge>;
 }
 
-export function AgentsTableClient({ agencies, categories, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "", initialCategoryId = "all" }: AgentsTableClientProps) {
+export function AgentsTableClient({ agencies, categories, users, btkZones, provinces, total, currentPage, pageSize, initialCampaignFilter = "all", initialDateFrom = "", initialDateTo = "", initialMailInteraction = "all", initialRepresentativeId = "", initialCallStatusFilter = "all", initialBtkZone = "all", initialProvince = "all", initialDistrict = "all", initialSortBy = "", initialSortOrder = "", initialCategoryId = "all", templates = [] }: AgentsTableClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -229,41 +230,14 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   };
 
   // Modal State
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("none");
   const [coverLetter, setCoverLetter] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const openBulkSendModal = () => {
-    // Gather all sector IDs assigned to any of the selected agencies
-    const preselectedSectors: string[] = [];
-    agencies.forEach(agency => {
-      if (selectedIds.includes(agency.id)) {
-        agency.categories?.forEach((s: any) => {
-          if (!preselectedSectors.includes(s.id)) {
-            preselectedSectors.push(s.id);
-          }
-        });
-      }
-    });
-    setSelectedCategoryId(preselectedSectors);
-    
-    // Generate default cover letter by merging all preselected categories' cover letters
-    let mergedLetter = "";
-    const selectedSectors = categories.filter(s => preselectedSectors.includes(s.id));
-    
-    if (selectedSectors.length > 0) {
-      const coverLettersText = selectedSectors
-        .map(s => `[${s.name} Kategori]\n${s.coverLetter || ""}`)
-        .filter(Boolean)
-        .join("\n\n");
-        
-      mergedLetter = `Değerli İş Ortağımız,\n\nFirmamızın size özel kategori çözümlerini aşağıda bulabilirsiniz:\n\n${coverLettersText}\n\nSaygılarımızla,\nKobiKolay Ekibi`;
-    } else {
-      mergedLetter = "Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız kategori çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi";
-    }
-    
-    setCoverLetter(mergedLetter);
+    setCoverLetter("Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız dijital çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi");
+    setSelectedTemplateId("none");
     setIsModalOpen(true);
   };
 
@@ -337,10 +311,16 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
 
     try {
       for (let i = 0; i < totalChunks; i++) {
-        await dispatchBulkPitchChunkAction(selectedIds, coverLetter, i, chunkSize);
+        await dispatchBulkPitchChunkAction(
+          selectedIds, 
+          coverLetter, 
+          i, 
+          chunkSize, 
+          selectedTemplateId === "none" ? undefined : selectedTemplateId
+        );
         setProgress(Math.round(((i + 1) / totalChunks) * 100));
       }
-      toast.success(`${selectedIds.length} acenteye tanıtım gönderildi`);
+      toast.success(`${selectedIds.length} işletmeye tanıtım gönderildi`);
       setIsModalOpen(false);
       setSelectedIds([]);
       setProgress(0);
@@ -1301,41 +1281,26 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
             </div>
 
             <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
-              {/* Sector Checkboxes */}
+              {/* Template Selection */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Gönderilecek Kategoriler</Label>
-                <div className="grid grid-cols-2 gap-2 mt-1">
-                  {categories.map((s: any) => {
-                    const isChecked = selectedCategoryId.includes(s.id);
-                    return (
-                      <label
-                        key={s.id}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium cursor-pointer transition-all ${
-                          isChecked
-                            ? "bg-primary/5 border-primary text-primary shadow-sm"
-                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <Checkbox
-                          checked={isChecked}
-                          onCheckedChange={() => {
-                            setSelectedCategoryId(prev =>
-                              prev.includes(s.id)
-                                ? prev.filter(id => id !== s.id)
-                                : [...prev, s.id]
-                            );
-                          }}
-                        />
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="truncate">{s.name}</span>
-                          {s.pdfUrl && (
-                            <Badge variant="secondary" className="text-[9px] shrink-0 bg-emerald-50 text-emerald-700 border-emerald-200">PDF</Badge>
-                          )}
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
+                <Label className="text-sm font-semibold">Şablon Seçimi</Label>
+                <Select value={selectedTemplateId} onValueChange={(val) => {
+                  setSelectedTemplateId(val);
+                  if (val !== "none") {
+                    const t = templates?.find((x: any) => x.id === val);
+                    if (t) setCoverLetter(t.content);
+                  }
+                }}>
+                  <SelectTrigger className="w-full rounded-xl bg-slate-50/50">
+                    <SelectValue placeholder="Şablon Seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Varsayılan veya Özel Yazı</SelectItem>
+                    {templates?.map((t: any) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -1350,27 +1315,13 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                     </div>
                     <div className="space-y-2 mt-3">
                       <p className="font-semibold text-slate-700">Sayın <span className="text-primary">[Yetkili Kişi]</span>,</p>
-                      <p className="text-slate-400 italic text-xs leading-relaxed">
-                        [Varsayılan Teklif Ön Yazısı şablonunuz buraya otomatik olarak yerleştirilecektir.]
-                      </p>
+                      <div className="text-[11px] text-slate-500 max-h-40 overflow-y-auto bg-slate-50 rounded-lg p-3">
+                        {coverLetter ? coverLetter.split('\n').map((line, i) => (
+                          <p key={i} className="mb-1">{line}</p>
+                        )) : "Lütfen bir şablon seçin"}
+                      </div>
                     </div>
                     <hr className="border-slate-200" />
-                    {categories
-                      .filter((c: any) => selectedCategoryId.includes(c.id))
-                      .map((s: any) => (
-                        <div key={s.id} className="bg-white rounded-lg border border-slate-200 p-3 space-y-1">
-                          <p className="font-bold text-slate-800 text-xs flex items-center gap-2">
-                            <span className="w-1 h-4 bg-indigo-500 rounded-full inline-block"></span>
-                            {s.name}
-                          </p>
-                          <p className="text-[11px] text-slate-400 line-clamp-2">
-                            {s.coverLetter ? s.coverLetter.substring(0, 120) + "..." : "İçerik tanımlanmamış"}
-                          </p>
-                          {s.pdfUrl && (
-                            <span className="text-[10px] text-emerald-600 font-semibold">📎 PDF Broşür Eklenecek</span>
-                          )}
-                        </div>
-                      ))}
                     <div className="text-center text-xs text-slate-400 pt-2 border-t border-slate-200">
                       Saygılarımızla, <strong>KobiKolay Ekibi</strong>
                     </div>

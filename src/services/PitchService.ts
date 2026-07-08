@@ -13,7 +13,8 @@ export class PitchService {
   static async sendPitch(
     agencyId: string,
     customIntro?: string,
-    sentById?: string
+    sentById?: string,
+    templateId?: string
   ) {
     let mailLog: any = null;
     try {
@@ -34,8 +35,10 @@ export class PitchService {
       const agencyName = agency.companyName;
       const authorizedPerson = agency.authorizedPerson;
 
-      // Fetch default offer template for this category (or generic if none)
-      const offerTemplate = await EmailTemplateService.getDefault("offer_intro", agency.categoryId || undefined);
+      // Fetch specific template if requested, otherwise default
+      const offerTemplate = templateId 
+        ? await prisma.emailTemplate.findUnique({ where: { id: templateId } })
+        : await EmailTemplateService.getDefault("offer_intro", agency.categoryId || undefined);
 
       const greeting = authorizedPerson
         ? `Sayın ${authorizedPerson},`
