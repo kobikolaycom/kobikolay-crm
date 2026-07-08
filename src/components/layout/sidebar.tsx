@@ -11,6 +11,9 @@ import {
   Settings, 
   ChevronLeft, 
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Building2,
   Menu,
   X,
   MessageSquare,
@@ -24,18 +27,17 @@ import { signOut } from "next-auth/react";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Acenteler", href: "/agents", icon: Users },
+  { name: "İşletmeler", href: "/agents", icon: Building2, isDropdown: true },
   { name: "Mesajlar", href: "/inbox", icon: MessageSquare },
-  { name: "Tanıtım", href: "/tanitim", icon: Mail },
   { name: "Mail Şablonları", href: "/mail-sablonlari", icon: FileText },
-  { name: "Kategoriler", href: "/settings/categories", icon: Briefcase },
   { name: "Faaliyet Geçmişi", href: "/activities", icon: ClipboardList },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar({ logoUrl }: { logoUrl?: string | null }) {
+export function Sidebar({ logoUrl, categories = [] }: { logoUrl?: string | null; categories?: { id: string; name: string }[] }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isIsletmelerOpen, setIsIsletmelerOpen] = useState(true);
   const pathname = usePathname();
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
@@ -110,8 +112,47 @@ export function Sidebar({ logoUrl }: { logoUrl?: string | null }) {
         {/* Navigation Items */}
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
+            if (item.isDropdown) {
+              const isActive = pathname.startsWith("/agents");
+              return (
+                <div key={item.name} className="flex flex-col space-y-1">
+                  <div
+                    onClick={() => setIsIsletmelerOpen(!isIsletmelerOpen)}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                      isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="h-4 w-4" />
+                      {!isCollapsed && <span>{item.name}</span>}
+                    </div>
+                    {!isCollapsed && (
+                      isIsletmelerOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                    )}
+                  </div>
+                  {!isCollapsed && isIsletmelerOpen && (
+                    <div className="flex flex-col ml-6 space-y-1 mt-1 border-l pl-2">
+                      <Link href="/agents">
+                        <div className={cn("px-3 py-2 rounded-lg text-sm transition-all hover:bg-accent hover:text-accent-foreground", pathname === "/agents" && typeof window !== "undefined" && !window.location.search ? "bg-accent/50 text-accent-foreground font-medium" : "text-muted-foreground")}>
+                          Tümü
+                        </div>
+                      </Link>
+                      {categories.map(cat => (
+                        <Link key={cat.id} href={`/agents?categoryId=${cat.id}`}>
+                          <div className={cn("px-3 py-2 rounded-lg text-sm transition-all hover:bg-accent hover:text-accent-foreground", typeof window !== "undefined" && window.location.search.includes(cat.id) ? "bg-accent/50 text-accent-foreground font-medium" : "text-muted-foreground")}>
+                            {cat.name}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             const isActive = item.href === "/settings"
-              ? pathname === "/settings"
+              ? pathname === "/settings" || pathname.startsWith("/settings/")
               : pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link key={item.name} href={item.href} prefetch={false}>
@@ -150,8 +191,41 @@ export function Sidebar({ logoUrl }: { logoUrl?: string | null }) {
             </div>
             <nav className="space-y-4">
               {navItems.map((item) => {
+                if (item.isDropdown) {
+                  const isActive = pathname.startsWith("/agents");
+                  return (
+                    <div key={item.name} className="flex flex-col space-y-2">
+                      <div
+                        onClick={() => setIsIsletmelerOpen(!isIsletmelerOpen)}
+                        className={cn(
+                          "flex items-center justify-between rounded-xl p-4 text-lg transition-all cursor-pointer",
+                          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        <div className="flex items-center gap-4">
+                          <item.icon size={24} />
+                          <span>{item.name}</span>
+                        </div>
+                        {isIsletmelerOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </div>
+                      {isIsletmelerOpen && (
+                        <div className="flex flex-col ml-8 space-y-2 border-l-2 pl-4">
+                          <Link href="/agents" onClick={toggleMobile}>
+                            <div className="py-2 text-base text-muted-foreground hover:text-primary">Tümü</div>
+                          </Link>
+                          {categories.map(cat => (
+                            <Link key={cat.id} href={`/agents?categoryId=${cat.id}`} onClick={toggleMobile}>
+                              <div className="py-2 text-base text-muted-foreground hover:text-primary">{cat.name}</div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 const isActive = item.href === "/settings"
-                  ? pathname === "/settings"
+                  ? pathname === "/settings" || pathname.startsWith("/settings/")
                   : pathname === item.href || pathname.startsWith(item.href + "/");
                 return (
                   <Link key={item.name} href={item.href} onClick={toggleMobile} prefetch={false}>

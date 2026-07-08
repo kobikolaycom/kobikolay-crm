@@ -133,15 +133,15 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <Link href="/tanitim/stats" className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group">
+        <div className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between group">
           <div>
             <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Gönderilen Tanıtım</span>
-            <h3 className="text-3xl font-extrabold text-slate-900 mt-2 group-hover:text-purple-600 transition-colors">{stats.sentCampaigns}</h3>
+            <h3 className="text-3xl font-extrabold text-slate-900 mt-2">{stats.sentCampaigns}</h3>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-600">
             <Send size={22} />
           </div>
-        </Link>
+        </div>
 
         <Link href="/activities?type=CALL_LOG" className="glass-card rounded-2xl p-6 border shadow-sm flex items-center justify-between hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group">
           <div>
