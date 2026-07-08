@@ -79,7 +79,7 @@ export default async function ActivitiesPage({
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <PageHeader
-        title="Faaliyet Geçmişi"
+        title="İşlem Geçmişi"
         description="Tüm acente aktiviteleri: notlar, çağrılar, görevler ve hatırlatıcılar."
       />
 

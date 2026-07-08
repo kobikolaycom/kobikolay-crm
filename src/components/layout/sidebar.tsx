@@ -30,7 +30,7 @@ const navItems = [
   { name: "İşletmeler", href: "/agents", icon: Building2, isDropdown: true },
   { name: "Mesajlar", href: "/inbox", icon: MessageSquare },
   { name: "Mail Şablonları", href: "/mail-sablonlari", icon: FileText },
-  { name: "Faaliyet Geçmişi", href: "/activities", icon: ClipboardList },
+  { name: "İşlem Geçmişi", href: "/activities", icon: ClipboardList },
   { name: "Kategoriler", href: "/categories", icon: Briefcase },
   { name: "Ayarlar", href: "/settings", icon: Settings },
 ];

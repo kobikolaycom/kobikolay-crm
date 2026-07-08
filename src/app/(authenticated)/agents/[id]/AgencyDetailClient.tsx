@@ -697,7 +697,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
           {/* ─── Sectors Card ─── */}
           <div className="bg-white rounded-2xl border shadow-sm p-5">
             <h3 className="font-bold text-[11px] text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Tag size={12} /> Faaliyet Alanları
+              <Tag size={12} /> Kategoriler
             </h3>
             {agency.sectors?.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -708,7 +708,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 font-medium">Faaliyet alanı atanmamış</p>
+              <p className="text-xs text-slate-400 font-medium">Kategori atanmamış</p>
             )}
           </div>
 
@@ -1232,11 +1232,11 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                     onClick={() => {
                       const agencySectorIds = agency.sectors?.map((s: any) => s.id) || [];
                       setPitchSelectedSectorIds(agencySectorIds);
-                      setPitchSubject(`KobiKolay: ${agency.companyName} İçin Faaliyet Alanı Tanıtımı`);
+                      setPitchSubject(`KobiKolay: ${agency.companyName} İçin Kategori Tanıtımı`);
                       // Build merged email body
                       const selectedSectors = allSectors.filter((s: any) => agencySectorIds.includes(s.id));
                       const authorizedPerson = agency.authorizedPerson || 'Yetkili';
-                      let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız faaliyet alanı çözümlerimizi bilgilerinize sunarız.\n`;
+                      let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız kategori çözümlerimizi bilgilerinize sunarız.\n`;
                       if (selectedSectors.length > 0) {
                         selectedSectors.forEach((s: any) => {
                           body += `\n━━━ ${s.name.toUpperCase()} ━━━\n`;
@@ -1725,7 +1725,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
 
             {/* Sector Selection */}
             <div className="space-y-2">
-              <Label className="text-sm font-bold text-slate-700">Faaliyet Alanı Seçimi</Label>
+              <Label className="text-sm font-bold text-slate-700">Kategori Seçimi</Label>
               <p className="text-[11px] text-slate-400 mb-2">Hangi alanların tanıtımını göndermek istiyorsunuz? Seçim değiştikçe e-posta içeriği otomatik güncellenir.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {allSectors.map((sector: any) => {
@@ -1749,7 +1749,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                           // Rebuild email body
                           const selectedSectors = allSectors.filter((s: any) => newIds.includes(s.id));
                           const authorizedPerson = agency.authorizedPerson || "Yetkili";
-                          let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız faaliyet alanı çözümlerimizi bilgilerinize sunarız.\n`;
+                          let body = `Sayın ${authorizedPerson},\n\nDeğerli iş ortağımız ${agency.companyName} için hazırladığımız kategori çözümlerimizi bilgilerinize sunarız.\n`;
                           if (selectedSectors.length > 0) {
                             selectedSectors.forEach((s: any) => {
                               body += `\n━━━ ${s.name.toUpperCase()} ━━━\n`;
@@ -1791,8 +1791,8 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
               {allSectors.length === 0 && (
                 <div className="text-center py-6 bg-amber-50 rounded-xl border border-amber-200">
                   <AlertTriangle size={20} className="mx-auto text-amber-500 mb-2" />
-                  <p className="text-xs text-amber-700 font-bold">Henüz faaliyet alanı tanımlanmamış.</p>
-                  <p className="text-[10px] text-amber-600 mt-1">Ayarlar → Faaliyet Alanları bölümünden oluşturun.</p>
+                  <p className="text-xs text-amber-700 font-bold">Henüz kategori tanımlanmamış.</p>
+                  <p className="text-[10px] text-amber-600 mt-1">Ayarlar → Kategoriler bölümünden oluşturun.</p>
                 </div>
               )}
             </div>
@@ -1838,7 +1838,7 @@ export function AgencyDetailClient({ agency, categories = [], notes, conversatio
                 className="rounded-xl min-h-[240px] font-mono text-sm"
               />
               <p className="text-[10px] text-slate-400">
-                Faaliyet alanı seçiminize göre ön yazılar, referanslar otomatik birleştirilmiştir. Göndermeden önce dilediğiniz gibi düzenleyebilirsiniz.
+                Kategori seçiminize göre ön yazılar, referanslar otomatik birleştirilmiştir. Göndermeden önce dilediğiniz gibi düzenleyebilirsiniz.
               </p>
             </div>
           </div>

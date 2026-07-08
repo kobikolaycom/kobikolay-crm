@@ -254,13 +254,13 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
     
     if (selectedSectors.length > 0) {
       const coverLettersText = selectedSectors
-        .map(s => `[${s.name} Faaliyet Alanı]\n${s.coverLetter || ""}`)
+        .map(s => `[${s.name} Kategori]\n${s.coverLetter || ""}`)
         .filter(Boolean)
         .join("\n\n");
         
-      mergedLetter = `Değerli İş Ortağımız,\n\nFirmamızın size özel faaliyet alanı çözümlerini aşağıda bulabilirsiniz:\n\n${coverLettersText}\n\nSaygılarımızla,\nKobiKolay Ekibi`;
+      mergedLetter = `Değerli İş Ortağımız,\n\nFirmamızın size özel kategori çözümlerini aşağıda bulabilirsiniz:\n\n${coverLettersText}\n\nSaygılarımızla,\nKobiKolay Ekibi`;
     } else {
-      mergedLetter = "Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız faaliyet alanı çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi";
+      mergedLetter = "Sayın Yetkili,\n\nDeğerli iş ortağımız için hazırladığımız kategori çözümlerimizi incelemenizi rica ederiz.\n\nSaygılarımızla,\nKobiKolay Ekibi";
     }
     
     setCoverLetter(mergedLetter);
@@ -616,7 +616,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           }}
         />
 
-        {/* Sector (Faaliyet Alanı) filter */}
+        {/* Sector (Kategori) filter */}
         <Select
           value={initialCategoryId || "all"}
           onValueChange={(value) => {
@@ -633,11 +633,11 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
           <SelectTrigger className="w-[180px] rounded-xl text-xs h-9">
             <div className="flex items-center gap-1.5">
               <Building2 size={14} className="text-muted-foreground shrink-0" />
-              <SelectValue placeholder="Faaliyet Alanı" />
+              <SelectValue placeholder="Kategori" />
             </div>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tüm Faaliyet Alanları</SelectItem>
+            <SelectItem value="all">Tüm Kategoriler</SelectItem>
             {categories.map((sec: any) => (
               <SelectItem key={sec.id} value={sec.id}>
                 {sec.name}
@@ -1002,7 +1002,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
                   </span>
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Yetkili</th>
-                <th className="text-left px-4 py-3 font-semibold text-slate-600">Faaliyet Alanları</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Kategoriler</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Durum</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Son Mail</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">Etkileşim</th>
@@ -1303,7 +1303,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
             <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
               {/* Sector Checkboxes */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold">Gönderilecek Faaliyet Alanları</Label>
+                <Label className="text-sm font-semibold">Gönderilecek Kategoriler</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {categories.map((s: any) => {
                     const isChecked = selectedCategoryId.includes(s.id);
@@ -1466,13 +1466,13 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
 
             {/* Sector Assignment */}
             <div className="space-y-2">
-              <Label>Faaliyet Alanı Ataması (isteğe bağlı)</Label>
+              <Label>Kategori Ataması (isteğe bağlı)</Label>
               <Select value={importCategoryId} onValueChange={setImportCategoryId} disabled={importing}>
                 <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Faaliyet alanı seçin..." />
+                  <SelectValue placeholder="Kategori seçin..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Faaliyet alanı atama</SelectItem>
+                  <SelectItem value="none">Kategori atama</SelectItem>
                   {categories.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -1709,7 +1709,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
               </div>
 )}
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
+                <Label className="text-sm font-semibold">Kategoriler</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {categories.map((s: any) => {
                     const isChecked = newCategoryId.includes(s.id);
@@ -1860,7 +1860,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
               </div>
 )}
               <div className="space-y-2 md:col-span-2">
-                <Label className="text-sm font-semibold">Faaliyet Alanları</Label>
+                <Label className="text-sm font-semibold">Kategoriler</Label>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   {categories.map((s: any) => {
                     const isChecked = editCategoryId.includes(s.id);
