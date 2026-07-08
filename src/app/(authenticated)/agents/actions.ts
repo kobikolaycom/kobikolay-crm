@@ -322,3 +322,12 @@ export async function updateAgencyAction(
   return { success: true };
 }
 
+
+
+export async function bulkDeleteAgenciesAction(ids: string[]) {
+  if (!ids || ids.length === 0) return;
+  await prisma.agency.deleteMany({
+    where: { id: { in: ids } }
+  });
+  revalidatePath("/agents");
+}

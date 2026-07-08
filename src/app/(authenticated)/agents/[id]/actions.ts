@@ -257,3 +257,13 @@ export async function sendAgencyPitchAction(data: {
   return { success: true };
 }
 
+
+
+export async function updateAgencyCategoryAction(id: string, categoryId: string | null) {
+  await prisma.agency.update({
+    where: { id },
+    data: { categoryId: categoryId && categoryId !== "none" ? categoryId : null }
+  });
+  revalidatePath(`/agents/${id}`);
+  revalidatePath("/agents");
+}

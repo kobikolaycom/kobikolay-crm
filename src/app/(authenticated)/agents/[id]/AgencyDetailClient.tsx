@@ -41,6 +41,7 @@ import {
   addNoteAction,
   updateAgencyStatusAction,
   updateAgencyAuthorizedPersonAction,
+  updateAgencyCategoryAction,
   getActiveUsersForAssignAction,
   createAgencyConversationAction,
   addAgencyMessageAction,
@@ -132,6 +133,7 @@ interface Conversation {
 
 interface AgencyDetailClientProps {
   agency: any;
+  categories: any[];
   notes: any[];
   conversations: Conversation[];
   activeIntegrations?: {
@@ -182,7 +184,8 @@ export function AgencyDetailClient({ agency, notes, conversations: initialConver
   const [completionNote, setCompletionNote] = useState("");
 
   // ─── Omnichannel Hub State ───
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
+  const [conversations,
+  categories = [], setConversations] = useState<Conversation[]>(initialConversations);
   const [hubChannel, setHubChannel] = useState<ChannelType | "ALL">("ALL");
   const [hubSearch, setHubSearch] = useState("");
   const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);

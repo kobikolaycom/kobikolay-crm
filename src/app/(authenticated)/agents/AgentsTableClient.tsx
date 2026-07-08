@@ -116,6 +116,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
 
   // Reset Batch Upload State
   const [showResetConfirmDialog, setShowResetConfirmDialog] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   // Delete Agency State
@@ -550,13 +551,25 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
             <RefreshCw size={16} /> <span className="hidden sm:inline">Test Verisini Sıfırla</span><span className="sm:hidden">Sıfırla</span>
           </Button>
           {selectedIds.length > 0 && (
-            <Button
-              onClick={openBulkSendModal}
-              className="gap-1.5 rounded-xl text-xs sm:text-sm"
-            >
-              <Send size={16} />
-              {selectedIds.length} <span className="hidden sm:inline">Acenteye Tanıtım Gönder</span><span className="sm:hidden">Gönder</span>
-            </Button>
+            
+            <>
+              <Button
+                variant="destructive"
+                onClick={() => setShowBulkDeleteConfirm(true)}
+                className="gap-1.5 rounded-xl text-xs sm:text-sm"
+              >
+                <Trash2 size={16} />
+                <span className="hidden sm:inline">Seçilenleri Sil</span>
+              </Button>
+              <Button
+                onClick={openBulkSendModal}
+                className="gap-1.5 rounded-xl text-xs sm:text-sm"
+              >
+                <Send size={16} />
+                {selectedIds.length} <span className="hidden sm:inline">İşletmeye Tanıtım Gönder</span><span className="sm:hidden">Gönder</span>
+              </Button>
+            </>
+
           )}
         </div>
       </div>

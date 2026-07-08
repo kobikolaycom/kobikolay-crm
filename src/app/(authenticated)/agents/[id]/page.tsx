@@ -2,6 +2,7 @@ import { AgencyService } from "@/services/AgencyService";
 import { notFound } from "next/navigation";
 import { AgencyDetailClient } from "./AgencyDetailClient";
 import prisma from "@/lib/prisma";
+import { BusinessCategoryService } from "@/services/BusinessCategoryService";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export default async function AgencyDetailPage({ params }: PageProps) {
   const notes = conversations.filter((c) => c.channelType === "MANUAL_NOTE");
 
   // Fetch active system settings for integrations
+  const categories = await BusinessCategoryService.list();
   const settings = await prisma.systemSetting.findMany({
     where: {
       category: { in: ["whatsapp", "meta"] }
@@ -43,6 +45,7 @@ export default async function AgencyDetailPage({ params }: PageProps) {
   return (
     <AgencyDetailClient
       agency={JSON.parse(JSON.stringify(agency))}
+      categories={categories}
       notes={JSON.parse(JSON.stringify(notes))}
       conversations={JSON.parse(JSON.stringify(conversations))}
       activeIntegrations={{
