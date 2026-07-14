@@ -21,8 +21,39 @@ export async function dispatchBulkPitchChunkAction(
 
   if (chunk.length === 0) return { done: true, sent: 0 };
 
+  // ── Daily Send Limit Check ──
+  const DAILY_LIMIT = 200;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todaySentCount = await prisma.mailLog.count({
+    where: {
+      sentAt: { gte: todayStart },
+      status: "SENT",
+    },
+  });
+  if (todaySentCount >= DAILY_LIMIT) {
+    throw new Error(
+      `Günlük mail gönderim limitine (${DAILY_LIMIT}) ulaşıldı. Spam riski nedeniyle daha fazla mail gönderilemez. Yarın tekrar deneyebilirsiniz.`
+    );
+  }
+
   const results = [];
   for (const agencyId of chunk) {
+    // ── Deduplication: Skip if a mail was sent to this agency in the last 5 minutes ──
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentMail = await prisma.mailLog.findFirst({
+      where: {
+        agencyId,
+        sentAt: { gte: fiveMinAgo },
+        status: "SENT",
+      },
+    });
+    if (recentMail) {
+      console.warn(`[BulkSend] Skipping agency ${agencyId} — mail already sent within 5 minutes`);
+      results.push({ success: false, error: "Duplicate skipped (5-min cooldown)" });
+      continue;
+    }
+
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
     const result = await PitchService.sendPitch(agencyId, coverLetter, userId, templateId);
     results.push(result);

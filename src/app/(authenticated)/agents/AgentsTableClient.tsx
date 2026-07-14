@@ -234,6 +234,7 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
   const [coverLetter, setCoverLetter] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
+  const sendLockRef = useRef(false); // Synchronous lock to prevent double-click spam
 
   const openBulkSendModal = () => {
     let defaultTpl = templates?.find((t: any) => t.isDefault);
@@ -310,35 +311,39 @@ export function AgentsTableClient({ agencies, categories, users, btkZones, provi
 
   // Bulk Send
   const handleBulkSend = async () => {
+    // Synchronous lock check — prevents double-click / rapid re-entry
+    if (sendLockRef.current) return;
     if (selectedIds.length === 0) return;
+    sendLockRef.current = true; // Lock immediately (synchronous, not batched like setState)
     setIsSending(true);
     setProgress(0);
 
-    const chunkSize = 1;
-    const totalChunks = selectedIds.length;
+    // Snapshot the IDs to send so subsequent state changes don't affect the loop
+    const idsToSend = [...selectedIds];
+    const totalCount = idsToSend.length;
 
     try {
-      for (let i = 0; i < totalChunks; i++) {
+      for (let i = 0; i < totalCount; i++) {
         await dispatchBulkPitchChunkAction(
-          selectedIds, 
+          idsToSend, 
           coverLetter, 
           i, 
-          chunkSize, 
+          1, // chunkSize = 1 for granular progress
           selectedTemplateId || undefined
         );
-        setProgress(Math.round(((i + 1) / totalChunks) * 100));
+        setProgress(Math.round(((i + 1) / totalCount) * 100));
       }
-      toast.success(`${selectedIds.length} işletmeye tanıtım gönderildi`);
+      toast.success(`${totalCount} işletmeye tanıtım gönderildi`);
       await new Promise(r => setTimeout(r, 800)); // Let the user see 100% progress
       setIsModalOpen(false);
       setSelectedIds([]);
       setProgress(0);
-      // Refresh page to show updated mail status
       router.refresh();
     } catch (error) {
       toast.error("Gönderim sırasında hata oluştu");
     } finally {
       setIsSending(false);
+      sendLockRef.current = false; // Release lock
     }
   };
 
