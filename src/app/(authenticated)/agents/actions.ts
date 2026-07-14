@@ -57,8 +57,15 @@ export async function dispatchBulkPitchChunkAction(
     // PitchService handles everything: greeting, intro, sector blocks, PDFs, sending
     const result = await PitchService.sendPitch(agencyId, coverLetter, userId, templateId);
     results.push(result);
-    // Wait 1 second to reduce spam risk
+    // Wait 1 second between each mail
     await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Every 25 mails, pause for 5 extra seconds to cool down SMTP
+    const sentSoFar = results.filter(r => (r as any).success).length;
+    if (sentSoFar > 0 && sentSoFar % 25 === 0) {
+      console.log(`[BulkSend] Cooling down for 5s after ${sentSoFar} mails...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
   }
 
   revalidatePath("/agents");
