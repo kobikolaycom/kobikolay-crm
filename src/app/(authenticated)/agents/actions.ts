@@ -22,7 +22,7 @@ export async function dispatchBulkPitchChunkAction(
   if (chunk.length === 0) return { done: true, sent: 0 };
 
   // ── Daily Send Limit Check ──
-  const DAILY_LIMIT = 200;
+  const DAILY_LIMIT = 800;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todaySentCount = await prisma.mailLog.count({
@@ -39,18 +39,18 @@ export async function dispatchBulkPitchChunkAction(
 
   const results = [];
   for (const agencyId of chunk) {
-    // ── Deduplication: Skip if a mail was sent to this agency in the last 5 minutes ──
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // ── Deduplication: Skip if a mail was sent to this agency in the last 1 hour ──
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const recentMail = await prisma.mailLog.findFirst({
       where: {
         agencyId,
-        sentAt: { gte: fiveMinAgo },
+        sentAt: { gte: oneHourAgo },
         status: "SENT",
       },
     });
     if (recentMail) {
-      console.warn(`[BulkSend] Skipping agency ${agencyId} — mail already sent within 5 minutes`);
-      results.push({ success: false, error: "Duplicate skipped (5-min cooldown)" });
+      console.warn(`[BulkSend] Skipping agency ${agencyId} — mail already sent within 1 hour`);
+      results.push({ success: false, error: "Duplicate skipped (1-hour cooldown)" });
       continue;
     }
 
